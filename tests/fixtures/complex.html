@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Complex Mixed Fixture</title>
+  <style>
+    body { font-family: system-ui, sans-serif; }
+    main { max-width: 760px; margin: 40px auto; }
+    .card { border: 1px solid #ddd; padding: 16px; margin: 16px 0; }
+    .toolbar, nav { display: flex; gap: 10px; }
+    pre { background: #f6f8fa; padding: 12px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="#overview">Overview</a>
+    <a href="#setup">Setup</a>
+  </nav>
+  <main>
+    <article>
+      <h1>LLM Translation の reliability guide</h1>
+      <section class="card">
+        <p id="mixed-ja-en">このページでは streaming output と batch queue の挙動を確認します。English terms should still be translated when target language is Japanese.</p>
+        <p>Nested <span>inline text with English and 日本語</span> should be discovered even when the DOM structure is not a simple paragraph.</p>
+      </section>
+      <section class="card">
+        <div>
+          <span id="inline-host">This inline-only container is inside a complex layout and should not be skipped.</span>
+        </div>
+      </section>
+      <pre><code>const shouldStayCode = true;</code></pre>
+      <div class="toolbar">
+        <button>Save</button>
+        <button>Cancel</button>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

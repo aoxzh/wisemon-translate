@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wisemon Side Panel</title>
+  <link rel="stylesheet" href="content_style.css">
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body class="llm-app">
+  <main class="side-root">
+    <header class="side-header">
+      <div>
+        <h1 data-i18n="sidepanel_title">Translate</h1>
+        <p data-i18n="sidepanel_subtitle">Long text workspace</p>
+      </div>
+      <button id="open-options" class="side-icon-btn" title="Settings" aria-label="Settings" data-i18n-title="settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06A1.65 1.65 0 0 0 15 19.4a1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09A1.65 1.65 0 0 0 15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.32.34.62.6.87.25.25.55.45.88.58H21a2 2 0 0 1 0 4h-.12c-.33.13-.63.33-.88.58-.26.25-.46.55-.6.87z"/>
+        </svg>
+      </button>
+    </header>
+
+    <section class="side-card">
+      <label for="source-text" data-i18n="sidepanel_source_label">Source text</label>
+      <div class="side-reader-tools">
+        <input type="file" id="reader-file" accept=".txt,.md,.html,.htm,.pdf,text/plain,text/markdown,text/html,application/pdf">
+        <button id="import-file" class="side-link-btn">Import File</button>
+        <button id="extract-readable" class="side-link-btn">Extract Article</button>
+      </div>
+      <div class="side-reader-meta">
+        <select id="chapter-nav" aria-label="Chapter navigation">
+          <option value="">No chapters</option>
+        </select>
+        <button id="build-chapters" class="side-link-btn">Build Chapters</button>
+        <button id="resume-translate" class="side-link-btn">Resume</button>
+      </div>
+      <textarea id="source-text" rows="10" placeholder="Paste text to translate..." data-i18n-placeholder="sidepanel_source_placeholder"></textarea>
+      <div class="side-actions">
+        <select id="target-lang">
+          <option value="zh-CN" data-i18n="lang_zh-CN">Chinese</option>
+          <option value="en" data-i18n="lang_en">English</option>
+          <option value="ja" data-i18n="lang_ja">Japanese</option>
+          <option value="ko" data-i18n="lang_ko">Korean</option>
+          <option value="fr" data-i18n="lang_fr">French</option>
+          <option value="de" data-i18n="lang_de">German</option>
+          <option value="es" data-i18n="lang_es">Spanish</option>
+        </select>
+        <button id="translate-text" class="side-primary" data-i18n="sidepanel_title">Translate</button>
+        <button id="stop-translate" class="side-link-btn" disabled>Stop</button>
+      </div>
+      <div class="side-progress" id="reader-progress" hidden>
+        <div class="side-progress-bar"><span id="reader-progress-bar"></span></div>
+        <div class="side-progress-text" id="reader-progress-text">0 / 0</div>
+      </div>
+      <div class="side-tools">
+        <button id="use-selection" class="side-link-btn" data-i18n="action_use_selection">Use Selection</button>
+        <button id="use-page" class="side-link-btn" data-i18n="action_use_page">Use Page Text</button>
+        <button id="clear-text" class="side-link-btn" data-i18n="action_clear">Clear</button>
+      </div>
+    </section>
+
+    <section class="side-card side-result-card">
+      <div class="side-result-head">
+        <label data-i18n="sidepanel_result_label">Result</label>
+        <div class="side-result-actions">
+          <button id="toggle-reader-layout" class="side-link-btn">Bilingual</button>
+          <button id="copy-result" class="side-link-btn" data-i18n="action_copy">Copy</button>
+          <button id="save-result" class="side-link-btn">TXT</button>
+          <button id="save-html" class="side-link-btn">HTML</button>
+          <button id="save-markdown" class="side-link-btn">MD</button>
+        </div>
+      </div>
+      <div id="result-text" class="side-result" data-i18n="sidepanel_no_result">No result yet.</div>
+      <div id="reader-result" class="side-reader-result" hidden></div>
+    </section>
+
+    <footer class="side-footer">
+      <button id="clear-history" class="side-link-btn" data-i18n="action_clear_history">Clear History</button>
+      <button id="open-logs" class="side-link-btn" data-i18n="action_open_logs">Open Logs</button>
+    </footer>
+    <section class="side-card side-history-card">
+      <div class="side-result-head">
+        <label data-i18n="sidepanel_history_label">History</label>
+      </div>
+      <div id="history-list" class="side-history"></div>
+    </section>
+  </main>
+
+  <script src="src/lib/i18n.js"></script>
+  <script src="src/lib/i18n-locales/common.js"></script>
+  <script src="src/lib/i18n-locales/options.js"></script>
+  <script src="src/lib/i18n-locales/themes.js"></script>
+  <script src="src/lib/utils.js"></script>
+  <script src="src/lib/logger.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wisemon</title>
+  <link rel="stylesheet" href="content_style.css">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body class="llm-app">
+<div class="popup-root">
+
+  <!-- ===== HEADER ===== -->
+  <div class="pop-header">
+    <div class="pop-brand">
+      <svg class="pop-logo" width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect width="32" height="32" rx="6" fill="#030405"/>
+        <path d="M8 10h9M12.5 7v3M13 10c-.8 3.2-2.4 5.6-5 7.4M9.5 13.2c1.2 1.3 2.5 2.3 4 3M15.5 23l3.2-8 3.3 8M16.6 20h4.8" stroke="url(#popGrad)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <defs><linearGradient id="popGrad" x1="6" y1="6" x2="26" y2="26"><stop stop-color="#00FF85"/><stop offset="1" stop-color="#00D5FF"/></linearGradient></defs>
+      </svg>
+      <div>
+        <div class="pop-title" data-i18n="app_name">Wisemon</div>
+        <div class="pop-subtitle" id="provider-desc">DeepSeek</div>
+      </div>
+    </div>
+    <button id="lang-switch" class="pop-lang-btn" title="Switch UI language" aria-label="Switch UI language" data-i18n-title="lang_switch_toggle">
+      <span id="lang-switch-text">中</span>
+    </button>
+  </div>
+
+  <!-- ===== MAIN ACTION CARD ===== -->
+  <div class="pop-action-card" id="action-card">
+    <div class="pop-status-row">
+      <span class="pop-status-dot" id="status-dot" role="status"></span>
+      <span class="pop-status-label" id="status-text" data-i18n="status_ready">Ready</span>
+    </div>
+    <div class="pop-action-buttons">
+      <button id="btn-translate" class="pop-btn-primary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 8l6 6"/><path d="M4 14l6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="M22 22l-5-10-5 10"/><path d="M14 18h6"/>
+        </svg>
+        <span data-i18n="btn_translate">Translate Page</span>
+      </button>
+      <button id="btn-restore" class="pop-btn-secondary hidden">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+        </svg>
+        <span data-i18n="btn_restore">Restore Original</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="pop-insight-row">
+    <div class="pop-insight">
+      <span class="pop-insight-label" data-i18n="label_engine">Engine</span>
+      <strong id="engine-name">-</strong>
+    </div>
+    <div class="pop-insight">
+      <span class="pop-insight-label" data-i18n="label_mode">Mode</span>
+      <strong id="insight-mode">-</strong>
+    </div>
+    <div class="pop-insight">
+      <span class="pop-insight-label" data-i18n="label_health">Health</span>
+      <strong id="provider-health">-</strong>
+    </div>
+  </div>
+
+  <!-- ===== LANGUAGE BAR ===== -->
+  <div class="pop-lang-bar">
+    <div class="pop-lang-item">
+      <span class="pop-lang-label" data-i18n="target_lang_label">Translate to</span>
+      <select id="target-lang-select" class="pop-select">
+        <option value="zh-CN">简体中文</option>
+        <option value="zh-TW">繁體中文</option>
+        <option value="en">English</option>
+        <option value="ja">日本語</option>
+        <option value="ko">한국어</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+        <option value="es">Español</option>
+        <option value="ru">Русский</option>
+        <option value="pt">Português</option>
+        <option value="ar">العربية</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- ===== DISPLAY MODE SEGMENT ===== -->
+  <div class="pop-segment" role="radiogroup">
+    <button id="mode-bilingual" class="pop-seg-btn active" role="radio" aria-checked="true">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 7h12M4 17h12"/><path d="M17 4l3 3-3 3"/><path d="M7 20l-3-3 3-3"/></svg>
+      <span data-i18n="mode_bilingual">Bilingual</span>
+    </button>
+    <button id="mode-replace" class="pop-seg-btn" role="radio" aria-checked="false">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 7h12"/><path d="M4 17h12"/></svg>
+      <span data-i18n="mode_replace">Translation Only</span>
+    </button>
+  </div>
+
+  <!-- ===== QUICK TOOLS ===== -->
+  <div class="pop-tools">
+    <button id="btn-toggle-mode" class="pop-tool-btn" title="Quick toggle bilingual / translation-only" data-i18n-title="mode_label">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+      </svg>
+      <span id="mode-label">Bilingual</span>
+    </button>
+    <button id="btn-translate-bottom" class="pop-tool-btn" title="Translate all remaining content to page end" data-i18n-title="btn_translate_bottom">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M12 5v14M5 12l7 7 7-7"/>
+      </svg>
+      <span data-i18n="btn_translate_bottom">To Bottom</span>
+    </button>
+    <button id="btn-hover-toggle" class="pop-tool-btn" title="Toggle hover translation on/off" data-i18n-title="shortcut_hover">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5"/><circle cx="12" cy="12" r="1"/>
+      </svg>
+      <span id="hover-toggle-label">Hover</span>
+    </button>
+    <button id="btn-side-panel" class="pop-tool-btn" title="Open long text side panel">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d="M13 8h4M13 12h4M13 16h3"/>
+      </svg>
+      <span data-i18n="label_panel">Panel</span>
+    </button>
+    <button id="open-diagnostics" class="pop-tool-btn" title="Open logs" data-i18n-title="action_open_logs">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg>
+      <span data-i18n="label_logs">Logs</span>
+    </button>
+  </div>
+
+  <!-- ===== SHORTCUTS (clickable) ===== -->
+  <div class="pop-shortcuts" id="shortcuts-bar">
+    <button class="pop-shortcut-btn" id="sc-translate-btn" title="Click to change in browser settings">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M6 16h.01"/></svg>
+      <span class="pop-sc-label" data-i18n="shortcut_translate">Translate</span>
+      <kbd>Alt+T</kbd>
+    </button>
+    <button class="pop-shortcut-btn" id="sc-hover-btn">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5"/></svg>
+      <span class="pop-sc-label" data-i18n="shortcut_hover">Hover</span>
+      <kbd>Alt+H</kbd>
+    </button>
+  </div>
+
+  <!-- ===== FOOTER ===== -->
+  <div class="pop-footer">
+    <button id="link-options" class="pop-footer-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+      <span data-i18n="settings">Settings</span>
+    </button>
+    <span class="pop-version" id="app-version">v1.0.0</span>
+  </div>
+
+</div>
+<script src="src/lib/i18n.js"></script>
+<script src="src/lib/i18n-locales/common.js"></script>
+<script src="src/lib/i18n-locales/options.js"></script>
+<script src="src/lib/i18n-locales/themes.js"></script>
+<script src="src/lib/utils.js"></script>
+<script src="src/lib/providers.js"></script>
+<script src="src/lib/logger.js"></script>
+<script src="src/lib/batch-queue.js"></script>
+<script src="src/lib/site-rules.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>

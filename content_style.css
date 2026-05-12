@@ -1,0 +1,443 @@
+/**
+ * Wisemon - Design Tokens & Content Styles
+ * Unified design token system powering all UI surfaces (popup, options, content overlay).
+ * =============================================================================
+ */
+
+/* =========================== DESIGN TOKENS =========================== */
+:root {
+  /* ---- Neutral Palette (0-100 scale) ---- */
+  --t-00: #FFFFFF; --t-05: #F7F8FA; --t-10: #EFF1F4; --t-15: #E2E6EA;
+  --t-20: #D4D9DF; --t-30: #BAC2CC; --t-40: #98A2AE; --t-50: #747F8C;
+  --t-60: #5C6672; --t-70: #3C444D; --t-80: #242A30; --t-90: #151A1F;
+  --t-95: #0D1115; --t-98: #07090C; --t-100: #030405;
+
+  /* ---- Primary Brand ---- */
+  --p-main: #00FF85;
+  --p-main-rgb: 0, 255, 133;
+  --p-hover: #39FFA1;
+  --p-active: #00D873;
+  --p-light: rgba(0, 255, 133, 0.12);
+  --p-weak: rgba(0, 255, 133, 0.06);
+  --p-glow: 0 0 0 3px rgba(0, 255, 133, 0.22);
+  --p-gradient: linear-gradient(135deg, #00FF85 0%, #00D5FF 100%);
+  --p-gradient-hover: linear-gradient(135deg, #39FFA1 0%, #37E2FF 100%);
+
+  /* ---- Semantic Colors ---- */
+  --s-success: #00FF85; --s-success-rgb: 0, 255, 133;
+  --s-warning: #FFB020; --s-warning-rgb: 255, 176, 32;
+  --s-error: #FF5C48;   --s-error-rgb: 255, 92, 72;
+  --s-info: #00D5FF;    --s-info-rgb: 0, 213, 255;
+
+  /* ---- Semantic Backgrounds ---- */
+  --s-success-bg: rgba(0, 255, 133, 0.10);
+  --s-warning-bg: rgba(255, 176, 32, 0.12);
+  --s-error-bg: rgba(255, 92, 72, 0.10);
+  --s-info-bg: rgba(0, 213, 255, 0.10);
+
+  /* ---- Surface Mapping (dark tech default) ---- */
+  --s-1: var(--t-95);     /* Primary surface (card, popup bg) */
+  --s-2: var(--t-98);     /* Secondary surface (page bg) */
+  --s-3: var(--t-90);     /* Tertiary surface (hover states) */
+
+  /* ---- Text Colors ---- */
+  --text-primary: var(--t-00);
+  --text-secondary: var(--t-30);
+  --text-muted: var(--t-50);
+  --text-inverse: var(--t-100);
+
+  /* ---- Borders ---- */
+  --border-default: rgba(255, 255, 255, 0.10);
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --border-focus: rgba(var(--p-main-rgb), 0.55);
+
+  /* ---- Radii ---- */
+  --r-xs: 3px; --r-sm: 6px; --r-md: 8px; --r-lg: 10px; --r-xl: 12px;
+  --r-pill: 9999px;
+
+  /* ---- Shadows ---- */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.28);
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.22);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.28);
+  --shadow-lg: 0 16px 44px rgba(0, 0, 0, 0.34);
+  --shadow-xl: 0 24px 72px rgba(0, 0, 0, 0.42);
+  --shadow-primary: 0 8px 22px rgba(0, 255, 133, 0.20);
+  --shadow-primary-hover: 0 10px 28px rgba(0, 255, 133, 0.28);
+
+  /* ---- Spacing ---- */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px;
+
+  /* ---- Typography ---- */
+  --font-family: "Segoe UI Variable Text", "Segoe UI", "Inter", "PingFang SC", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Microsoft YaHei UI", "Noto Sans SC", "Noto Sans JP", "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", "Cascadia Code", "Consolas", "Liberation Mono", "Noto Sans Mono", monospace;
+  --font-size-xs: 11px; --font-size-sm: 12px; --font-size-base: 13px;
+  --font-size-md: 14px; --font-size-lg: 16px; --font-size-xl: 20px; --font-size-2xl: 24px;
+  --font-weight-normal: 450; --font-weight-medium: 550; --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-tight: 1.25; --line-height-normal: 1.5; --line-height-relaxed: 1.65;
+
+  /* ---- Transitions ---- */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 150ms; --duration-normal: 200ms; --duration-slow: 300ms;
+
+  /* ---- Misc ---- */
+  --blur-sm: 8px; --blur-md: 16px;
+}
+
+/* =========================== DARK THEME =========================== */
+/* Explicit dark class override */
+.t-dark {
+  --s-1: var(--t-95);
+  --s-2: var(--t-98);
+  --s-3: var(--t-90);
+
+  --text-primary: var(--t-05);
+  --text-secondary: var(--t-30);
+  --text-muted: var(--t-50);
+
+  --border-default: rgba(255, 255, 255, 0.10);
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.18);
+
+  --p-main: #00FF85;
+  --p-main-rgb: 0, 255, 133;
+  --p-hover: #39FFA1;
+  --p-active: #00D873;
+  --p-light: rgba(0, 255, 133, 0.12);
+  --p-weak: rgba(0, 255, 133, 0.06);
+  --p-glow: 0 0 0 3px rgba(0, 255, 133, 0.22);
+  --p-gradient: linear-gradient(135deg, #00FF85 0%, #00D5FF 100%);
+  --p-gradient-hover: linear-gradient(135deg, #39FFA1 0%, #37E2FF 100%);
+
+  --s-success: #00FF85;
+  --s-error: #FF5C48;
+  --s-warning: #FFB020;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.12);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.18);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.24);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.32);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.4);
+  --shadow-primary: 0 8px 22px rgba(0, 255, 133, 0.20);
+  --shadow-primary-hover: 0 10px 28px rgba(0, 255, 133, 0.28);
+}
+
+/* Automatic dark mode via system preference — only when .t-light is NOT applied */
+@media (prefers-color-scheme: dark) {
+  :root:not(.t-light) {
+    --s-1: var(--t-95);
+    --s-2: var(--t-98);
+    --s-3: var(--t-90);
+
+    --text-primary: var(--t-05);
+    --text-secondary: var(--t-30);
+    --text-muted: var(--t-50);
+
+    --border-default: rgba(255, 255, 255, 0.10);
+    --border-subtle: rgba(255, 255, 255, 0.07);
+    --border-strong: rgba(255, 255, 255, 0.18);
+
+    --p-main: #00FF85;
+    --p-main-rgb: 0, 255, 133;
+    --p-hover: #39FFA1;
+    --p-active: #00D873;
+    --p-light: rgba(0, 255, 133, 0.12);
+    --p-weak: rgba(0, 255, 133, 0.06);
+    --p-glow: 0 0 0 3px rgba(0, 255, 133, 0.22);
+    --p-gradient: linear-gradient(135deg, #00FF85 0%, #00D5FF 100%);
+    --p-gradient-hover: linear-gradient(135deg, #39FFA1 0%, #37E2FF 100%);
+
+    --s-success: #00FF85;
+    --s-error: #FF5C48;
+    --s-warning: #FFB020;
+
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.12);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.18);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.24);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.32);
+    --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.4);
+    --shadow-primary: 0 8px 22px rgba(0, 255, 133, 0.20);
+    --shadow-primary-hover: 0 10px 28px rgba(0, 255, 133, 0.28);
+  }
+}
+
+.t-light {
+  --s-1: var(--t-00);
+  --s-2: var(--t-05);
+  --s-3: var(--t-10);
+
+  --text-primary: var(--t-95);
+  --text-secondary: var(--t-60);
+  --text-muted: var(--t-40);
+  --text-inverse: var(--t-100);
+
+  --border-default: var(--t-20);
+  --border-subtle: var(--t-15);
+  --border-strong: var(--t-30);
+
+  --p-light: rgba(0, 210, 110, 0.10);
+  --p-weak: rgba(0, 210, 110, 0.045);
+  --p-glow: 0 0 0 3px rgba(0, 210, 110, 0.18);
+
+  --shadow-xs: 0 1px 2px rgba(3, 4, 5, 0.04);
+  --shadow-sm: 0 4px 14px rgba(3, 4, 5, 0.07);
+  --shadow-md: 0 10px 28px rgba(3, 4, 5, 0.10);
+  --shadow-lg: 0 18px 52px rgba(3, 4, 5, 0.14);
+  --shadow-xl: 0 28px 76px rgba(3, 4, 5, 0.18);
+  --shadow-primary: 0 8px 20px rgba(0, 210, 110, 0.18);
+  --shadow-primary-hover: 0 10px 28px rgba(0, 210, 110, 0.24);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not(.t-dark) {
+    --s-1: var(--t-00);
+    --s-2: var(--t-05);
+    --s-3: var(--t-10);
+
+    --text-primary: var(--t-95);
+    --text-secondary: var(--t-60);
+    --text-muted: var(--t-40);
+    --text-inverse: var(--t-100);
+
+    --border-default: var(--t-20);
+    --border-subtle: var(--t-15);
+    --border-strong: var(--t-30);
+
+    --p-light: rgba(0, 210, 110, 0.10);
+    --p-weak: rgba(0, 210, 110, 0.045);
+    --p-glow: 0 0 0 3px rgba(0, 210, 110, 0.18);
+
+    --shadow-xs: 0 1px 2px rgba(3, 4, 5, 0.04);
+    --shadow-sm: 0 4px 14px rgba(3, 4, 5, 0.07);
+    --shadow-md: 0 10px 28px rgba(3, 4, 5, 0.10);
+    --shadow-lg: 0 18px 52px rgba(3, 4, 5, 0.14);
+    --shadow-xl: 0 28px 76px rgba(3, 4, 5, 0.18);
+    --shadow-primary: 0 8px 20px rgba(0, 210, 110, 0.18);
+    --shadow-primary-hover: 0 10px 28px rgba(0, 210, 110, 0.24);
+  }
+}
+
+/* =========================== RESET & BASE =========================== */
+.llm-app,
+.llm-app *,
+.llm-app *::before,
+.llm-app *::after {
+  margin: 0; padding: 0; box-sizing: border-box;
+}
+
+/* =========================== FORM ELEMENTS =========================== */
+.llm-app select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2398A2AE' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 32px;
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  background-color: var(--s-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
+}
+.llm-app select:hover {
+  border-color: rgba(var(--p-main-rgb), 0.28);
+}
+.llm-app select:focus {
+  border-color: rgba(var(--p-main-rgb), 0.55);
+  box-shadow: var(--p-glow);
+}
+.llm-app select option {
+  background: var(--s-1);
+  color: var(--text-primary);
+  padding: 8px;
+}
+.llm-app input[type="text"],
+.llm-app input[type="url"],
+.llm-app input[type="password"],
+.llm-app input[type="number"],
+.llm-app input[type="search"] {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  background-color: var(--s-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-sm);
+  padding: 9px 12px;
+  outline: none;
+  transition: border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
+  width: 100%;
+  box-sizing: border-box;
+}
+.llm-app input[type="text"]:hover,
+.llm-app input[type="url"]:hover,
+.llm-app input[type="password"]:hover,
+.llm-app input[type="number"]:hover,
+.llm-app input[type="search"]:hover {
+  border-color: rgba(var(--p-main-rgb), 0.28);
+}
+.llm-app input[type="text"]:focus,
+.llm-app input[type="url"]:focus,
+.llm-app input[type="password"]:focus,
+.llm-app input[type="number"]:focus,
+.llm-app input[type="search"]:focus {
+  border-color: rgba(var(--p-main-rgb), 0.55);
+  box-shadow: var(--p-glow);
+}
+.llm-app input[type="range"] {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  cursor: pointer;
+  width: 100%;
+  height: 20px;
+}
+.llm-app input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  background: var(--s-3);
+  border-radius: 3px;
+}
+.llm-app input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  background: var(--p-main);
+  border-radius: 50%;
+  margin-top: -6px;
+  box-shadow: var(--shadow-primary);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+.llm-app input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+.llm-app input[type="range"]::moz-range-track {
+  height: 6px;
+  background: var(--s-3);
+  border-radius: 3px;
+}
+.llm-app input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: var(--p-main);
+  border-radius: 50%;
+  border: none;
+  box-shadow: var(--shadow-primary);
+}
+.llm-app textarea {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  background-color: var(--s-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  line-height: var(--line-height-relaxed);
+}
+.llm-app textarea:hover {
+  border-color: rgba(var(--p-main-rgb), 0.28);
+}
+.llm-app textarea:focus {
+  border-color: rgba(var(--p-main-rgb), 0.55);
+  box-shadow: var(--p-glow);
+}
+.llm-app input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--r-xs);
+  background: var(--s-2);
+  cursor: pointer;
+  position: relative;
+  transition: all var(--duration-fast) var(--ease-out);
+  flex-shrink: 0;
+}
+.llm-app input[type="checkbox"]:checked {
+  background: var(--p-main);
+  border-color: var(--p-main);
+}
+.llm-app input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 6px;
+  height: 10px;
+  border: solid var(--text-inverse);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.llm-app input[type="checkbox"]:hover {
+  border-color: rgba(var(--p-main-rgb), 0.4);
+}
+.llm-app input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--border-default);
+  border-radius: 50%;
+  background: var(--s-2);
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+.llm-app input[type="radio"]:checked {
+  border-color: var(--p-main);
+}
+.llm-app input[type="radio"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--p-main);
+}
+
+/* ---- Popup / Options body base ---- */
+body.llm-app {
+  background: var(--s-2);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: var(--font-family);
+}
+
+/* =========================== ACCESSIBILITY =========================== */
+/* Focus-visible rings on all interactive elements */
+.llm-app button:focus-visible,
+.llm-app input:focus-visible,
+.llm-app select:focus-visible,
+.llm-app textarea:focus-visible,
+.llm-app a:focus-visible {
+  outline: 2px solid var(--p-main);
+  outline-offset: 2px;
+}
+
+/* =========================== REDUCED MOTION =========================== */
+@media (prefers-reduced-motion: reduce) {
+  .llm-app *,
+  .llm-app *::before,
+  .llm-app *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

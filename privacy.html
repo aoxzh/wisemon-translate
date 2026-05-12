@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wisemon Privacy</title>
+  <link rel="stylesheet" href="content_style.css">
+  <style>
+    body.llm-app {
+      font-family: var(--font-family);
+      padding: 32px;
+      line-height: 1.65;
+    }
+    main {
+      max-width: 760px;
+      margin: 0 auto;
+      background: var(--s-1);
+      border: 1px solid var(--border-default);
+      border-radius: var(--r-md);
+      padding: 32px;
+      box-shadow: var(--shadow-sm);
+    }
+    h1 { font-size: var(--font-size-2xl); margin-bottom: 12px; }
+    h2 { font-size: var(--font-size-lg); margin-top: 24px; margin-bottom: 8px; }
+    p, li { color: var(--text-secondary); }
+    ul { padding-left: 20px; }
+  </style>
+</head>
+<body class="llm-app">
+  <main>
+    <h1>Privacy Policy</h1>
+    <p>Wisemon sends text only to the translation API endpoint you configure. The extension does not operate a relay server.</p>
+
+    <h2>Stored Data</h2>
+    <ul>
+      <li>API settings and keys are stored in browser extension storage.</li>
+      <li>Translation cache and logs are stored locally in the browser.</li>
+      <li>You can export, import, clear cache, and clear logs from Settings.</li>
+    </ul>
+
+    <h2>Sensitive Data Masking</h2>
+    <p>When privacy masking is enabled, emails, phone numbers, bank card numbers, and common key or secret patterns are replaced with placeholders before translation requests and restored after the response.</p>
+
+    <h2>Network Requests</h2>
+    <p>Translation requests go directly from your browser to your configured provider, such as DeepSeek, OpenAI, Ollama, or a custom OpenAI-compatible endpoint.</p>
+  </main>
+</body>
+</html>

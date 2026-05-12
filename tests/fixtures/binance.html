@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Binance-like fixture</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; color: #1e2329; }
+    header, nav { padding: 12px 24px; background: #181a20; color: #f0b90b; }
+    main { display: grid; grid-template-columns: 1fr 320px; gap: 24px; padding: 24px; }
+    article { max-width: 760px; line-height: 1.6; }
+    .trade-panel, .orderbook, .wallet-balance, .price-ticker, .chart-container {
+      border: 1px solid #eaecef; border-radius: 6px; padding: 12px; margin-bottom: 12px;
+    }
+    .buy-button, .sell-button { display: inline-block; padding: 8px 16px; color: white; border-radius: 4px; }
+    .buy-button { background: #0ecb81; }
+    .sell-button { background: #f6465d; }
+  </style>
+</head>
+<body>
+  <header>Binance</header>
+  <nav>Markets Trade Futures Earn Wallet</nav>
+  <main>
+    <article class="article-content">
+      <h1>Understanding spot trading risks</h1>
+      <p>Spot trading lets users buy and sell digital assets at the current market price.</p>
+      <p>Before placing an order, users should understand volatility, liquidity, and the difference between market orders and limit orders.</p>
+      <p>Always review the risk warning and make sure the selected network matches the deposit address.</p>
+    </article>
+    <aside>
+      <section class="price-ticker" data-testid="price-ticker">
+        BTCUSDT 64,321.20 +1.23%
+      </section>
+      <section class="chart-container" data-testid="chart-panel">
+        <canvas width="300" height="160"></canvas>
+        1m 5m 15m 1h 4h 1d
+      </section>
+      <section class="orderbook" data-testid="orderbook">
+        <h2>Order Book</h2>
+        <div>64,321.20 0.582 BTC</div>
+        <div>64,320.10 1.204 BTC</div>
+      </section>
+      <section class="trade-panel" data-testid="trade-panel">
+        <h2>Spot</h2>
+        <label>Price <input value="64321.20"></label>
+        <label>Amount <input value="0.01"></label>
+        <button class="buy-button" aria-label="Buy BTC">Buy BTC</button>
+        <button class="sell-button" aria-label="Sell BTC">Sell BTC</button>
+      </section>
+      <section class="wallet-balance" data-testid="wallet-balance">
+        Estimated Balance 2.451 BTC
+      </section>
+    </aside>
+  </main>
+</body>
+</html>

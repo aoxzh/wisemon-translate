@@ -1,0 +1,16 @@
+{
+  "name": "wisemon-translate",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "validate": "node tools/validate.js",
+    "test:e2e": "playwright test",
+    "package": "node tools/package-extension.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.2"
+  },
+  "dependencies": {
+    "pdfjs-dist": "^5.7.284"
+  }
+}

@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Build / distribution artifacts
+dist/
+
+# Test artifacts
+test-results/
+
+# Local IDE / tool configs
+.claude/
+
+# Environment / secrets
+.env
+.env.*
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Internal development documents (not for public repo)
+DEVELOPMENT_PLAN.md
+PRD.md
+docs/
+
+# Optional: package-lock.json can be committed for reproducible builds,
+# but if you prefer not to, uncomment the next line:
+# package-lock.json
