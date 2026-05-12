@@ -170,8 +170,6 @@
           if (remaining.length > 0) fn.scheduleProcessViewBatch(remaining);
         }
         return { success: true };
-      case 'ocr-image':
-        return await fn.handleOcrImage(request.imageUrl);
     }
     return { error: 'Unknown action' };
   }

@@ -5,7 +5,7 @@
 **AI 双语网页翻译扩展 · 直连大模型 · 隐私优先**  
 **AI Bilingual Web Translator · Direct LLM Connection · Privacy First**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue)](./manifest.json)
+[![Version](https://img.shields.io/badge/version-1.0.1-blue)](./manifest.json)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 [![Chrome](https://img.shields.io/badge/Chrome-MV3-4285F4?logo=googlechrome&logoColor=white)](./manifest.json)
 [![Firefox](https://img.shields.io/badge/Firefox-MV3-FF7139?logo=firefoxbrowser&logoColor=white)](./manifest-firefox.json)
@@ -30,7 +30,6 @@ Wisemon is a free, open-source browser extension for high-quality bilingual web 
 - **Site-Specific Rules** — Built-in rules for Amazon, Binance, GitHub, MDN, Vue/VitePress, YouTube, and more. Skips prices, trading panels, and code blocks automatically.
 - **Side Panel Reader** — Paste long text, extract page content, or import TXT / HTML / PDF. Translate in segments, resume interrupted work, and export to TXT / HTML / Markdown.
 - **Video Subtitle Translation (Beta)** — YouTube bilingual subtitle overlay with VTT export. Based on internal `timedtext` API interception; stability depends on YouTube interface changes.
-- **OCR Image Translation (Beta)** — Recognize text in images via Tesseract.js v5 (loaded from jsDelivr CDN at runtime). First use requires network download of language models (~10MB+).
 - **24 Translation Themes** — None, underline, card, highlight, blur reveal (learning mode), and more.
 - **Glossary** — Three levels: regex replacements, structured terms, and AI context terms.
 - **Real-Time Logs** — Built-in diagnostic panel for API requests, errors, and performance metrics.
@@ -112,7 +111,6 @@ npm run package
 | Content Script | Vanilla JS, modular architecture |
 | UI | Vanilla JS + CSS Custom Properties (Design Tokens) |
 | PDF Support | PDF.js |
-| OCR | Tesseract.js v5 (runtime CDN) |
 | Testing | Playwright |
 
 ## Project Structure
@@ -135,7 +133,6 @@ wisemon-translate/
 │   │   ├── content-selection.js
 │   │   ├── content-input.js
 │   │   ├── content-subtitle.js      # YouTube subtitle (Beta)
-│   │   ├── content-ocr.js           # Tesseract.js OCR (Beta)
 │   │   ├── content-fab.js
 │   │   ├── content-ui.js
 │   │   ├── content-glossary.js
@@ -165,6 +162,7 @@ wisemon-translate/
 - Your API key is stored in the browser's `chrome.storage.local / sync` only. Never written to extension files. Never uploaded.
 - Sensitive data masking is supported: emails, phone numbers, credit cards, verification codes, private keys, and URLs are automatically masked before being sent to the LLM, then restored after translation.
 - This project contains **zero tracking, zero analytics, and zero backend services**.
+- Wisemon v1 does **not** load remote JavaScript at runtime. OCR/image translation is intentionally deferred until the OCR engine and models can be packaged locally for extension-store review.
 
 ## License
 
@@ -202,7 +200,6 @@ Wisemon 是一款免费开源的浏览器扩展，基于大语言模型实现高
 - **站点智能规则** — 内置 Amazon、Binance、GitHub、MDN、Vue/VitePress、YouTube 等站点规则，自动识别正文区、跳过价格/交易/代码块。
 - **侧边栏阅读器** — 支持粘贴长文、提取网页正文、导入 TXT / HTML / PDF，分段翻译、断点续翻，导出 TXT / HTML / Markdown。
 - **视频字幕翻译（Beta）** — YouTube 双语字幕实时叠加，支持 VTT 导出。基于 YouTube 内部 `timedtext` API 拦截实现，稳定性取决于 YouTube 接口变更。
-- **OCR 图片翻译（Beta）** — 基于 Tesseract.js v5 识别图片文字后翻译。Tesseract.js 在运行时从 jsDelivr CDN 加载，首次使用需联网下载语言模型（约 10MB+）。
 - **24 种翻译主题** — 无样式、下划线、卡片、高亮、模糊学习模式（Blur Reveal）等。
 - **术语表** — 正则替换、结构化术语、AI Context 术语三级自定义。
 - **实时日志** — 内置诊断面板，查看 API 请求、错误详情与性能数据。
@@ -284,7 +281,6 @@ npm run package
 | 内容脚本 | Vanilla JS，模块化架构 |
 | 界面 | Vanilla JS + CSS Custom Properties（设计令牌） |
 | PDF 支持 | PDF.js |
-| OCR | Tesseract.js v5（运行时 CDN 加载） |
 | 测试 | Playwright |
 
 ### 项目结构
@@ -307,7 +303,6 @@ wisemon-translate/
 │   │   ├── content-selection.js
 │   │   ├── content-input.js
 │   │   ├── content-subtitle.js      # YouTube 字幕（Beta）
-│   │   ├── content-ocr.js           # Tesseract.js OCR（Beta）
 │   │   ├── content-fab.js
 │   │   ├── content-ui.js
 │   │   ├── content-glossary.js

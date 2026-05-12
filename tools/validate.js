@@ -27,7 +27,6 @@ const MESSAGE_FILES = [
   'src/content/content-observers.js',
   'src/content/content-input.js',
   'src/content/content-subtitle.js',
-  'src/content/content-ocr.js',
   'src/content/content-glossary.js',
   'src/content/content-shortcuts.js',
   'src/content/content-selection.js',

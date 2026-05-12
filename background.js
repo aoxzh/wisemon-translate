@@ -97,7 +97,6 @@ const CONTENT_MAIN_FILES = [
   'src/content/content-observers.js',
   'src/content/content-input.js',
   'src/content/content-subtitle.js',
-  'src/content/content-ocr.js',
   'src/content/content-glossary.js',
   'src/content/content-shortcuts.js',
   'src/content/content-ui.js',
@@ -148,11 +147,6 @@ function setupContextMenus() {
       title: typeof I18N !== 'undefined' ? I18N.t('ctx_translate_input') : 'Translate input',
       contexts: ['editable']
     });
-    chrome.contextMenus.create({
-      id: 'ocr-image',
-      title: '🔍 OCR & Translate Image',
-      contexts: ['image']
-    });
   });
 }
 
@@ -168,9 +162,6 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     send({ action: 'translate-selection', text: info.selectionText });
   } else if (info.menuItemId === 'translate-input') {
     send({ action: 'translate-input' });
-  } else if (info.menuItemId === 'ocr-image') {
-    const imageUrl = info.srcUrl || info.linkUrl;
-    if (imageUrl) send({ action: 'ocr-image', imageUrl });
   }
 });
 
@@ -497,24 +488,6 @@ async function handleMessage(request, sender) {
   if (request.action === 'set-state') {
     await setState({ ...(await getState()), ...(request.state || {}) });
     return { success: true };
-  }
-
-  // ---- Fetch image (for OCR CORS bypass) ----
-  if (request.action === 'fetch-image') {
-    try {
-      const resp = await fetch(request.url);
-      const blob = await resp.blob();
-      const dataUrl = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.onerror = () => reject(new Error('Failed to read image blob'));
-        reader.readAsDataURL(blob);
-      });
-      const base64 = dataUrl.split(',')[1];
-      return { data: base64 };
-    } catch(e) {
-      return { error: e.message };
-    }
   }
 
   // ---- Logs (read directly from storage for cross-context consistency) ----
