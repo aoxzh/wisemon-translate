@@ -27,16 +27,16 @@
   if (typeof importScripts === 'function') {
     try {
       importScripts.apply(null, LIBS);
-      console.log('[Wisemon] Libraries loaded via importScripts');
+      console.log('[wisemon-translate] Libraries loaded via importScripts');
     } catch (e) {
-      console.error('[Wisemon] importScripts FAILED:', e.message);
+      console.error('[wisemon-translate] importScripts FAILED:', e.message);
       // Try individual loads for debugging
       LIBS.forEach(f => {
         try { importScripts(f); } catch (e2) { console.error('  Failed:', f, e2.message); }
       });
     }
   } else {
-    console.log('[Wisemon] importScripts not available — libraries must be preloaded');
+    console.log('[wisemon-translate] importScripts not available — libraries must be preloaded');
   }
 })();
 
@@ -526,7 +526,7 @@ async function handleMessage(request, sender) {
 }
 
 init().catch(err => {
-  console.error('[Wisemon] Service worker init failed:', err.message || err);
+  console.error('[wisemon-translate] Service worker init failed:', err.message || err);
 });
 
 chrome.runtime.onInstalled.addListener(async (details) => {

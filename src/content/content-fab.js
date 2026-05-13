@@ -8,7 +8,7 @@
     const fabElement = document.createElement('div');
     fabElement.id = 'llm-fab';
     fabElement.innerHTML = `
-      <button id="llm-fab-main" title="Wisemon">T<span id="llm-fab-progress"></span></button>
+      <button id="llm-fab-main" title="wisemon-translate">T<span id="llm-fab-progress"></span></button>
       <div id="llm-fab-menu">
         <button id="llm-fab-translate" title="Translate Page">TP</button>
         <button id="llm-fab-restore" title="Restore Original">RO</button>

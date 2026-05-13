@@ -72,7 +72,7 @@ async function getSettings() {
     const result = await chrome.storage.sync.get(STORAGE_KEYS.SETTINGS);
     return { ...DEFAULT_SETTINGS, ...(result[STORAGE_KEYS.SETTINGS] || {}) };
   } catch (e) {
-    console.warn('[Wisemon] storage.sync failed, falling back to local:', e);
+    console.warn('[wisemon-translate] storage.sync failed, falling back to local:', e);
     const result = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
     return { ...DEFAULT_SETTINGS, ...(result[STORAGE_KEYS.SETTINGS] || {}) };
   }

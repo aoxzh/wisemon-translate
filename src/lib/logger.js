@@ -108,7 +108,7 @@
       const fn = level === 'ERROR' ? console.error :
                  level === 'WARN'  ? console.warn  : console.log;
       const dataStr = entry.data ? ' ' + entry.data : '';
-      fn(`[Wisemon][${entry.time}][${level}][${tag}] ${message}${dataStr}`);
+      fn(`[wisemon-translate][${entry.time}][${level}][${tag}] ${message}${dataStr}`);
     }
 
     // Queue for storage persistence

@@ -1,13 +1,13 @@
 (function() {
   const part = {
   "app_name": {
-    "en": "Wisemon",
-    "zh-CN": "LLM 翻译",
-    "ja": "LLM 翻訳",
-    "ko": "LLM 번역",
-    "de": "LLM Übersetzer",
-    "fr": "LLM Traduction",
-    "es": "LLM Traductor"
+    "en": "wisemon-translate",
+    "zh-CN": "wisemon-translate",
+    "ja": "wisemon-translate",
+    "ko": "wisemon-translate",
+    "de": "wisemon-translate",
+    "fr": "wisemon-translate",
+    "es": "wisemon-translate"
   },
   "app_desc": {
     "en": "AI-powered bilingual translation",

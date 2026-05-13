@@ -1,11 +1,13 @@
 {
   "name": "wisemon-translate",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "scripts": {
     "validate": "node tools/validate.js",
     "test:e2e": "playwright test",
-    "package": "node tools/package-extension.js"
+    "package": "node tools/package-extension.js",
+    "icons": "node tools/generate-icons.js",
+    "screenshots": "node tools/generate-screenshots.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.54.2"
