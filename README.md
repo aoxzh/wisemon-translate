@@ -20,10 +20,12 @@ wisemon-translate is an open-source browser extension for bilingual reading. It 
 
 ### Highlights
 
-- Page translation with bilingual and translation-only display modes.
+- Page translation with layout-safe bilingual and translation-only display modes.
+- Compact navigation, buttons, and menus are protected in bilingual mode to avoid breaking page layouts.
+- Focused translation styles: Clean, Subtle Background, Divider Line, and Card.
 - Side panel reader for pasted long text, TXT / HTML / PDF import, resumable segment translation, and HTML / Markdown export.
-- YouTube subtitle translation overlay with VTT export.
-- Bring your own provider: DeepSeek, OpenAI, Anthropic, Gemini, OpenRouter, Ollama, DeepL, Baidu, Microsoft Translator, Google free translate, or any OpenAI-compatible endpoint.
+- YouTube bilingual subtitle overlay with multiple subtitle styles and VTT export.
+- Bring your own provider: DeepSeek, OpenAI, Anthropic, Gemini, OpenRouter, Ollama, Hunyuan HY-MT, DeepL, Baidu, Microsoft Translator, Google free translate, or any OpenAI-compatible endpoint.
 - Privacy masking for emails, phone numbers, card numbers, verification codes, private keys, and URLs before requests are sent.
 - Local-only settings, cache, and logs.
 
@@ -66,6 +68,45 @@ DeepSeek V4 Flash is the recommended default for low-cost, high-throughput trans
 | Max chars/request | `12000` to `16000` |
 | Concurrency | `4` to `6` |
 | Streaming | `disabled` |
+
+### Page Translation Design
+
+The default bilingual mode is optimized for reading rather than maximum visual decoration. Translation blocks are inserted with safer block-level layout, while tables, list items, and inline text keep inline-safe wrappers. Navigation links, toolbar buttons, menus, and other compact UI text are skipped in bilingual mode so the original page controls remain usable.
+
+Available page translation styles are intentionally limited to:
+
+| Style | Use case |
+|---|---|
+| Clean | Minimal reading with almost no visual noise |
+| Subtle Background | Recommended default for articles and docs |
+| Divider Line | Clear separation without a heavy box |
+| Card | Stronger emphasis for dense pages |
+
+### YouTube Subtitles
+
+YouTube support can translate available timedtext caption tracks into an overlay. Bilingual mode shows original and translated lines together; translation-only mode hides the original. Subtitle styles include Cinema, Classic box, Minimal, Outline, and Paper. Right-click the `T` subtitle button on YouTube to export bilingual VTT captions.
+
+### Free Self-Hosted Option: Hunyuan HY-MT
+
+The Hunyuan HY-MT preset is for users who want to run Tencent's open translation model locally and evaluate whether it is practical for their hardware. The extension does not bundle the model. Start HY-MT yourself with an OpenAI-compatible server such as vLLM or SGLang, then select `Hunyuan HY-MT` in settings.
+
+| Setting | Default value |
+|---|---|
+| API Base URL | `http://localhost:8000/v1` |
+| Model | `hunyuan` |
+| API Key | optional |
+| Max chars/request | `4000` |
+| Concurrency | `1` |
+
+Reality check: this can be free in API cost, but it is not "free like a hosted web API". Users need enough local GPU/VRAM or a rented machine, and page translation latency will depend heavily on their server. It is best treated as an experimental/private option for users who are comfortable running model servers.
+
+Example vLLM-style endpoint test after the server is running:
+
+```bash
+curl http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"hunyuan","messages":[{"role":"user","content":"Translate to Chinese: Hello"}]}'
+```
 
 ### Privacy And Review Notes
 
@@ -139,6 +180,14 @@ DeepSeek V4 Flash 是当前推荐默认模型，适合低成本、高并发的�
 | 单次请求长度 | `12000` 到 `16000` |
 | 并发数 | `4` 到 `6` |
 | 流式输出 | `disabled` |
+
+### 最近更新
+
+- 新增 Hunyuan HY-MT 本地 OpenAI-compatible 预设。扩展不会下载或运行模型，用户需要先自行启动本地 HY-MT 服务，再在设置里选择 `Hunyuan HY-MT`。
+- YouTube 字幕支持双语 / 仅译文模式、多种字幕样式，并可导出双语 VTT。右键点击 YouTube 播放器里的 `T` 字幕按钮即可导出。
+- 网页双语对照改为更稳定的排版插入方式。正文块级译文使用更安全的块级布局，表格、列表、行内文本继续使用行内安全包装。
+- 双语模式会保护导航、按钮、菜单等紧凑 UI，避免出现只剩译文、原文消失或页面控件排版混乱的问题。
+- 翻译样式收敛为 Clean、Subtle Background、Divider Line、Card，减少维护成本并提高视觉一致性。
 
 ### 隐私与审核说明
 

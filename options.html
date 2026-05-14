@@ -173,6 +173,14 @@
           <div class="opt-pc-name">Ollama</div>
           <div class="opt-pc-desc">Local · Private</div>
         </label>
+        <label class="opt-provider-card" data-preset="hunyuan">
+          <input type="radio" name="provider-preset" value="hunyuan">
+          <div class="opt-pc-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16"/><path d="M12 4v16"/><path d="M7 7l10 10"/><path d="M17 7L7 17"/></svg>
+          </div>
+          <div class="opt-pc-name">Hunyuan HY-MT</div>
+          <div class="opt-pc-desc">Free self-hosted MT</div>
+        </label>
         <label class="opt-provider-card" data-preset="custom">
           <input type="radio" name="provider-preset" value="custom">
           <div class="opt-pc-icon">
@@ -300,29 +308,9 @@
         <label for="translationTheme" data-i18n="theme_label">Translation Style</label>
         <select id="translationTheme">
           <option value="none">None (Clean)</option>
-          <option value="underline">Underline</option>
-          <option value="dashedBorder">Dashed Border</option>
-          <option value="solidBorder">Solid Border</option>
-          <option value="dividingLine">Dividing Line</option>
-          <option value="blockquote">Blockquote</option>
+          <option value="subtle">Subtle Background</option>
+          <option value="divider">Divider Line</option>
           <option value="card">Card</option>
-          <option value="paper">Paper (Shadow)</option>
-          <option value="background">Background</option>
-          <option value="highlight">Highlight</option>
-          <option value="marker">Marker</option>
-          <option value="grey">Grey Text</option>
-          <option value="italic">Italic</option>
-          <option value="bold">Bold</option>
-          <option value="weakening">Weakening (Faded)</option>
-          <option value="mask">Mask (Blur - Hover to Reveal)</option>
-          <option value="opacity">Opacity (Hover to Reveal)</option>
-          <option value="wavy">Wavy Underline</option>
-          <option value="nativeUnderline">Native Underline</option>
-          <option value="nativeDashed">Native Dashed</option>
-          <option value="nativeDotted">Native Dotted</option>
-          <option value="thinDashed">Thin Dashed</option>
-          <option value="marker2">Marker Glow</option>
-          <option value="blurReveal">Blur Reveal (Learning)</option>
         </select>
       </div>
       <div class="opt-field">
@@ -401,6 +389,13 @@
           <select id="subtitleMode">
             <option value="bilingual">Bilingual subtitles</option>
             <option value="translation">Translation only</option>
+          </select>
+          <select id="subtitleStyle">
+            <option value="cinema">Cinema</option>
+            <option value="classic">Classic box</option>
+            <option value="minimal">Minimal</option>
+            <option value="outline">Outline</option>
+            <option value="paper">Paper</option>
           </select>
           <input type="number" id="subtitlePosition" min="4" max="30" step="1" placeholder="Bottom %">
           <input type="number" id="subtitleFontSize" min="11" max="24" step="1" placeholder="Font px">

@@ -140,6 +140,11 @@
       event.stopPropagation();
       toggleYouTubeSubtitles();
     });
+    button.addEventListener('contextmenu', function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      downloadYouTubeVtt();
+    });
     host.appendChild(button);
     controls.prepend(host);
     state.button = button;
@@ -158,6 +163,11 @@
     button.addEventListener('click', function(event) {
       event.stopPropagation();
       toggleYouTubeSubtitles();
+    });
+    button.addEventListener('contextmenu', function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      downloadYouTubeVtt();
     });
     document.body.appendChild(button);
     state.button = button;
@@ -653,6 +663,10 @@
   function renderVideoSubtitle(state, original, translated) {
     if (!state.overlay) return;
     const settings = ctx.state.settings || {};
+    const style = normalizeSubtitleStyle(settings.subtitleStyle);
+    state.overlay.classList.remove('llm-subtitle-style-cinema', 'llm-subtitle-style-classic', 'llm-subtitle-style-minimal', 'llm-subtitle-style-outline', 'llm-subtitle-style-paper');
+    state.overlay.classList.add('llm-subtitle-style-' + style);
+    state.overlay.dataset.subtitleMode = settings.subtitleMode === 'translation' ? 'translation' : 'bilingual';
     state.overlay.style.display = (settings.subtitleMode === 'translation' && !translated) ? 'none' : '';
     state.overlay.style.bottom = Math.max(4, Math.min(30, Number(settings.subtitlePosition || 12))) + '%';
     state.overlay.style.fontSize = Math.max(11, Math.min(24, Number(settings.subtitleFontSize || 14))) + 'px';
@@ -663,6 +677,10 @@
       origEl.textContent = original || '';
     }
     if (transEl) transEl.textContent = translated || '';
+  }
+
+  function normalizeSubtitleStyle(style) {
+    return ['cinema', 'classic', 'minimal', 'outline', 'paper'].includes(style) ? style : 'cinema';
   }
 
   function hideVideoSubtitle(video) {

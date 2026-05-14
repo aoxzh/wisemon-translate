@@ -200,6 +200,12 @@ async function checkSmokeTests() {
     if (providers.providerNeedsApiKeyShared('custom')) {
       throw new Error('custom provider should not require an API key');
     }
+    if (providers.getProviderFromPreset('hunyuan') !== 'hunyuan') {
+      throw new Error('Hunyuan provider preset lookup failed');
+    }
+    if (providers.providerNeedsApiKeyShared('hunyuan')) {
+      throw new Error('Hunyuan provider should not require an API key');
+    }
 
     const utils = require(rootPath('src/lib/utils.js'));
     global.DEFAULT_SETTINGS = utils.DEFAULT_SETTINGS;
@@ -210,6 +216,9 @@ async function checkSmokeTests() {
     }
     if (utils.providerNeedsApiKey('google')) {
       throw new Error('google provider should not require an API key');
+    }
+    if (utils.providerNeedsApiKey('hunyuan')) {
+      throw new Error('hunyuan provider should not require an API key');
     }
     if (utils.normalizeProviderLanguage('deepl', 'zh-CN') !== 'ZH') {
       throw new Error('DeepL zh-CN language mapping failed');

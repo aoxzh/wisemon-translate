@@ -34,7 +34,7 @@
     }
     if (sc.toggleStyle && checkCombo(e, sc.toggleStyle)) {
       e.preventDefault();
-      const themes = ['none','underline','dashedBorder','solidBorder','dividingLine','blockquote','card','paper','background','highlight','marker','grey','italic','bold','weakening','mask','opacity','wavy','nativeUnderline','nativeDashed','nativeDotted','thinDashed','marker2','blurReveal'];
+      const themes = ['none','subtle','divider','card'];
       const idx = themes.indexOf(settings.translationTheme || 'none');
       const newTheme = themes[(idx + 1) % themes.length];
       settings.translationTheme = newTheme;

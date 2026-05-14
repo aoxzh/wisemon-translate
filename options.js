@@ -97,6 +97,8 @@ function determinePreset(s) {
     currentPreset = 'anthropic';
   } else if (s.provider === 'ollama') {
     currentPreset = 'ollama';
+  } else if (s.provider === 'hunyuan') {
+    currentPreset = 'hunyuan';
   } else if (s.provider === 'google') {
     currentPreset = 'google';
   } else if (s.provider === 'deepl') {
@@ -138,7 +140,7 @@ function populateFields(s) {
   setVal('targetLang', s.targetLang || 'zh-CN');
   setVal('sourceLang', s.sourceLang || 'auto');
   setVal('displayMode', s.displayMode || 'bilingual');
-  setVal('translationTheme', s.translationTheme || 'none');
+  setVal('translationTheme', normalizeTranslationThemeOption(s.translationTheme));
   setVal('customTranslationCss', s.customTranslationCss || '');
   setVal('maxChars', s.maxCharsPerRequest || 12000);
   setChecked('largeTextMode', s.largeTextMode !== false);
@@ -161,6 +163,7 @@ function populateFields(s) {
   setChecked('enableSelection', s.enableSelection);
   setChecked('enableSubtitle', s.enableSubtitle !== false);
   setVal('subtitleMode', s.subtitleMode || 'bilingual');
+  setVal('subtitleStyle', s.subtitleStyle || 'cinema');
   setVal('subtitlePosition', s.subtitlePosition || 12);
   setVal('subtitleFontSize', s.subtitleFontSize || 14);
   setChecked('autoTranslate', s.autoTranslate);
@@ -354,6 +357,35 @@ function updateProviderCards() {
   });
 }
 
+function normalizeTranslationThemeOption(theme) {
+  if (['none', 'subtle', 'divider', 'card'].includes(theme)) return theme;
+  const legacyMap = {
+    underline: 'subtle',
+    dashedBorder: 'card',
+    solidBorder: 'card',
+    dividingLine: 'divider',
+    blockquote: 'divider',
+    paper: 'card',
+    background: 'subtle',
+    highlight: 'subtle',
+    marker: 'subtle',
+    grey: 'none',
+    italic: 'none',
+    bold: 'none',
+    weakening: 'none',
+    mask: 'none',
+    opacity: 'none',
+    wavy: 'subtle',
+    nativeUnderline: 'subtle',
+    nativeDashed: 'subtle',
+    nativeDotted: 'subtle',
+    thinDashed: 'subtle',
+    marker2: 'subtle',
+    blurReveal: 'none'
+  };
+  return legacyMap[theme] || 'subtle';
+}
+
 function syncProviderCardText() {
   let cards = document.querySelectorAll('.opt-provider-card');
   cards.forEach(function(card) {
@@ -388,7 +420,7 @@ function readSettingsFromUI() {
     targetLang: getVal('targetLang').trim() || 'zh-CN',
     sourceLang: getVal('sourceLang').trim() || 'auto',
     displayMode: getVal('displayMode') || 'bilingual',
-    translationTheme: getVal('translationTheme') || 'none',
+    translationTheme: normalizeTranslationThemeOption(getVal('translationTheme')),
     customTranslationCss: getVal('customTranslationCss').trim() || '',
     largeTextMode: isChecked('largeTextMode'),
     maxCharsPerRequest: (function(v) { const n = parseInt(v); return isNaN(n) ? 12000 : n; })(getVal('maxChars')),
@@ -402,6 +434,7 @@ function readSettingsFromUI() {
     enableSelection: isChecked('enableSelection'),
     enableSubtitle: isChecked('enableSubtitle'),
     subtitleMode: getVal('subtitleMode') || 'bilingual',
+    subtitleStyle: getVal('subtitleStyle') || 'cinema',
     subtitlePosition: (function(v) { const n = parseInt(v); return isNaN(n) ? 12 : Math.max(4, Math.min(30, n)); })(getVal('subtitlePosition')),
     subtitleFontSize: (function(v) { const n = parseInt(v); return isNaN(n) ? 14 : Math.max(11, Math.min(24, n)); })(getVal('subtitleFontSize')),
     autoTranslate: isChecked('autoTranslate'),
@@ -773,6 +806,10 @@ function onPresetChange(presetVal) {
   if (preset.provider === 'deepseek') {
     setChecked('largeTextMode', true);
     setVal('maxChars', preset.model === 'deepseek-v4-flash' ? '16000' : '12000');
+  } else if (preset.provider === 'hunyuan') {
+    setChecked('largeTextMode', true);
+    setVal('maxChars', '4000');
+    setVal('maxConcurrency', '1');
   }
 
   // Load saved key for new provider
@@ -793,7 +830,7 @@ function onPresetChange(presetVal) {
 function updateApiKeyRequirement(provider) {
   let keyInput = $('apiKey');
   if (!keyInput) return;
-  let needsKey = typeof providerNeedsApiKey === 'function' ? providerNeedsApiKey(provider) : provider !== 'ollama' && provider !== 'custom' && provider !== 'google';
+  let needsKey = typeof providerNeedsApiKey === 'function' ? providerNeedsApiKey(provider) : provider !== 'ollama' && provider !== 'hunyuan' && provider !== 'custom' && provider !== 'google';
   keyInput.placeholder = needsKey ? 'sk-...' : 'Optional';
 }
 

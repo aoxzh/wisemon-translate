@@ -87,6 +87,14 @@
       apiKey: '',
       provider: 'ollama'
     },
+    hunyuan: {
+      label: 'Hunyuan HY-MT',
+      description: 'Free self-hosted MT',
+      baseURL: 'http://localhost:8000/v1',
+      model: 'hunyuan',
+      apiKey: '',
+      provider: 'hunyuan'
+    },
     custom: {
       label: 'Custom',
       description: 'Any OpenAI-compatible API',
@@ -136,7 +144,7 @@
   PROVIDER_NAMES.zhipu = 'GLM';
   PROVIDER_NAMES.google = 'Google';
 
-  const API_KEY_OPTIONAL_PROVIDERS = new Set(['ollama', 'custom', 'google']);
+  const API_KEY_OPTIONAL_PROVIDERS = new Set(['ollama', 'hunyuan', 'custom', 'google']);
 
   function getProviderName(provider) {
     return PROVIDER_NAMES[provider] || provider || 'Unknown';

@@ -275,6 +275,11 @@
 
   function restoreOriginal() {
     document.querySelectorAll(`[class*="${TAG_NAME}-block-wrapper"], [class*="${TAG_NAME}-inline-wrapper"]`).forEach(el => removeTranslation(el));
+    document.querySelectorAll(`[${ATTR_PROCESSED}]`).forEach(el => {
+      el.classList.remove('llm-original-hidden');
+      el.removeAttribute(ATTR_PROCESSED);
+      processedElements.delete(el);
+    });
     document.querySelectorAll('[data-llm-original-html]').forEach(el => {
       el.innerHTML = el.getAttribute('data-llm-original-html') || '';
       el.removeAttribute('data-llm-original-html');
@@ -904,7 +909,7 @@
     const root = document.documentElement;
     root.setAttribute('llm-state', state);
     // Theme
-    const theme = settings.translationTheme || 'none';
+    const theme = normalizeTranslationTheme(settings.translationTheme);
     root.setAttribute('llm-theme', theme);
     // Position
     const position = settings.translationPosition || 'after';
@@ -920,6 +925,11 @@
   function injectTranslationResult(group, translatedText) {
     const { element, nodes } = group;
     if (!element.isConnected || !element.parentNode) return;
+    if (settings.displayMode !== 'replace' && shouldSkipCompactUiInBilingual(element, group.text)) {
+      processedElements.set(element, { skippedCompactUi: true });
+      element.setAttribute(ATTR_PROCESSED, 'true');
+      return;
+    }
     if (shouldReplaceCompactUiText(element, group.text)) {
       replaceCompactUiText(group, translatedText);
       return;
@@ -931,7 +941,7 @@
     // For elements inside strict parents (tr/ul/ol/table), use inline-only
     const hasStrictParent = element.parentNode && element.parentNode.nodeType === 1 && STRICT_PARENT_TAGS.has(element.parentNode.tagName);
 
-    const wrapper = document.createElement('span');
+    const wrapper = document.createElement(isBlock && !hasStrictParent ? 'div' : 'span');
     wrapper.className = wrapperClass + (hasStrictParent ? ' llm-strict-wrapper' : '');
     wrapper.setAttribute(ATTR_ID, element.getAttribute(ATTR_ID));
 
@@ -983,6 +993,7 @@
 
   function shouldReplaceCompactUiText(el, text) {
     if (!(el instanceof Element)) return false;
+    if (settings.displayMode !== 'replace') return false;
     const compactLen = String(text || '').replace(/\s+/g, '').length;
     if (compactLen === 0 || compactLen > 24) return false;
     if (!el.closest?.('nav, header, footer, aside, menu, [role="navigation"], [role="menu"], [class*="menu"], [class*="nav"], [class*="footer"], [class*="header"]')) {
@@ -990,6 +1001,47 @@
     }
     if (el.querySelector?.('img, svg, canvas, video, audio')) return false;
     return ['A','BUTTON','SPAN','LI','LABEL','SUMMARY','P','DIV'].includes(el.tagName);
+  }
+
+  function shouldSkipCompactUiInBilingual(el, text) {
+    if (!(el instanceof Element)) return false;
+    const compactLen = String(text || '').replace(/\s+/g, '').length;
+    if (compactLen === 0 || compactLen > 32) return false;
+    if (['TD','TH','CAPTION','FIGCAPTION'].includes(el.tagName)) return false;
+    if (el.closest?.('nav, header, footer, aside, menu, [role="navigation"], [role="menu"], [role="tablist"], [class*="menu"], [class*="nav"], [class*="footer"], [class*="header"], [class*="toolbar"], [class*="button"], [class*="breadcrumb"]')) {
+      return true;
+    }
+    return ['A','BUTTON','LABEL','SUMMARY'].includes(el.tagName);
+  }
+
+  function normalizeTranslationTheme(theme) {
+    const allowed = ['none', 'subtle', 'divider', 'card'];
+    if (allowed.includes(theme)) return theme;
+    const legacyMap = {
+      underline: 'subtle',
+      dashedBorder: 'card',
+      solidBorder: 'card',
+      dividingLine: 'divider',
+      blockquote: 'divider',
+      paper: 'card',
+      background: 'subtle',
+      highlight: 'subtle',
+      marker: 'subtle',
+      grey: 'none',
+      italic: 'none',
+      bold: 'none',
+      weakening: 'none',
+      mask: 'none',
+      opacity: 'none',
+      wavy: 'subtle',
+      nativeUnderline: 'subtle',
+      nativeDashed: 'subtle',
+      nativeDotted: 'subtle',
+      thinDashed: 'subtle',
+      marker2: 'subtle',
+      blurReveal: 'none'
+    };
+    return legacyMap[theme] || 'none';
   }
 
   function replaceCompactUiText(group, translatedText) {

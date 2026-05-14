@@ -139,6 +139,53 @@ class LLMAPI {
     };
   }
 
+  _getLanguageName(lang) {
+    const names = {
+      'zh-CN': 'Chinese',
+      'zh-TW': 'Traditional Chinese',
+      en: 'English',
+      ja: 'Japanese',
+      ko: 'Korean',
+      fr: 'French',
+      de: 'German',
+      es: 'Spanish',
+      ru: 'Russian',
+      pt: 'Portuguese',
+      ar: 'Arabic',
+      it: 'Italian',
+      vi: 'Vietnamese',
+      th: 'Thai',
+      tr: 'Turkish',
+      nl: 'Dutch',
+      pl: 'Polish',
+      cs: 'Czech',
+      hi: 'Hindi'
+    };
+    if (!lang || lang === 'auto') return 'the target language';
+    return names[lang] || lang;
+  }
+
+  _buildMessagesForProvider(requestText, sourceLang, targetLang, options = {}) {
+    if (this.settings.provider === 'hunyuan' && !options.multiText) {
+      const targetName = this._getLanguageName(targetLang);
+      const content = targetLang === 'zh-CN' || targetLang === 'zh-TW'
+        ? `将以下文本翻译为${targetName}，注意只需要输出翻译后的结果，不要额外解释：\n\n${requestText}`
+        : `Translate the following segment into ${targetName}, without additional explanation.\n\n${requestText}`;
+      return [{ role: 'user', content }];
+    }
+
+    const template = options.userPromptTemplate || this.settings.userPromptTemplate || DEFAULT_SETTINGS.userPromptTemplate;
+    const prompt = template
+      .replace(/\{\{sourceLang\}\}/g, sourceLang === 'auto' ? 'the detected language' : sourceLang)
+      .replace(/\{\{targetLang\}\}/g, targetLang)
+      .replace(/\{\{text\}\}/g, requestText);
+    const systemMsg = (options.systemPrompt || this.settings.systemPrompt || DEFAULT_SETTINGS.systemPrompt) + this._buildAiTermsSection();
+    return [
+      { role: 'system', content: systemMsg },
+      { role: 'user', content: prompt }
+    ];
+  }
+
   async _parseSSEStream(response) {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
@@ -286,14 +333,6 @@ class LLMAPI {
       : { text, map: [] };
     const requestText = masked.text;
 
-    // --- Build prompt ---
-    const prompt = (userPromptTemplate || DEFAULT_SETTINGS.userPromptTemplate)
-      .replace(/\{\{sourceLang\}\}/g, sourceLang === 'auto' ? 'the detected language' : sourceLang)
-      .replace(/\{\{targetLang\}\}/g, targetLang)
-      .replace(/\{\{text\}\}/g, requestText);
-
-    const systemMsg = (systemPrompt || DEFAULT_SETTINGS.systemPrompt) + this._buildAiTermsSection();
-
     // Determine if this is a model that supports thinking mode
     const isDeepSeekV4 = model && (model.startsWith('deepseek-v4') || model === 'deepseek-chat' || model === 'deepseek-reasoner');
     const isGLM = model && model.startsWith('glm-');
@@ -303,10 +342,7 @@ class LLMAPI {
     // --- Build request body ---
     const body = {
       model: model,
-      messages: [
-        { role: 'system', content: systemMsg },
-        { role: 'user', content: prompt }
-      ],
+      messages: this._buildMessagesForProvider(requestText, sourceLang, targetLang),
       stream: this._shouldUseStreaming(),
       max_tokens: this._getMaxTokensForRequest(requestText)
     };
@@ -571,7 +607,7 @@ class LLMAPI {
 
     // Try multi-text batching: combine multiple texts into a single API call
     // if total length is reasonable and API supports it
-    const useMultiTextBatch = this.settings.maxCharsPerRequest >= 2000 && total > 1;
+    const useMultiTextBatch = this.settings.provider !== 'hunyuan' && this.settings.maxCharsPerRequest >= 2000 && total > 1;
     const maxBatchSize = Math.min(Math.max(this.concurrency || 6, 6), 16);
 
     if (useMultiTextBatch) {
@@ -842,7 +878,7 @@ class LLMAPI {
   }
 
   _supportsJsonResponseFormat() {
-    return !['anthropic', 'google', 'deepl', 'baidu', 'microsoft'].includes(this.settings.provider);
+    return !['anthropic', 'hunyuan', 'google', 'deepl', 'baidu', 'microsoft'].includes(this.settings.provider);
   }
 
   /**

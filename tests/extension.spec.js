@@ -181,6 +181,7 @@ test.describe('extension smoke', () => {
         sourceLang: 'auto',
         enableSubtitle: true,
         subtitleMode: 'bilingual',
+        subtitleStyle: 'outline',
         maxConcurrency: 1
       });
 
@@ -211,6 +212,7 @@ test.describe('extension smoke', () => {
         video.dispatchEvent(new Event('timeupdate'));
       });
       await expect(page.locator('.llm-youtube-subtitle-overlay')).toBeVisible({ timeout: 15000 });
+      await expect(page.locator('.llm-youtube-subtitle-overlay')).toHaveClass(/llm-subtitle-style-outline/, { timeout: 15000 });
       await expect(page.locator('.llm-youtube-subtitle-overlay .llm-sub-original')).toContainText('Hello world.', { timeout: 15000 });
       await expect(page.locator('.llm-youtube-subtitle-overlay .llm-sub-translated')).toContainText('ç¿»è¨³:', { timeout: 15000 });
     } finally {
@@ -258,6 +260,59 @@ test.describe('extension smoke', () => {
       await expect(page.locator('#llm-youtube-subtitle-button')).toBeVisible({ timeout: 15000 });
     } finally {
       await context.close();
+    }
+  });
+
+  test('bilingual page translation keeps compact navigation originals', async () => {
+    const server = await startFixtureServer(COMPLEX_FIXTURE_FILE);
+    const context = await launchExtensionContext();
+    try {
+      await context.route('https://translate.googleapis.com/translate_a/single**', async route => {
+        const url = new URL(route.request().url());
+        const source = url.searchParams.get('q') || '';
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([[[`TRANSLATED:${source.slice(0, 40)}`, source, null, null]]])
+        });
+      });
+      const extensionId = await getExtensionId(context);
+      await setExtensionSettings(context, extensionId, {
+        provider: 'google',
+        model: 'google-free',
+        targetLang: 'zh-CN',
+        sourceLang: 'auto',
+        displayMode: 'bilingual',
+        translationTheme: 'subtle',
+        maxConcurrency: 1
+      });
+
+      const page = await context.newPage();
+      await page.goto(server.url);
+      await page.waitForTimeout(1200);
+      const optionsPage = await context.newPage();
+      await optionsPage.goto(`chrome-extension://${extensionId}/options.html`);
+      const result = await optionsPage.evaluate(async (targetUrl) => {
+        const tabs = await chrome.tabs.query({ url: targetUrl });
+        const tabId = tabs[0] && tabs[0].id;
+        for (let attempt = 0; attempt < 6; attempt++) {
+          try {
+            await chrome.runtime.sendMessage({ action: 'inject-content-main', tabId });
+            return await chrome.tabs.sendMessage(tabId, { action: 'translate-page' });
+          } catch (err) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
+        return { error: 'content script did not translate' };
+      }, server.url);
+      expect(result.error || '').toBe('');
+      await expect(page.locator('nav a').first()).toContainText('Overview');
+      await expect(page.locator('nav a').first()).not.toContainText('TRANSLATED:');
+      await expect(page.locator('.llm-translate-block-wrapper').first()).toBeVisible({ timeout: 15000 });
+      await expect(page.locator('.llm-translate-block-wrapper').first()).toContainText('TRANSLATED:', { timeout: 15000 });
+    } finally {
+      await context.close();
+      await server.close();
     }
   });
 
