@@ -371,12 +371,12 @@
   },
   "input_hint": {
     "en": "Use /tr or triple space to translate",
-    "zh-CN": "?? /tr ???????????",
-    "ja": "/tr ??????3???????",
-    "ko": "/tr ?? ?? ?? 3?? ??",
-    "de": "Mit /tr oder drei Leerzeichen am Ende ?bersetzen",
-    "fr": "Utilisez /tr ou trois espaces finaux pour traduire",
-    "es": "Usa /tr o tres espacios finales para traducir"
+    "zh-CN": "\u4f7f\u7528 /tr \u6216\u8fde\u7eed\u4e09\u4e2a\u7a7a\u683c\u89e6\u53d1\u7ffb\u8bd1",
+    "ja": "/tr \u307e\u305f\u306f\u7a7a\u767d3\u56de\u3067\u7ffb\u8a33",
+    "ko": "/tr \ub610\ub294 \uacf5\ubc31 3\ubc88\uc73c\ub85c \ubc88\uc5ed",
+    "de": "Mit /tr oder drei Leerzeichen uebersetzen",
+    "fr": "Utilisez /tr ou trois espaces pour traduire",
+    "es": "Usa /tr o tres espacios para traducir"
   },
   "selection_label": {
     "en": "Selection Translation",

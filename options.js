@@ -10,7 +10,12 @@ let currentPreset = 'deepseek-v4-flash';
 
 function $(id) { return document.getElementById(id); }
 const getVal = (id) => { const el = $(id); return el ? el.value : ''; };
-const setVal = (id, value) => { const el = $(id); if (el) el.value = value !== null && value !== undefined ? value : ''; };
+const setVal = (id, value) => {
+  const el = $(id);
+  if (!el) return;
+  el.value = value !== null && value !== undefined ? value : '';
+  if (globalThis.CustomSelect) CustomSelect.refreshAll(document);
+};
 const isChecked = (id) => { const el = $(id); return el ? el.checked : false; };
 const setChecked = (id, v) => { const el = $(id); if (el) el.checked = !!v; };
 
@@ -39,8 +44,9 @@ async function init() {
   setupEventListeners();
   setupOnboarding();
   I18N.localizeContainer(document.querySelector('.opt-page'));
+  if (globalThis.CustomSelect) CustomSelect.initAll(document);
   if ($('lang-switch-text')) {
-    $('lang-switch-text').textContent = I18N.lang === 'zh-CN' ? 'EN' : '中';
+    $('lang-switch-text').textContent = I18N.lang === 'zh-CN' ? 'EN' : '\u4e2d';
   }
 }
 
@@ -639,6 +645,11 @@ function setupNavigation() {
 
   let initial = (location.hash || '').replace('#', '');
   if (initial && document.getElementById(initial)) activateSection(initial);
+
+  window.addEventListener('hashchange', function() {
+    let next = (location.hash || '').replace('#', '');
+    if (next && document.getElementById(next)) activateSection(next);
+  });
 }
 
 function setupEventListeners() {
@@ -720,7 +731,7 @@ function setupEventListeners() {
 
   function updateSubtitleFields() {
     if (!subtitleCheck || !subtitleSubfield) return;
-    subtitleSubfield.style.display = subtitleCheck.checked ? 'flex' : 'none';
+    subtitleSubfield.hidden = !subtitleCheck.checked;
     updateSubtitlePreview();
   }
   if (subtitleCheck) subtitleCheck.addEventListener('change', updateSubtitleFields);
@@ -956,7 +967,8 @@ function setupEventListeners() {
     let newLang = I18N.lang === 'zh-CN' ? 'en' : 'zh-CN';
     I18N.setLang(newLang);
     I18N.localizeContainer(document.querySelector('.opt-page'));
-    $('lang-switch-text').textContent = newLang === 'zh-CN' ? 'EN' : '中';
+    if (globalThis.CustomSelect) CustomSelect.refreshAll(document);
+    $('lang-switch-text').textContent = newLang === 'zh-CN' ? 'EN' : '\u4e2d';
     populateFields(currentSettings);
   });
 }

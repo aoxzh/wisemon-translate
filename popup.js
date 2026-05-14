@@ -53,7 +53,8 @@
 
   /* ---- Init ---- */
   I18N.localizeContainer(document.querySelector('.popup-root'));
-  langSwitchText.textContent = I18N.lang === 'zh-CN' ? 'EN' : '中';
+  if (globalThis.CustomSelect) CustomSelect.initAll(document);
+  langSwitchText.textContent = I18N.lang === 'zh-CN' ? 'EN' : '\u4e2d';
 
   // Read version from manifest
   try {
@@ -111,6 +112,7 @@
     if (subtitleStyleSelect) subtitleStyleSelect.value = settings.subtitleStyle || 'cinema';
     if (subtitleTrackSelect) subtitleTrackSelect.value = settings.subtitleTrackPreference || 'manual';
     if (subtitleScopeSelect) subtitleScopeSelect.value = settings.subtitleTranslateScope || 'nearby';
+    if (globalThis.CustomSelect) CustomSelect.refreshAll(document);
     updateAdvancedSummary();
   }
 
@@ -549,7 +551,8 @@
     var newLang = I18N.lang === 'zh-CN' ? 'en' : 'zh-CN';
     I18N.setLang(newLang);
     I18N.localizeContainer(document.querySelector('.popup-root'));
-    langSwitchText.textContent = newLang === 'zh-CN' ? 'EN' : '中';
+    if (globalThis.CustomSelect) CustomSelect.refreshAll(document);
+    langSwitchText.textContent = newLang === 'zh-CN' ? 'EN' : '\u4e2d';
     updatePageStatusUI();
     updateProviderSubtitle();
     updateSiteCard();

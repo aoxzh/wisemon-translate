@@ -75,8 +75,25 @@ test.describe('extension smoke', () => {
       const page = await context.newPage();
       await page.goto(`chrome-extension://${extensionId}/popup.html`);
       await expect(page.locator('#btn-translate')).toBeVisible();
-      await expect(page.locator('#target-lang-select')).toBeVisible();
+      await expect(page.locator('.wm-select[data-select-id="target-lang-select"]')).toBeVisible();
       await expect(page.locator('#link-options')).toBeVisible();
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('options custom selects keep subtitle layout compact', async () => {
+    const context = await launchExtensionContext();
+    try {
+      const extensionId = await getExtensionId(context);
+      const page = await context.newPage();
+      await page.goto(`chrome-extension://${extensionId}/options.html#subtitles`);
+      await expect(page.locator('#subtitleSubfield')).toBeVisible();
+      await expect(page.locator('.wm-select[data-select-id="subtitleMode"]')).toBeVisible();
+      const box = await page.locator('#subtitleSubfield').boundingBox();
+      expect(box.height).toBeLessThan(360);
+      const modeBox = await page.locator('.wm-select[data-select-id="subtitleMode"]').boundingBox();
+      expect(modeBox.height).toBeLessThan(70);
     } finally {
       await context.close();
     }

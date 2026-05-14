@@ -96,6 +96,7 @@
         "src/lib/site-rules.js",
         "src/lib/llm-api.js",
         "src/lib/provider-loader.js",
+        "src/lib/custom-select.js",
         "src/lib/providers/google.js",
         "src/lib/providers/deepl.js",
         "src/lib/providers/baidu.js",
