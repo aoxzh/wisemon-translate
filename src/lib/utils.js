@@ -14,7 +14,7 @@ const STORAGE_KEYS = {
 const DEFAULT_SETTINGS = {
   provider: 'deepseek',
   apiKey: '',
-  apiKeys: { deepseek:'', zhipu:'', openai:'', anthropic:'', ollama:'', hunyuan:'', custom:'', google:'', gemini:'', openrouter:'', qwen:'', siliconflow:'', deepl:'', baidu:'', microsoft:'' },
+  apiKeys: { deepseek:'', zhipu:'', openai:'', anthropic:'', ollama:'', hunyuan:'', lmstudio:'', custom:'', google:'', gemini:'', openrouter:'', qwen:'', siliconflow:'', deepl:'', baidu:'', microsoft:'' },
   baseURL: 'https://api.deepseek.com',
   model: 'deepseek-v4-flash',
   targetLang: 'zh-CN',
@@ -27,7 +27,9 @@ const DEFAULT_SETTINGS = {
   enableSelection: true,
   enableSubtitle: true,
   subtitleMode: 'bilingual',     // 'bilingual' | 'translation'
-  subtitleStyle: 'cinema',        // 'cinema' | 'classic' | 'minimal' | 'outline' | 'paper'
+  subtitleStyle: 'cinema',        // 'cinema' | 'outline' | 'paper'
+  subtitleTrackPreference: 'manual', // 'manual' | 'auto' | 'any'
+  subtitleSkipTargetLang: true,
   subtitlePosition: 12,          // overlay bottom offset in percent
   subtitleFontSize: 14,
   autoTranslate: false,         // auto translate page on load
@@ -48,6 +50,7 @@ const DEFAULT_SETTINGS = {
   streamRenderMode: 'disabled',
   thinkingMode: 'disabled',
   translationTheme: 'subtle',
+  translationStylePreset: 'balanced', // 'balanced' | 'natural' | 'faithful' | 'subtitle' | 'technical' | 'novel'
   customTranslationCss: '',
   glossary: '',                    // custom term replacements: "regex,replacement" per line
   terms: [],                       // structured term replacements: [{ pattern, replacement, regex }]
@@ -231,7 +234,7 @@ function getEffectiveApiKey(settings) {
 
 function providerNeedsApiKey(provider) {
   if (typeof providerNeedsApiKeyShared === 'function') return providerNeedsApiKeyShared(provider);
-  return provider !== 'ollama' && provider !== 'hunyuan' && provider !== 'custom' && provider !== 'google';
+  return provider !== 'ollama' && provider !== 'hunyuan' && provider !== 'lmstudio' && provider !== 'custom' && provider !== 'google';
 }
 
 const PROVIDER_LANGUAGE_MAPS = {

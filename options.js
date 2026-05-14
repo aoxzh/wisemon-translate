@@ -99,6 +99,8 @@ function determinePreset(s) {
     currentPreset = 'ollama';
   } else if (s.provider === 'hunyuan') {
     currentPreset = 'hunyuan';
+  } else if (s.provider === 'lmstudio') {
+    currentPreset = 'lmstudio';
   } else if (s.provider === 'google') {
     currentPreset = 'google';
   } else if (s.provider === 'deepl') {
@@ -141,6 +143,7 @@ function populateFields(s) {
   setVal('sourceLang', s.sourceLang || 'auto');
   setVal('displayMode', s.displayMode || 'bilingual');
   setVal('translationTheme', normalizeTranslationThemeOption(s.translationTheme));
+  setVal('translationStylePreset', s.translationStylePreset || 'balanced');
   setVal('customTranslationCss', s.customTranslationCss || '');
   setVal('maxChars', s.maxCharsPerRequest || 12000);
   setChecked('largeTextMode', s.largeTextMode !== false);
@@ -164,6 +167,8 @@ function populateFields(s) {
   setChecked('enableSubtitle', s.enableSubtitle !== false);
   setVal('subtitleMode', s.subtitleMode || 'bilingual');
   setVal('subtitleStyle', s.subtitleStyle || 'cinema');
+  setVal('subtitleTrackPreference', s.subtitleTrackPreference || 'manual');
+  setChecked('subtitleSkipTargetLang', s.subtitleSkipTargetLang !== false);
   setVal('subtitlePosition', s.subtitlePosition || 12);
   setVal('subtitleFontSize', s.subtitleFontSize || 14);
   setChecked('autoTranslate', s.autoTranslate);
@@ -398,6 +403,70 @@ function syncProviderCardText() {
   });
 }
 
+function updateSubtitlePreview() {
+  const preview = $('subtitlePreview');
+  if (!preview) return;
+  const style = ['cinema', 'outline', 'paper'].includes(getVal('subtitleStyle')) ? getVal('subtitleStyle') : 'cinema';
+  preview.className = 'opt-subtitle-preview llm-subtitle-style-' + style;
+  preview.dataset.subtitleMode = getVal('subtitleMode') === 'translation' ? 'translation' : 'bilingual';
+  preview.style.fontSize = Math.max(11, Math.min(24, parseInt(getVal('subtitleFontSize'), 10) || 14)) + 'px';
+  const original = preview.querySelector('.llm-sub-original');
+  if (original) original.style.display = getVal('subtitleMode') === 'translation' ? 'none' : '';
+}
+
+async function diagnoseLocalProvider(settings) {
+  const provider = settings.provider || '';
+  const localProviders = new Set(['ollama', 'hunyuan', 'lmstudio', 'custom']);
+  if (!localProviders.has(provider) || !isLocalBaseUrl(settings.baseURL)) return null;
+  const modelsUrl = buildModelsUrl(settings.baseURL || '');
+  const controller = new AbortController();
+  const timer = setTimeout(function() { controller.abort(); }, 5000);
+  try {
+    const headers = {};
+    if (settings.apiKey) headers.Authorization = 'Bearer ' + settings.apiKey;
+    const res = await fetch(modelsUrl, { method: 'GET', headers: headers, signal: controller.signal });
+    if (res.status === 404) {
+      return { ok: false, message: 'Local check: /v1/models returned 404. Confirm the base URL includes /v1 and the server exposes an OpenAI-compatible models endpoint. The extension only connects to localhost; it does not install or run models.' };
+    }
+    if (!res.ok) {
+      return { ok: false, message: 'Local check: /v1/models returned HTTP ' + res.status + '. Confirm the service is running, CORS is enabled for browser requests, and the model server accepts this endpoint.' };
+    }
+    const data = await res.json().catch(function() { return null; });
+    const models = Array.isArray(data?.data) ? data.data.map(function(item) { return item.id || item.name || ''; }).filter(Boolean) : [];
+    if (!models.length) {
+      return { ok: true, message: 'Local check: server responded, but no model names were listed. If translation fails, verify the model field exactly matches the model server.' };
+    }
+    if (settings.model && !models.includes(settings.model)) {
+      return { ok: false, message: 'Local check: server is reachable, but model "' + settings.model + '" was not listed. Available: ' + models.slice(0, 6).join(', ') + (models.length > 6 ? '...' : '') + '.' };
+    }
+    return { ok: true, message: 'Local check: server is reachable and model is listed. Requests go directly from the browser to ' + new URL(settings.baseURL).origin + '; this extension is not a proxy.' };
+  } catch (err) {
+    const timedOut = err && err.name === 'AbortError';
+    return {
+      ok: false,
+      message: timedOut
+        ? 'Local check: /v1/models timed out. Start the local model server first, then retry. This extension does not download, install, or launch local programs.'
+        : 'Local check: could not reach /v1/models. The service may be stopped, the port may be wrong, or browser CORS may be blocking requests. This extension only connects to the endpoint you configure.'
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function buildModelsUrl(baseURL) {
+  const clean = String(baseURL || '').replace(/\/+$/, '');
+  return clean.replace(/\/chat\/completions$/, '').replace(/\/completions$/, '') + '/models';
+}
+
+function isLocalBaseUrl(baseURL) {
+  try {
+    const url = new URL(baseURL);
+    return ['localhost', '127.0.0.1', '::1'].includes(url.hostname);
+  } catch (e) {
+    return false;
+  }
+}
+
 function readSettingsFromUI() {
   let provider = getProviderFromPreset(currentPreset);
   let newApiKey = getVal('apiKey').trim();
@@ -421,6 +490,7 @@ function readSettingsFromUI() {
     sourceLang: getVal('sourceLang').trim() || 'auto',
     displayMode: getVal('displayMode') || 'bilingual',
     translationTheme: normalizeTranslationThemeOption(getVal('translationTheme')),
+    translationStylePreset: getVal('translationStylePreset') || 'balanced',
     customTranslationCss: getVal('customTranslationCss').trim() || '',
     largeTextMode: isChecked('largeTextMode'),
     maxCharsPerRequest: (function(v) { const n = parseInt(v); return isNaN(n) ? 12000 : n; })(getVal('maxChars')),
@@ -435,6 +505,8 @@ function readSettingsFromUI() {
     enableSubtitle: isChecked('enableSubtitle'),
     subtitleMode: getVal('subtitleMode') || 'bilingual',
     subtitleStyle: getVal('subtitleStyle') || 'cinema',
+    subtitleTrackPreference: getVal('subtitleTrackPreference') || 'manual',
+    subtitleSkipTargetLang: isChecked('subtitleSkipTargetLang'),
     subtitlePosition: (function(v) { const n = parseInt(v); return isNaN(n) ? 12 : Math.max(4, Math.min(30, n)); })(getVal('subtitlePosition')),
     subtitleFontSize: (function(v) { const n = parseInt(v); return isNaN(n) ? 14 : Math.max(11, Math.min(24, n)); })(getVal('subtitleFontSize')),
     autoTranslate: isChecked('autoTranslate'),
@@ -521,6 +593,11 @@ function setupEventListeners() {
       applyUiTheme(this.value || 'auto');
     });
   }
+  ['subtitleMode', 'subtitleStyle', 'subtitlePosition', 'subtitleFontSize'].forEach(function(id) {
+    const el = $(id);
+    if (el) el.addEventListener('input', updateSubtitlePreview);
+    if (el) el.addEventListener('change', updateSubtitlePreview);
+  });
 
   // Toggle API key visibility
   $('toggle-key-vis').addEventListener('click', function() {
@@ -568,6 +645,7 @@ function setupEventListeners() {
   function updateSubtitleFields() {
     if (!subtitleCheck || !subtitleSubfield) return;
     subtitleSubfield.style.display = subtitleCheck.checked ? 'flex' : 'none';
+    updateSubtitlePreview();
   }
   if (subtitleCheck) subtitleCheck.addEventListener('change', updateSubtitleFields);
   updateSubtitleFields();
@@ -664,10 +742,22 @@ function setupEventListeners() {
     testBtn.disabled = true;
     let settings = readSettingsFromUI();
     let resultEl = $('test-result');
+    let diagnosticEl = $('provider-diagnostic');
     resultEl.textContent = I18N.t('test_testing');
     resultEl.className = 'opt-status-badge';
+    if (diagnosticEl) {
+      diagnosticEl.hidden = true;
+      diagnosticEl.className = 'opt-diagnostic';
+      diagnosticEl.textContent = '';
+    }
 
     try {
+      const diagnostic = await diagnoseLocalProvider(settings);
+      if (diagnosticEl && diagnostic) {
+        diagnosticEl.hidden = false;
+        diagnosticEl.classList.add(diagnostic.ok ? 'success' : 'warn');
+        diagnosticEl.textContent = diagnostic.message;
+      }
       let api = new LLMAPI(settings);
       let translated = await api.translate('Hello', 'en', 'zh-CN');
       resultEl.textContent = I18N.t('test_success') + ' -> ' + translated;
@@ -830,7 +920,7 @@ function onPresetChange(presetVal) {
 function updateApiKeyRequirement(provider) {
   let keyInput = $('apiKey');
   if (!keyInput) return;
-  let needsKey = typeof providerNeedsApiKey === 'function' ? providerNeedsApiKey(provider) : provider !== 'ollama' && provider !== 'hunyuan' && provider !== 'custom' && provider !== 'google';
+  let needsKey = typeof providerNeedsApiKey === 'function' ? providerNeedsApiKey(provider) : provider !== 'ollama' && provider !== 'hunyuan' && provider !== 'lmstudio' && provider !== 'custom' && provider !== 'google';
   keyInput.placeholder = needsKey ? 'sk-...' : 'Optional';
 }
 

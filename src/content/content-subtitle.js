@@ -4,7 +4,9 @@
   const ctx = window.__LLM_CTX__ = window.__LLM_CTX__ || { state: {}, fn: {}, features: {} };
   const YT_EVENT = 'llm-youtube-subtitle-response';
   const YT_BUTTON_ID = 'llm-youtube-subtitle-button';
+  const YT_PANEL_BUTTON_ID = 'llm-youtube-transcript-button';
   const YT_NATIVE_CAPTION = '#ytp-caption-window-container';
+  const YT_CACHE_KEY = 'llm-youtube-subtitle-cache-v1';
 
   function setupVideoSubtitleTranslation() {
     if (ctx.state.settings?.enableSubtitle === false) return;
@@ -73,9 +75,13 @@
         kind: '',
         lang: '',
         sourceLang: 'auto',
+        tracks: [],
+        selectedTrackKey: '',
         items: [],
         overlay: null,
         button: null,
+        panelButton: null,
+        transcriptPanel: null,
         menu: null,
         video: null,
         currentIndex: -1,
@@ -110,6 +116,9 @@
       state.video = video;
       if (!document.getElementById(YT_BUTTON_ID)) {
         createYouTubeButton(controls);
+      }
+      if (!document.getElementById(YT_PANEL_BUTTON_ID)) {
+        createYouTubePanelButton(controls);
       }
       attachYouTubeVideoListeners(video);
       return true;
@@ -149,6 +158,23 @@
     controls.prepend(host);
     state.button = button;
     renderYouTubeButton();
+  }
+
+  function createYouTubePanelButton(controls) {
+    const state = getYouTubeState();
+    const button = document.createElement('button');
+    button.id = YT_PANEL_BUTTON_ID;
+    button.className = 'ytp-button llm-youtube-transcript-button';
+    button.type = 'button';
+    button.title = 'Transcript panel';
+    button.setAttribute('aria-label', 'Transcript panel');
+    button.textContent = 'TXT';
+    button.addEventListener('click', function(event) {
+      event.stopPropagation();
+      toggleYouTubeTranscriptPanel();
+    });
+    controls.prepend(button);
+    state.panelButton = button;
   }
 
   function ensureYouTubeFloatingFallbackButton() {
@@ -225,13 +251,16 @@
     const html = await res.text();
     const player = parseInitialPlayerResponse(html);
     const tracks = player?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
+    state.tracks = normalizeCaptionTracks(tracks);
     const track = chooseCaptionTrack(tracks);
     if (!track?.baseUrl) return;
+    state.selectedTrackKey = getTrackKey(track);
     const url = new URL(track.baseUrl);
     url.searchParams.set('fmt', 'json3');
     const captionRes = await fetch(url.href, { credentials: 'include' });
     if (!captionRes.ok) return;
     handleYouTubeSubtitleResponse(url.href, await captionRes.text());
+    renderYouTubeTranscriptPanel();
   }
 
   function parseInitialPlayerResponse(html) {
@@ -254,11 +283,37 @@
     if (!Array.isArray(tracks) || !tracks.length) return null;
     const settings = ctx.state.settings || {};
     const target = normalizeLang(settings.targetLang || '');
-    const manual = tracks.find(function(track) { return !track.kind && normalizeLang(track.languageCode) !== target; });
-    if (manual) return manual;
-    const asr = tracks.find(function(track) { return track.kind === 'asr' && normalizeLang(track.languageCode) !== target; });
-    if (asr) return asr;
-    return tracks.find(function(track) { return normalizeLang(track.languageCode) !== target; }) || tracks[0];
+    const state = getYouTubeState();
+    const candidates = settings.subtitleSkipTargetLang === false
+      ? tracks.slice()
+      : tracks.filter(function(track) { return normalizeLang(track.languageCode) !== target; });
+    const pool = candidates.length ? candidates : tracks;
+    if (state.selectedTrackKey) {
+      const selected = pool.find(function(track) { return getTrackKey(track) === state.selectedTrackKey; });
+      if (selected) return selected;
+    }
+    const preference = settings.subtitleTrackPreference || 'manual';
+    if (preference === 'auto') {
+      return pool.find(function(track) { return track.kind === 'asr'; }) || pool.find(function(track) { return !track.kind; }) || pool[0];
+    }
+    if (preference === 'any') return pool[0];
+    return pool.find(function(track) { return !track.kind; }) || pool.find(function(track) { return track.kind === 'asr'; }) || pool[0];
+  }
+
+  function normalizeCaptionTracks(tracks) {
+    return (Array.isArray(tracks) ? tracks : []).map(function(track) {
+      return {
+        key: getTrackKey(track),
+        languageCode: track.languageCode || '',
+        kind: track.kind || '',
+        name: track.name?.simpleText || track.name?.runs?.map(function(run) { return run.text; }).join('') || track.languageCode || 'Caption',
+        baseUrl: track.baseUrl || ''
+      };
+    });
+  }
+
+  function getTrackKey(track) {
+    return [track.languageCode || '', track.kind || 'manual', track.vssId || '', track.name?.simpleText || ''].join('|');
   }
 
   function handleYouTubeSubtitleMessage(event) {
@@ -267,7 +322,7 @@
     handleYouTubeSubtitleResponse(data.url, data.responseText);
   }
 
-  function handleYouTubeSubtitleResponse(url, responseText) {
+  async function handleYouTubeSubtitleResponse(url, responseText) {
     if (!url || !responseText) return;
     let parsedUrl;
     try { parsedUrl = new URL(url, location.href); } catch (e) { return; }
@@ -285,6 +340,7 @@
     state.kind = kind;
     state.sourceLang = sourceLang;
     state.items = groupYouTubeSubtitleItems(items, sourceLang, kind);
+    await restoreYouTubeSubtitleCache(state);
     state.currentIndex = -1;
     state.translatedCount = state.items.filter(function(item) { return item.translation; }).length;
     state.status = state.items.length ? 'Ready' : 'Waiting';
@@ -292,6 +348,7 @@
     ensureYouTubeSubtitleOverlay();
     updateYouTubeSubtitleForTime();
     renderYouTubeButton();
+    renderYouTubeTranscriptPanel();
   }
 
   function parseYouTubeJson3(text) {
@@ -460,9 +517,11 @@
       item.isTranslating = false;
       item.failed = !item.translation;
     });
+    saveYouTubeSubtitleCache(state);
     state.translatedCount = state.items.filter(function(item) { return item.translation; }).length;
     renderYouTubeButton();
     renderCurrentYouTubeSubtitle();
+    renderYouTubeTranscriptPanel();
   }
 
   async function translateYouTubeItem(item) {
@@ -478,6 +537,7 @@
       if (res.error) throw new Error(res.error);
       item.translation = res.translated || '';
       item.failed = !item.translation;
+      if (item.translation) saveYouTubeSubtitleCache(getYouTubeState());
     } catch (err) {
       item.translation = '';
       item.failed = true;
@@ -487,6 +547,7 @@
       getYouTubeState().translatedCount = getYouTubeState().items.filter(function(sub) { return sub.translation; }).length;
       renderYouTubeButton();
       renderCurrentYouTubeSubtitle();
+      renderYouTubeTranscriptPanel();
     }
   }
 
@@ -514,6 +575,163 @@
     link.click();
     link.remove();
     setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  function toggleYouTubeTranscriptPanel() {
+    const state = getYouTubeState();
+    ensureYouTubeTranscriptPanel();
+    const panel = state.transcriptPanel;
+    if (!panel) return;
+    panel.hidden = !panel.hidden;
+    if (!panel.hidden) {
+      requestYouTubeCaption();
+      renderYouTubeTranscriptPanel();
+    }
+  }
+
+  function ensureYouTubeTranscriptPanel() {
+    const state = getYouTubeState();
+    if (state.transcriptPanel?.isConnected) return;
+    const panel = document.createElement('aside');
+    panel.className = 'llm-youtube-transcript-panel';
+    panel.hidden = true;
+    panel.innerHTML = [
+      '<div class="llm-yt-panel-head"><strong>Bilingual transcript</strong><button type="button" class="llm-yt-panel-close" aria-label="Close">×</button></div>',
+      '<div class="llm-yt-panel-tools">',
+      '<select class="llm-yt-track-select" aria-label="Subtitle track"></select>',
+      '<input class="llm-yt-search" type="search" placeholder="Search subtitles">',
+      '</div>',
+      '<div class="llm-yt-panel-actions"><button type="button" data-action="copy">Copy</button><button type="button" data-action="export">Export VTT</button></div>',
+      '<div class="llm-yt-list"></div>'
+    ].join('');
+    panel.querySelector('.llm-yt-panel-close').addEventListener('click', function() { panel.hidden = true; });
+    panel.querySelector('.llm-yt-search').addEventListener('input', renderYouTubeTranscriptPanel);
+    panel.querySelector('.llm-yt-track-select').addEventListener('change', function(event) {
+      state.selectedTrackKey = event.target.value;
+      state.items = [];
+      state.currentIndex = -1;
+      requestYouTubeCaption();
+    });
+    panel.querySelector('[data-action="copy"]').addEventListener('click', function() {
+      const text = buildTranscriptText(state.items);
+      navigator.clipboard?.writeText(text).catch(function(){});
+    });
+    panel.querySelector('[data-action="export"]').addEventListener('click', downloadYouTubeVtt);
+    document.body.appendChild(panel);
+    state.transcriptPanel = panel;
+  }
+
+  function renderYouTubeTranscriptPanel() {
+    const state = getYouTubeState();
+    const panel = state.transcriptPanel;
+    if (!panel || panel.hidden) return;
+    const select = panel.querySelector('.llm-yt-track-select');
+    if (select) {
+      const current = state.selectedTrackKey || getTrackKey({ languageCode: state.lang, kind: state.kind });
+      select.innerHTML = '';
+      state.tracks.forEach(function(track) {
+        const option = document.createElement('option');
+        option.value = track.key;
+        option.textContent = track.name + ' · ' + (track.kind === 'asr' ? 'Auto' : 'Manual') + ' · ' + track.languageCode;
+        option.selected = track.key === current;
+        select.appendChild(option);
+      });
+      select.disabled = !state.tracks.length;
+    }
+    const query = panel.querySelector('.llm-yt-search')?.value.trim().toLowerCase() || '';
+    const list = panel.querySelector('.llm-yt-list');
+    if (!list) return;
+    list.innerHTML = '';
+    const items = state.items.filter(function(item) {
+      if (!query) return true;
+      return (item.text + '\n' + (item.translation || '')).toLowerCase().includes(query);
+    });
+    if (!items.length) {
+      const empty = document.createElement('div');
+      empty.className = 'llm-yt-empty';
+      empty.textContent = state.items.length ? 'No matching subtitles.' : 'No subtitles loaded yet.';
+      list.appendChild(empty);
+      return;
+    }
+    items.forEach(function(item) {
+      const row = document.createElement('div');
+      row.className = 'llm-yt-row';
+      const time = document.createElement('time');
+      time.textContent = formatPanelTime(item.start);
+      const source = document.createElement('div');
+      source.className = 'llm-yt-source';
+      source.textContent = item.text || '';
+      const translated = document.createElement('div');
+      translated.className = 'llm-yt-translated';
+      translated.textContent = item.translation || (item.isTranslating ? 'Translating...' : '');
+      row.appendChild(time);
+      row.appendChild(source);
+      row.appendChild(translated);
+      list.appendChild(row);
+    });
+  }
+
+  function buildTranscriptText(items) {
+    return (items || []).map(function(item) {
+      return [formatPanelTime(item.start), item.text || '', item.translation || ''].filter(Boolean).join('\n');
+    }).join('\n\n');
+  }
+
+  function formatPanelTime(ms) {
+    const total = Math.floor(Math.max(0, ms || 0) / 1000);
+    const min = Math.floor(total / 60);
+    const sec = total % 60;
+    return String(min).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
+  }
+
+  async function restoreYouTubeSubtitleCache(state) {
+    const cacheKey = getYouTubeSubtitleCacheKey(state);
+    if (!cacheKey) return;
+    try {
+      const result = await chrome.storage.local.get(YT_CACHE_KEY);
+      const cache = result[YT_CACHE_KEY] || {};
+      const entry = cache[cacheKey];
+      if (!entry || !Array.isArray(entry.translations)) return;
+      state.items.forEach(function(item, index) {
+        const cached = entry.translations[index];
+        if (cached && cached.source === item.text && cached.translation) {
+          item.translation = cached.translation;
+          item.failed = false;
+        }
+      });
+    } catch (e) {}
+  }
+
+  async function saveYouTubeSubtitleCache(state) {
+    const cacheKey = getYouTubeSubtitleCacheKey(state);
+    if (!cacheKey || !state.items.length) return;
+    try {
+      const result = await chrome.storage.local.get(YT_CACHE_KEY);
+      const cache = result[YT_CACHE_KEY] || {};
+      cache[cacheKey] = {
+        ts: Date.now(),
+        videoId: state.videoId,
+        lang: state.lang,
+        kind: state.kind,
+        targetLang: ctx.state.settings?.targetLang || '',
+        model: ctx.state.settings?.model || '',
+        translations: state.items.map(function(item) {
+          return { source: item.text || '', translation: item.translation || '' };
+        })
+      };
+      const keys = Object.keys(cache);
+      if (keys.length > 40) {
+        keys.sort(function(a, b) { return (cache[a].ts || 0) - (cache[b].ts || 0); });
+        keys.slice(0, keys.length - 40).forEach(function(key) { delete cache[key]; });
+      }
+      await chrome.storage.local.set({ [YT_CACHE_KEY]: cache });
+    } catch (e) {}
+  }
+
+  function getYouTubeSubtitleCacheKey(state) {
+    if (!state.videoId || !state.lang) return '';
+    const settings = ctx.state.settings || {};
+    return [state.videoId, state.lang, state.kind || 'manual', settings.targetLang || '', settings.model || '', settings.provider || ''].join('|');
   }
 
   function buildVtt(items) {
@@ -546,6 +764,8 @@
     state.videoId = '';
     state.kind = '';
     state.lang = '';
+    state.tracks = [];
+    state.selectedTrackKey = '';
     state.items = [];
     state.currentIndex = -1;
     state.translatedCount = 0;
@@ -664,7 +884,7 @@
     if (!state.overlay) return;
     const settings = ctx.state.settings || {};
     const style = normalizeSubtitleStyle(settings.subtitleStyle);
-    state.overlay.classList.remove('llm-subtitle-style-cinema', 'llm-subtitle-style-classic', 'llm-subtitle-style-minimal', 'llm-subtitle-style-outline', 'llm-subtitle-style-paper');
+    state.overlay.classList.remove('llm-subtitle-style-cinema', 'llm-subtitle-style-outline', 'llm-subtitle-style-paper');
     state.overlay.classList.add('llm-subtitle-style-' + style);
     state.overlay.dataset.subtitleMode = settings.subtitleMode === 'translation' ? 'translation' : 'bilingual';
     state.overlay.style.display = (settings.subtitleMode === 'translation' && !translated) ? 'none' : '';
@@ -680,7 +900,7 @@
   }
 
   function normalizeSubtitleStyle(style) {
-    return ['cinema', 'classic', 'minimal', 'outline', 'paper'].includes(style) ? style : 'cinema';
+    return ['cinema', 'outline', 'paper'].includes(style) ? style : 'cinema';
   }
 
   function hideVideoSubtitle(video) {

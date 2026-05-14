@@ -118,12 +118,6 @@ td .llm-translate-inner,th .llm-translate-inner,li .llm-translate-inner{display:
 .llm-subtitle-style-cinema{padding:7px 13px 8px;background:rgba(3,4,5,.72);backdrop-filter:blur(3px)}
 .llm-subtitle-style-cinema .llm-sub-original{color:rgba(255,255,255,.92)}
 .llm-subtitle-style-cinema .llm-sub-translated{color:#00FF85}
-.llm-subtitle-style-classic{padding:9px 16px;background:rgba(0,0,0,.84);border-radius:4px;border:1px solid rgba(255,255,255,.12);box-shadow:0 6px 18px rgba(0,0,0,.28)}
-.llm-subtitle-style-classic .llm-sub-original{color:#fff}
-.llm-subtitle-style-classic .llm-sub-translated{color:#ffe66d}
-.llm-subtitle-style-minimal{padding:0 8px;background:transparent;box-shadow:none;text-shadow:0 2px 4px #000,0 0 2px #000}
-.llm-subtitle-style-minimal .llm-sub-original{color:rgba(255,255,255,.9)}
-.llm-subtitle-style-minimal .llm-sub-translated{color:#fff;font-weight:750}
 .llm-subtitle-style-outline{padding:0 8px;background:transparent;box-shadow:none;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,0 2px 5px #000}
 .llm-subtitle-style-outline .llm-sub-original{color:#fff;font-weight:650}
 .llm-subtitle-style-outline .llm-sub-translated{color:#00d5ff;font-weight:800}
@@ -131,3 +125,129 @@ td .llm-translate-inner,th .llm-translate-inner,li .llm-translate-inner{display:
 .llm-subtitle-style-paper .llm-sub-original{color:#3c444d}
 .llm-subtitle-style-paper .llm-sub-translated{color:#006b3a}
 .llm-video-subtitle-overlay[data-subtitle-mode="translation"] .llm-sub-translated{margin-top:0;font-size:1.08em}
+.llm-youtube-transcript-button {
+  width: 42px !important;
+  color: #fff !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+}
+
+.llm-youtube-transcript-panel {
+  position: fixed;
+  top: 72px;
+  right: 20px;
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(680px, calc(100vh - 104px));
+  z-index: 2147483646;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 8px;
+  background: rgba(18, 20, 23, 0.96);
+  color: #f5f7fa;
+  box-shadow: 0 18px 48px rgba(0,0,0,0.42);
+  backdrop-filter: blur(14px);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+.llm-youtube-transcript-panel[hidden] {
+  display: none !important;
+}
+.llm-yt-panel-head,
+.llm-yt-panel-tools,
+.llm-yt-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.llm-yt-panel-head {
+  justify-content: space-between;
+}
+.llm-yt-panel-head strong {
+  font-size: 14px;
+  letter-spacing: 0;
+}
+.llm-yt-panel-close,
+.llm-yt-panel-actions button {
+  min-height: 30px;
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  cursor: pointer;
+}
+.llm-yt-panel-close {
+  width: 30px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+}
+.llm-yt-panel-actions button {
+  padding: 0 10px;
+  font-size: 12px;
+}
+.llm-yt-panel-tools {
+  flex-wrap: wrap;
+}
+.llm-yt-track-select,
+.llm-yt-search {
+  min-height: 34px;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 6px;
+  background: rgba(0,0,0,0.24);
+  color: #fff;
+  font-size: 12px;
+}
+.llm-yt-track-select {
+  flex: 1 1 180px;
+}
+.llm-yt-search {
+  flex: 1 1 130px;
+  padding: 0 10px;
+}
+.llm-yt-list {
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 2px;
+}
+.llm-yt-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 4px 10px;
+  padding: 8px 0;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+.llm-yt-row time {
+  grid-row: span 2;
+  color: rgba(255,255,255,0.54);
+  font-size: 11px;
+}
+.llm-yt-source {
+  color: rgba(255,255,255,0.72);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.llm-yt-translated {
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+.llm-yt-empty {
+  padding: 28px 8px;
+  text-align: center;
+  color: rgba(255,255,255,0.55);
+  font-size: 13px;
+}
+
+@media (max-width: 680px) {
+  .llm-youtube-transcript-panel {
+    top: 56px;
+    right: 10px;
+    left: 10px;
+    width: auto;
+  }
+}

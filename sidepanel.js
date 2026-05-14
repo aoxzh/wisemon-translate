@@ -22,6 +22,7 @@
   const readerProgressText = $('reader-progress-text');
   const readerResult = $('reader-result');
   const toggleReaderLayout = $('toggle-reader-layout');
+  const retryFailed = $('retry-failed');
   const saveResult = $('save-result');
   const saveHtml = $('save-html');
   const saveMarkdown = $('save-markdown');
@@ -146,6 +147,30 @@
       updateProgress(0, 0, true);
     }
   });
+
+  if (retryFailed) {
+    retryFailed.addEventListener('click', async () => {
+      ensureReaderSegments();
+      const failed = readerSegments.filter(segment => segment.status === 'error' || !segment.translated);
+      if (!failed.length) return;
+      stopRequested = false;
+      translateBtn.disabled = true;
+      stopTranslate.disabled = false;
+      try {
+        await retryReaderSegments(failed);
+        const translated = getTranslatedOutput();
+        resultText.textContent = translated;
+        await addHistory(sourceText.value.trim(), translated);
+      } catch (err) {
+        resultText.hidden = false;
+        resultText.textContent = stopRequested ? 'Stopped.' : I18N.t('sidepanel_failed_prefix') + err.message;
+      } finally {
+        translateBtn.disabled = false;
+        stopTranslate.disabled = true;
+        updateProgress(0, 0, true);
+      }
+    });
+  }
 
   chapterNav.addEventListener('change', () => {
     const id = chapterNav.value;
@@ -297,6 +322,7 @@
         translated: '',
         status: 'pending',
         type: mode === 'pdf' ? 'pdf-page' : 'chapter',
+        level: heading.level || 2,
         pageNo: null
       };
     });
@@ -311,9 +337,11 @@
       /^第.{1,12}[章节卷部篇]/.test(first)
     );
     if (isHeading) {
-      return { title: first.replace(/^#{1,6}\s+/, ''), source: lines.slice(1).join('\n') || block };
+      const levelMatch = first.match(/^(#{1,6})\s+/);
+      const level = levelMatch ? Math.min(6, Math.max(2, levelMatch[1].length + 1)) : 2;
+      return { title: first.replace(/^#{1,6}\s+/, ''), source: lines.slice(1).join('\n') || block, level };
     }
-    return { title: 'Section ' + (index + 1), source: block };
+    return { title: 'Section ' + (index + 1), source: block, level: 2 };
   }
 
   function segmentReaderText(text) {
@@ -378,6 +406,33 @@
       await saveDraft();
     }
     return getTranslatedOutput();
+  }
+
+  async function retryReaderSegments(segments) {
+    renderReaderShell();
+    updateProgress(0, segments.length);
+    for (let i = 0; i < segments.length; i++) {
+      if (stopRequested) break;
+      const segment = segments[i];
+      segment.status = 'translating';
+      updateSegmentNode(segment);
+      const res = await chrome.runtime.sendMessage({
+        action: 'translate',
+        text: segment.source,
+        targetLang: targetLang.value
+      });
+      if (res.error) {
+        segment.status = 'error';
+        updateSegmentNode(segment, res.error);
+      } else {
+        segment.translated = res.translated || '';
+        segment.status = segment.translated ? 'done' : 'error';
+        updateSegmentNode(segment, segment.translated ? '' : 'Empty translation');
+      }
+      updateProgress(i + 1, segments.length);
+      renderChapterNav();
+      await saveDraft();
+    }
   }
 
   function renderReaderShell() {
@@ -480,7 +535,7 @@
     const body = readerSegments.map(segment => {
       return [
         '<section class="segment">',
-        '<h2>' + escapeHtml(segment.title || 'Section') + '</h2>',
+        '<h' + getExportHeadingLevel(segment) + '>' + escapeHtml(segment.title || 'Section') + '</h' + getExportHeadingLevel(segment) + '>',
         '<div class="columns">',
         '<article><h3>Original</h3><p>' + escapeHtml(segment.source || '').replace(/\n/g, '<br>') + '</p></article>',
         '<article><h3>Translation</h3><p>' + escapeHtml(segment.translated || '').replace(/\n/g, '<br>') + '</p></article>',
@@ -491,7 +546,7 @@
     return '<!doctype html><html><head><meta charset="utf-8"><title>' + title + '</title><style>' +
       'body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:32px;line-height:1.65;color:#1f252b}' +
       '.segment{break-inside:avoid;border-bottom:1px solid #ddd;padding:0 0 24px;margin:0 0 24px}' +
-      'h1{font-size:24px}h2{font-size:18px}.columns{display:grid;grid-template-columns:1fr 1fr;gap:24px}' +
+      'h1{font-size:24px}h2{font-size:19px}h3{font-size:16px}.columns{display:grid;grid-template-columns:1fr 1fr;gap:24px}' +
       'article{white-space:normal}h3{font-size:12px;text-transform:uppercase;color:#667085}' +
       '@media(max-width:720px){.columns{grid-template-columns:1fr}}' +
       '</style></head><body><h1>' + title + '</h1>' + body + '</body></html>';
@@ -500,13 +555,17 @@
   function buildMarkdownExport() {
     const lines = ['# ' + (readerMode === 'pdf' ? 'PDF Translation' : 'Reader Translation'), ''];
     readerSegments.forEach(segment => {
-      lines.push('## ' + sanitizeMarkdownHeading(segment.title || 'Section'), '');
+      lines.push('#'.repeat(Math.max(2, Math.min(6, segment.level || 2))) + ' ' + sanitizeMarkdownHeading(segment.title || 'Section'), '');
       lines.push('### Original', '');
       lines.push(segment.source || '', '');
       lines.push('### Translation', '');
       lines.push(segment.translated || '', '');
     });
     return lines.join('\n');
+  }
+
+  function getExportHeadingLevel(segment) {
+    return Math.max(2, Math.min(6, Number(segment.level || 2)));
   }
 
   function escapeHtml(text) {
@@ -662,6 +721,7 @@
       translated: segment?.translated || '',
       status: segment?.status || (segment?.translated ? 'done' : 'pending'),
       type: segment?.type || 'chapter',
+      level: segment?.level || 2,
       pageNo: segment?.pageNo || null
     };
   }

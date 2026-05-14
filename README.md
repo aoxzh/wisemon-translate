@@ -23,9 +23,9 @@ wisemon-translate is an open-source browser extension for bilingual reading. It 
 - Page translation with layout-safe bilingual and translation-only display modes.
 - Compact navigation, buttons, and menus are protected in bilingual mode to avoid breaking page layouts.
 - Focused translation styles: Clean, Subtle Background, Divider Line, and Card.
-- Side panel reader for pasted long text, TXT / HTML / PDF import, resumable segment translation, and HTML / Markdown export.
-- YouTube bilingual subtitle overlay with multiple subtitle styles and VTT export.
-- Bring your own provider: DeepSeek, OpenAI, Anthropic, Gemini, OpenRouter, Ollama, Hunyuan HY-MT, DeepL, Baidu, Microsoft Translator, Google free translate, or any OpenAI-compatible endpoint.
+- Side panel reader for pasted long text, TXT / HTML / PDF import, chapter-aware translation, failed-segment retry, and HTML / Markdown export.
+- YouTube bilingual subtitle overlay with track preference, transcript panel, per-video cache, search, copy, multiple subtitle styles, and VTT export.
+- Bring your own provider: DeepSeek, OpenAI, Anthropic, Gemini, OpenRouter, Ollama, Hunyuan HY-MT, LM Studio, DeepL, Baidu, Microsoft Translator, Google free translate, or any OpenAI-compatible endpoint.
 - Privacy masking for emails, phone numbers, card numbers, verification codes, private keys, and URLs before requests are sent.
 - Local-only settings, cache, and logs.
 
@@ -84,7 +84,7 @@ Available page translation styles are intentionally limited to:
 
 ### YouTube Subtitles
 
-YouTube support can translate available timedtext caption tracks into an overlay. Bilingual mode shows original and translated lines together; translation-only mode hides the original. Subtitle styles include Cinema, Classic box, Minimal, Outline, and Paper. Right-click the `T` subtitle button on YouTube to export bilingual VTT captions.
+YouTube support can translate available timedtext caption tracks into an overlay. Bilingual mode shows original and translated lines together; translation-only mode hides the original. Subtitle styles are intentionally kept to three maintainable choices: Cinema, Outline, and Paper. The extension can prefer manual captions, prefer auto captions, skip target-language tracks, cache translations for the same video, and open a searchable transcript panel with copy and VTT export.
 
 ### Free Self-Hosted Option: Hunyuan HY-MT
 
@@ -100,6 +100,18 @@ The Hunyuan HY-MT preset is for users who want to run Tencent's open translation
 
 Reality check: this can be free in API cost, but it is not "free like a hosted web API". Users need enough local GPU/VRAM or a rented machine, and page translation latency will depend heavily on their server. It is best treated as an experimental/private option for users who are comfortable running model servers.
 
+Local model checks:
+
+- Ollama: default `http://localhost:11434/v1`
+- LM Studio: default `http://localhost:1234/v1`
+- HY-MT: default `http://localhost:8000/v1`
+
+The settings page probes `/v1/models` before the test translation and explains common failures: service not running, wrong port/base URL, model name mismatch, timeout, HTTP 404, and browser CORS blocking. Local presets only connect to localhost endpoints that the user configured. The extension does not download models, install software, launch local programs, proxy traffic, or load remote code.
+
+### Translation Quality Controls
+
+Quality presets can be selected in settings: Balanced, Natural, Faithful, Subtitle dialogue, Technical docs, and Novel prose. Glossaries and AI term notes still apply on top of these presets.
+
 Example vLLM-style endpoint test after the server is running:
 
 ```bash
@@ -111,8 +123,9 @@ curl http://localhost:8000/v1/chat/completions \
 ### Privacy And Review Notes
 
 - API keys are stored in browser extension storage.
-- Translation requests go directly to your configured endpoint.
+- Translation requests go directly from the user's browser to the configured endpoint. This extension is not a relay server.
 - v1 does not load remote JavaScript at runtime.
+- Local model options connect only to user-configured localhost APIs and do not include automatic installers or executable launchers.
 - OCR/image translation is intentionally deferred until the OCR engine, workers, WASM, and models can be packaged locally for extension-store review.
 
 ### Development

@@ -95,6 +95,14 @@
       apiKey: '',
       provider: 'hunyuan'
     },
+    lmstudio: {
+      label: 'LM Studio',
+      description: 'Local OpenAI-compatible',
+      baseURL: 'http://localhost:1234/v1',
+      model: 'local-model',
+      apiKey: '',
+      provider: 'lmstudio'
+    },
     custom: {
       label: 'Custom',
       description: 'Any OpenAI-compatible API',
@@ -144,7 +152,7 @@
   PROVIDER_NAMES.zhipu = 'GLM';
   PROVIDER_NAMES.google = 'Google';
 
-  const API_KEY_OPTIONAL_PROVIDERS = new Set(['ollama', 'hunyuan', 'custom', 'google']);
+  const API_KEY_OPTIONAL_PROVIDERS = new Set(['ollama', 'hunyuan', 'lmstudio', 'custom', 'google']);
 
   function getProviderName(provider) {
     return PROVIDER_NAMES[provider] || provider || 'Unknown';

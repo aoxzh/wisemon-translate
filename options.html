@@ -181,6 +181,14 @@
           <div class="opt-pc-name">Hunyuan HY-MT</div>
           <div class="opt-pc-desc">Free self-hosted MT</div>
         </label>
+        <label class="opt-provider-card" data-preset="lmstudio">
+          <input type="radio" name="provider-preset" value="lmstudio">
+          <div class="opt-pc-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h10"/><path d="M7 13h6"/><path d="M9 19v2"/><path d="M15 19v2"/></svg>
+          </div>
+          <div class="opt-pc-name">LM Studio</div>
+          <div class="opt-pc-desc">Local OpenAI-compatible</div>
+        </label>
         <label class="opt-provider-card" data-preset="custom">
           <input type="radio" name="provider-preset" value="custom">
           <div class="opt-pc-icon">
@@ -266,6 +274,7 @@
         <button id="test-connection" class="opt-btn-outline" data-i18n="test_btn">Test Connection</button>
         <span id="test-result" class="opt-status-badge"></span>
       </div>
+      <div id="provider-diagnostic" class="opt-diagnostic" hidden></div>
     </section>
 
     <!-- ===== TRANSLATION SETTINGS ===== -->
@@ -311,6 +320,17 @@
           <option value="subtle">Subtle Background</option>
           <option value="divider">Divider Line</option>
           <option value="card">Card</option>
+        </select>
+      </div>
+      <div class="opt-field">
+        <label for="translationStylePreset">Quality Preset</label>
+        <select id="translationStylePreset">
+          <option value="balanced">Balanced</option>
+          <option value="natural">Natural</option>
+          <option value="faithful">Faithful</option>
+          <option value="subtitle">Subtitle dialogue</option>
+          <option value="technical">Technical docs</option>
+          <option value="novel">Novel prose</option>
         </select>
       </div>
       <div class="opt-field">
@@ -390,15 +410,23 @@
             <option value="bilingual">Bilingual subtitles</option>
             <option value="translation">Translation only</option>
           </select>
+          <select id="subtitleTrackPreference">
+            <option value="manual">Prefer manual captions</option>
+            <option value="auto">Prefer auto captions</option>
+            <option value="any">Any source track</option>
+          </select>
           <select id="subtitleStyle">
             <option value="cinema">Cinema</option>
-            <option value="classic">Classic box</option>
-            <option value="minimal">Minimal</option>
             <option value="outline">Outline</option>
             <option value="paper">Paper</option>
           </select>
+          <label class="opt-inline-check"><input type="checkbox" id="subtitleSkipTargetLang"> Skip target-language tracks</label>
           <input type="number" id="subtitlePosition" min="4" max="30" step="1" placeholder="Bottom %">
           <input type="number" id="subtitleFontSize" min="11" max="24" step="1" placeholder="Font px">
+          <div class="opt-subtitle-preview" id="subtitlePreview">
+            <div class="llm-sub-original">Original subtitle sample</div>
+            <div class="llm-sub-translated">译文字幕预览</div>
+          </div>
         </div>
 
         <label class="opt-toggle-item">

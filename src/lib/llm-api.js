@@ -69,6 +69,19 @@ class LLMAPI {
     return lines.join('\n');
   }
 
+  _buildStylePresetSection() {
+    var preset = this.settings.translationStylePreset || 'balanced';
+    var presets = {
+      balanced: '',
+      natural: '\n\nTranslation style: natural and fluent. Prefer idiomatic target-language phrasing while preserving meaning.',
+      faithful: '\n\nTranslation style: faithful. Preserve source structure, terminology, and nuance as closely as possible.',
+      subtitle: '\n\nTranslation style: subtitle dialogue. Keep lines concise, conversational, and easy to read on screen.',
+      technical: '\n\nTranslation style: technical documentation. Preserve product names, commands, code, units, and exact terminology.',
+      novel: '\n\nTranslation style: literary prose. Preserve atmosphere, voice, and narrative rhythm without adding commentary.'
+    };
+    return presets[preset] || '';
+  }
+
   /**
    * Build the full chat completions URL from baseURL
    * DeepSeek v4: https://api.deepseek.com → https://api.deepseek.com/chat/completions
@@ -179,7 +192,7 @@ class LLMAPI {
       .replace(/\{\{sourceLang\}\}/g, sourceLang === 'auto' ? 'the detected language' : sourceLang)
       .replace(/\{\{targetLang\}\}/g, targetLang)
       .replace(/\{\{text\}\}/g, requestText);
-    const systemMsg = (options.systemPrompt || this.settings.systemPrompt || DEFAULT_SETTINGS.systemPrompt) + this._buildAiTermsSection();
+    const systemMsg = (options.systemPrompt || this.settings.systemPrompt || DEFAULT_SETTINGS.systemPrompt) + this._buildStylePresetSection() + this._buildAiTermsSection();
     return [
       { role: 'system', content: systemMsg },
       { role: 'user', content: prompt }
@@ -903,7 +916,7 @@ class LLMAPI {
       : texts.map(t => ({ text: t, map: [] }));
     const combinedText = maskedItems.map((item, i) => `<item id="${i + 1}">${item.text}</item>`).join('\n');
 
-    const multiSystemMsg = (systemPrompt || DEFAULT_SETTINGS.systemPrompt) + this._buildAiTermsSection() +
+    const multiSystemMsg = (systemPrompt || DEFAULT_SETTINGS.systemPrompt) + this._buildStylePresetSection() + this._buildAiTermsSection() +
       '\n\nYou are translating multiple passages. Return ONLY one valid JSON object in this exact shape: {"translations":[{"id":1,"text":"translated text"}]}. Include every input id exactly once. The top-level value must be an object with a translations array, not a raw array and not separate objects. Do not add markdown, comments, explanations, or trailing commas.';
 
     const prompt = (userPromptTemplate || DEFAULT_SETTINGS.userPromptTemplate)

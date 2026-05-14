@@ -672,6 +672,82 @@ button:disabled {
   background: var(--s-error-bg);
 }
 
+.opt-diagnostic {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-sm);
+  background: var(--s-2);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+.opt-diagnostic.success {
+  border-color: rgba(var(--s-success-rgb), 0.35);
+  background: var(--s-success-bg);
+  color: var(--s-success);
+}
+.opt-diagnostic.warn {
+  border-color: rgba(var(--s-warning-rgb), 0.35);
+  background: var(--s-warning-bg);
+  color: var(--s-warning);
+}
+
+.opt-inline-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.opt-subtitle-preview {
+  width: 100%;
+  min-height: 96px;
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+  gap: 5px;
+  padding: 18px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-default);
+  background: #121417;
+  overflow: hidden;
+}
+.opt-subtitle-preview .llm-sub-original,
+.opt-subtitle-preview .llm-sub-translated {
+  text-align: center;
+  line-height: 1.35;
+}
+.opt-subtitle-preview.llm-subtitle-style-cinema .llm-sub-original {
+  color: rgba(255,255,255,0.82);
+}
+.opt-subtitle-preview.llm-subtitle-style-cinema .llm-sub-translated {
+  color: #fff;
+  font-weight: 700;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+}
+.opt-subtitle-preview.llm-subtitle-style-outline {
+  background: #1b2026;
+}
+.opt-subtitle-preview.llm-subtitle-style-outline .llm-sub-original,
+.opt-subtitle-preview.llm-subtitle-style-outline .llm-sub-translated {
+  color: #fff;
+  font-weight: 700;
+  text-shadow: 0 0 2px #000, 0 0 4px #000, 0 1px 6px rgba(0,0,0,0.75);
+}
+.opt-subtitle-preview.llm-subtitle-style-paper {
+  background: #f6f1e7;
+}
+.opt-subtitle-preview.llm-subtitle-style-paper .llm-sub-original {
+  color: #5f574b;
+}
+.opt-subtitle-preview.llm-subtitle-style-paper .llm-sub-translated {
+  color: #1f252b;
+  font-weight: 700;
+}
+
 /* ---- Shortcut display list ---- */
 .opt-shortcut-list {
   display: flex;
