@@ -26,7 +26,6 @@
   const scTranslateBtn = $('sc-translate-btn');
   const scHoverBtn = $('sc-hover-btn');
   const engineName = $('engine-name');
-  const insightMode = $('insight-mode');
   const providerHealth = $('provider-health');
   const openDiagnostics = $('open-diagnostics');
   const providerPresetSelect = $('provider-preset-select');
@@ -44,6 +43,7 @@
   const addSiteTerms = $('add-site-terms');
   const excludeSite = $('exclude-site');
   const openSiteSettings = $('open-site-settings');
+  const advancedSummary = $('advanced-summary');
 
   /* ---- State ---- */
   let settings = null;
@@ -111,6 +111,14 @@
     if (subtitleStyleSelect) subtitleStyleSelect.value = settings.subtitleStyle || 'cinema';
     if (subtitleTrackSelect) subtitleTrackSelect.value = settings.subtitleTrackPreference || 'manual';
     if (subtitleScopeSelect) subtitleScopeSelect.value = settings.subtitleTranslateScope || 'nearby';
+    updateAdvancedSummary();
+  }
+
+  function updateAdvancedSummary() {
+    if (!advancedSummary || !settings) return;
+    const provider = typeof getProviderName === 'function' ? getProviderName(settings.provider) : (settings.provider || 'Provider');
+    const subtitle = settings.enableSubtitle === false ? 'Sub off' : ((settings.subtitleMode || 'bilingual') === 'translation' ? 'Sub trans' : 'Sub bi');
+    advancedSummary.textContent = provider + ' · ' + subtitle;
   }
 
   async function saveSettingsAndNotify() {
@@ -118,6 +126,7 @@
     updateProviderSubtitle();
     updateInsightCards();
     updateProviderHealth();
+    updateAdvancedSummary();
     const tab = await getCurrentTab();
     if (tab && tab.id) {
       chrome.tabs.sendMessage(tab.id, { action: 'update-theme', settings }).catch(function(){});
@@ -233,7 +242,6 @@
         ? getProviderName(settings.provider)
         : (settings.provider || '-');
     }
-    if (insightMode) insightMode.textContent = settings.displayMode === 'replace' ? I18N.t('mode_replace') : I18N.t('mode_bilingual');
   }
 
   async function updateProviderHealth() {

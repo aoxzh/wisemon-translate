@@ -52,10 +52,6 @@
       <strong id="engine-name">-</strong>
     </div>
     <div class="pop-insight">
-      <span class="pop-insight-label" data-i18n="label_mode">Mode</span>
-      <strong id="insight-mode">-</strong>
-    </div>
-    <div class="pop-insight">
       <span class="pop-insight-label" data-i18n="label_health">Health</span>
       <strong id="provider-health">-</strong>
     </div>
@@ -69,14 +65,16 @@
       </div>
       <button id="open-site-settings" class="pop-mini-btn" title="Open site settings">Manage</button>
     </div>
-    <div class="pop-site-status">
-      <span class="pop-site-chip" id="site-terms-chip">Terms: -</span>
-      <span class="pop-site-chip" id="site-rules-chip">Rules: -</span>
-      <span class="pop-site-chip" id="site-excluded-chip">Excluded: -</span>
-    </div>
-    <div class="pop-site-actions">
-      <button id="add-site-terms" class="pop-mini-btn">Add domain terms</button>
-      <button id="exclude-site" class="pop-mini-btn">Exclude site</button>
+    <div class="pop-site-row">
+      <div class="pop-site-status">
+        <span class="pop-site-chip" id="site-terms-chip">Terms: -</span>
+        <span class="pop-site-chip" id="site-rules-chip">Rules: -</span>
+        <span class="pop-site-chip" id="site-excluded-chip">Excluded: -</span>
+      </div>
+      <div class="pop-site-actions">
+        <button id="add-site-terms" class="pop-mini-btn">Terms</button>
+        <button id="exclude-site" class="pop-mini-btn">Exclude</button>
+      </div>
     </div>
   </div>
 
@@ -100,29 +98,6 @@
     </div>
   </div>
 
-  <div class="pop-config-grid">
-    <label class="pop-config-field">
-      <span>Provider</span>
-      <select id="provider-preset-select" class="pop-select pop-config-select">
-        <option value="deepseek-v4-flash">DeepSeek Flash</option>
-        <option value="deepseek-v4-pro">DeepSeek Pro</option>
-        <option value="glm-4.7-flash">GLM Flash</option>
-        <option value="openai">OpenAI</option>
-        <option value="gemini">Gemini</option>
-        <option value="openrouter">OpenRouter</option>
-        <option value="ollama">Ollama</option>
-        <option value="hunyuan">HY-MT</option>
-        <option value="lmstudio">LM Studio</option>
-        <option value="custom">Custom</option>
-        <option value="google">Google Free</option>
-      </select>
-    </label>
-    <label class="pop-config-field">
-      <span>Model</span>
-      <input id="model-input" class="pop-input" type="text" spellcheck="false" placeholder="model">
-    </label>
-  </div>
-
   <!-- ===== DISPLAY MODE SEGMENT ===== -->
   <div class="pop-segment" role="radiogroup">
     <button id="mode-bilingual" class="pop-seg-btn active" role="radio" aria-checked="true">
@@ -133,45 +108,6 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 7h12"/><path d="M4 17h12"/></svg>
       <span data-i18n="mode_replace">Translation Only</span>
     </button>
-  </div>
-
-  <div class="pop-subtitle-card">
-    <div class="pop-card-head">
-      <strong>Subtitles</strong>
-      <label class="pop-switch"><input type="checkbox" id="subtitle-enable"><span></span></label>
-    </div>
-    <div class="pop-config-grid">
-      <label class="pop-config-field">
-        <span>Mode</span>
-        <select id="subtitle-mode-select" class="pop-select pop-config-select">
-          <option value="bilingual">Bilingual</option>
-          <option value="translation">Translation only</option>
-        </select>
-      </label>
-      <label class="pop-config-field">
-        <span>Style</span>
-        <select id="subtitle-style-select" class="pop-select pop-config-select">
-          <option value="cinema">Cinema</option>
-          <option value="outline">Outline</option>
-          <option value="paper">Paper</option>
-        </select>
-      </label>
-      <label class="pop-config-field">
-        <span>Track</span>
-        <select id="subtitle-track-select" class="pop-select pop-config-select">
-          <option value="manual">Manual first</option>
-          <option value="auto">Auto first</option>
-          <option value="any">Any</option>
-        </select>
-      </label>
-      <label class="pop-config-field">
-        <span>Translate</span>
-        <select id="subtitle-scope-select" class="pop-select pop-config-select">
-          <option value="nearby">Nearby only</option>
-          <option value="full">Full video</option>
-        </select>
-      </label>
-    </div>
   </div>
 
   <!-- ===== QUICK TOOLS ===== -->
@@ -206,8 +142,75 @@
     </button>
   </div>
 
+  <details class="pop-advanced">
+    <summary>
+      <span>Model & subtitle controls</span>
+      <span class="pop-advanced-meta" id="advanced-summary">Default</span>
+    </summary>
+    <div class="pop-config-grid">
+      <label class="pop-config-field">
+        <span>Provider</span>
+        <select id="provider-preset-select" class="pop-select pop-config-select">
+          <option value="deepseek-v4-flash">DeepSeek Flash</option>
+          <option value="deepseek-v4-pro">DeepSeek Pro</option>
+          <option value="glm-4.7-flash">GLM Flash</option>
+          <option value="openai">OpenAI</option>
+          <option value="gemini">Gemini</option>
+          <option value="openrouter">OpenRouter</option>
+          <option value="ollama">Ollama</option>
+          <option value="hunyuan">HY-MT</option>
+          <option value="lmstudio">LM Studio</option>
+          <option value="custom">Custom</option>
+          <option value="google">Google Free</option>
+        </select>
+      </label>
+      <label class="pop-config-field">
+        <span>Model</span>
+        <input id="model-input" class="pop-input" type="text" spellcheck="false" placeholder="model">
+      </label>
+    </div>
+    <div class="pop-subtitle-compact">
+      <div class="pop-card-head">
+        <strong>Subtitles</strong>
+        <label class="pop-switch"><input type="checkbox" id="subtitle-enable"><span></span></label>
+      </div>
+      <div class="pop-config-grid">
+        <label class="pop-config-field">
+          <span>Mode</span>
+          <select id="subtitle-mode-select" class="pop-select pop-config-select">
+            <option value="bilingual">Bilingual</option>
+            <option value="translation">Translation only</option>
+          </select>
+        </label>
+        <label class="pop-config-field">
+          <span>Style</span>
+          <select id="subtitle-style-select" class="pop-select pop-config-select">
+            <option value="cinema">Cinema</option>
+            <option value="outline">Outline</option>
+            <option value="paper">Paper</option>
+          </select>
+        </label>
+        <label class="pop-config-field">
+          <span>Track</span>
+          <select id="subtitle-track-select" class="pop-select pop-config-select">
+            <option value="manual">Manual first</option>
+            <option value="auto">Auto first</option>
+            <option value="any">Any</option>
+          </select>
+        </label>
+        <label class="pop-config-field">
+          <span>Translate</span>
+          <select id="subtitle-scope-select" class="pop-select pop-config-select">
+            <option value="nearby">Nearby only</option>
+            <option value="full">Full video</option>
+          </select>
+        </label>
+      </div>
+    </div>
+  </details>
+
   <!-- ===== SHORTCUTS (clickable) ===== -->
-  <div class="pop-shortcuts" id="shortcuts-bar">
+  <div class="pop-shortcuts hidden" id="shortcuts-bar">
     <button class="pop-shortcut-btn" id="sc-translate-btn" title="Click to change in browser settings">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M6 16h.01"/></svg>
       <span class="pop-sc-label" data-i18n="shortcut_translate">Translate</span>
