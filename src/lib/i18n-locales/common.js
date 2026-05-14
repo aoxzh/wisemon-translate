@@ -413,7 +413,34 @@
     "de": "Normal",
     "fr": "Sain",
     "es": "Correcto"
-  }
+  },
+  "popup_advanced_controls": { "en": "Model & subtitle controls", "zh-CN": "\u6a21\u578b\u4e0e\u5b57\u5e55\u63a7\u5236", "ja": "\u30e2\u30c7\u30eb\u3068\u5b57\u5e55", "ko": "\ubaa8\ub378 \ubc0f \uc790\ub9c9", "de": "Modell & Untertitel", "fr": "Modele et sous-titres", "es": "Modelo y subtitulos" },
+  "popup_subtitles": { "en": "Subtitles", "zh-CN": "\u5b57\u5e55", "ja": "\u5b57\u5e55", "ko": "\uc790\ub9c9", "de": "Untertitel", "fr": "Sous-titres", "es": "Subtitulos" },
+  "popup_track": { "en": "Track", "zh-CN": "\u8f68\u9053", "ja": "\u30c8\u30e9\u30c3\u30af", "ko": "\ud2b8\ub799", "de": "Spur", "fr": "Piste", "es": "Pista" },
+  "popup_track_manual": { "en": "Manual first", "zh-CN": "\u624b\u52a8\u4f18\u5148", "ja": "\u624b\u52d5\u512a\u5148", "ko": "\uc218\ub3d9 \uc6b0\uc120", "de": "Manuell zuerst", "fr": "Manuelle d'abord", "es": "Manual primero" },
+  "popup_track_auto": { "en": "Auto first", "zh-CN": "\u81ea\u52a8\u4f18\u5148", "ja": "\u81ea\u52d5\u512a\u5148", "ko": "\uc790\ub3d9 \uc6b0\uc120", "de": "Automatisch zuerst", "fr": "Auto d'abord", "es": "Auto primero" },
+  "popup_track_any": { "en": "Any", "zh-CN": "\u4efb\u610f", "ja": "\u4efb\u610f", "ko": "\uc544\ubb34\uac70\ub098", "de": "Beliebig", "fr": "Toutes", "es": "Cualquiera" },
+  "popup_scope_nearby": { "en": "Nearby only", "zh-CN": "\u9644\u8fd1\u7247\u6bb5", "ja": "\u8fd1\u304f\u306e\u307f", "ko": "\uc8fc\ubcc0\ub9cc", "de": "Nur nahe", "fr": "Proche seul.", "es": "Solo cerca" },
+  "popup_scope_full": { "en": "Full video", "zh-CN": "\u6574\u4e2a\u89c6\u9891", "ja": "\u5168\u4f53", "ko": "\uc804\uccb4 \uc601\uc0c1", "de": "Ganzes Video", "fr": "Video entiere", "es": "Video completo" },
+  "popup_current_site": { "en": "Current site", "zh-CN": "\u5f53\u524d\u7f51\u7ad9", "ja": "\u73fe\u5728\u306e\u30b5\u30a4\u30c8", "ko": "\ud604\uc7ac \uc0ac\uc774\ud2b8", "de": "Aktuelle Website", "fr": "Site actuel", "es": "Sitio actual" },
+  "popup_site_controls": { "en": "Site controls", "zh-CN": "\u7ad9\u70b9\u63a7\u5236", "ja": "\u30b5\u30a4\u30c8\u8a2d\u5b9a", "ko": "\uc0ac\uc774\ud2b8 \uc81c\uc5b4", "de": "Website-Steuerung", "fr": "Controles du site", "es": "Controles del sitio" },
+  "popup_manage": { "en": "Manage", "zh-CN": "\u7ba1\u7406", "ja": "\u7ba1\u7406", "ko": "\uad00\ub9ac", "de": "Verwalten", "fr": "Gerer", "es": "Gestionar" },
+  "popup_manage_site_title": { "en": "Open site settings", "zh-CN": "\u6253\u5f00\u7ad9\u70b9\u8bbe\u7f6e", "ja": "\u30b5\u30a4\u30c8\u8a2d\u5b9a\u3092\u958b\u304f", "ko": "\uc0ac\uc774\ud2b8 \uc124\uc815 \uc5f4\uae30", "de": "Website-Einstellungen oeffnen", "fr": "Ouvrir les parametres du site", "es": "Abrir ajustes del sitio" },
+  "popup_terms_action": { "en": "Terms", "zh-CN": "\u672f\u8bed", "ja": "\u7528\u8a9e", "ko": "\uc6a9\uc5b4", "de": "Begriffe", "fr": "Termes", "es": "Terminos" },
+  "popup_exclude_action": { "en": "Exclude", "zh-CN": "\u6392\u9664", "ja": "\u9664\u5916", "ko": "\uc81c\uc678", "de": "Ausschliessen", "fr": "Exclure", "es": "Excluir" },
+  "popup_already_excluded": { "en": "Excluded", "zh-CN": "\u5df2\u6392\u9664", "ja": "\u9664\u5916\u6e08\u307f", "ko": "\uc81c\uc678\ub428", "de": "Ausgeschlossen", "fr": "Exclu", "es": "Excluido" },
+  "popup_terms_label": { "en": "Terms", "zh-CN": "\u672f\u8bed", "ja": "\u7528\u8a9e", "ko": "\uc6a9\uc5b4", "de": "Begriffe", "fr": "Termes", "es": "Terminos" },
+  "popup_rules_label": { "en": "Rules", "zh-CN": "\u89c4\u5219", "ja": "\u30eb\u30fc\u30eb", "ko": "\uaddc\uce59", "de": "Regeln", "fr": "Regles", "es": "Reglas" },
+  "popup_excluded_label": { "en": "Excluded", "zh-CN": "\u6392\u9664", "ja": "\u9664\u5916", "ko": "\uc81c\uc678", "de": "Ausgeschl.", "fr": "Exclu", "es": "Excluido" },
+  "popup_none": { "en": "none", "zh-CN": "\u65e0", "ja": "\u306a\u3057", "ko": "\uc5c6\uc74c", "de": "keine", "fr": "aucun", "es": "ninguno" },
+  "popup_bound": { "en": "bound", "zh-CN": "\u5df2\u7ed1\u5b9a", "ja": "\u6709\u52b9", "ko": "\uc5f0\uacb0", "de": "aktiv", "fr": "lie", "es": "vinc." },
+  "popup_matched": { "en": "matched", "zh-CN": "\u5339\u914d", "ja": "\u4e00\u81f4", "ko": "\uc77c\uce58", "de": "aktiv", "fr": "actif", "es": "act." },
+  "popup_yes": { "en": "yes", "zh-CN": "\u662f", "ja": "\u306f\u3044", "ko": "\uc608", "de": "ja", "fr": "oui", "es": "si" },
+  "popup_no": { "en": "no", "zh-CN": "\u5426", "ja": "\u3044\u3044\u3048", "ko": "\uc544\ub2c8\uc694", "de": "nein", "fr": "non", "es": "no" },
+  "popup_sub_off": { "en": "Sub off", "zh-CN": "\u5b57\u5e55\u5173", "ja": "\u5b57\u5e55OFF", "ko": "\uc790\ub9c9 \ub044\uae30", "de": "UT aus", "fr": "ST off", "es": "Sub off" },
+  "popup_sub_translation": { "en": "Sub trans", "zh-CN": "\u5b57\u5e55\u8bd1\u6587", "ja": "\u5b57\u5e55\u7ffb\u8a33", "ko": "\uc790\ub9c9 \ubc88\uc5ed", "de": "UT uebers.", "fr": "ST trad.", "es": "Sub trad." },
+  "popup_sub_bilingual": { "en": "Sub bi", "zh-CN": "\u53cc\u8bed\u5b57\u5e55", "ja": "\u4e8c\u8a00\u8a9e\u5b57\u5e55", "ko": "\uc774\uc911 \uc790\ub9c9", "de": "UT bi", "fr": "ST bi", "es": "Sub bi" }
+
 };
   const commonLangs = [
   {

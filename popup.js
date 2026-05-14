@@ -117,7 +117,9 @@
   function updateAdvancedSummary() {
     if (!advancedSummary || !settings) return;
     const provider = typeof getProviderName === 'function' ? getProviderName(settings.provider) : (settings.provider || 'Provider');
-    const subtitle = settings.enableSubtitle === false ? 'Sub off' : ((settings.subtitleMode || 'bilingual') === 'translation' ? 'Sub trans' : 'Sub bi');
+    const subtitle = settings.enableSubtitle === false
+      ? I18N.t('popup_sub_off')
+      : ((settings.subtitleMode || 'bilingual') === 'translation' ? I18N.t('popup_sub_translation') : I18N.t('popup_sub_bilingual'));
     advancedSummary.textContent = provider + ' · ' + subtitle;
   }
 
@@ -162,20 +164,20 @@
     const siteTerms = getMatchingSiteTerms();
     const siteRule = hasHost && typeof getSiteRule === 'function' ? getSiteRule(currentTabInfo?.url || '', settings) : null;
     const excluded = hasHost && isCurrentHostExcluded();
-    setChip(siteTermsChip, 'Terms', siteTerms.length ? siteTerms.length + ' bound' : 'none', siteTerms.length ? 'ok' : '');
-    setChip(siteRulesChip, 'Rules', siteRule?.matchedIds?.length ? siteRule.matchedIds.length + ' matched' : 'none', siteRule?.matchedIds?.length ? 'ok' : '');
-    setChip(siteExcludedChip, 'Excluded', excluded ? 'yes' : 'no', excluded ? 'warn' : '');
+    setChip(siteTermsChip, 'popup_terms_label', siteTerms.length ? siteTerms.length + ' ' + I18N.t('popup_bound') : I18N.t('popup_none'), siteTerms.length ? 'ok' : '');
+    setChip(siteRulesChip, 'popup_rules_label', siteRule?.matchedIds?.length ? siteRule.matchedIds.length + ' ' + I18N.t('popup_matched') : I18N.t('popup_none'), siteRule?.matchedIds?.length ? 'ok' : '');
+    setChip(siteExcludedChip, 'popup_excluded_label', excluded ? I18N.t('popup_yes') : I18N.t('popup_no'), excluded ? 'warn' : '');
     if (addSiteTerms) addSiteTerms.disabled = !hasHost;
     if (excludeSite) {
       excludeSite.disabled = !hasHost || excluded;
-      excludeSite.textContent = excluded ? 'Already excluded' : 'Exclude site';
+      excludeSite.textContent = excluded ? I18N.t('popup_already_excluded') : I18N.t('popup_exclude_action');
     }
     if (openSiteSettings) openSiteSettings.disabled = !hasHost;
   }
 
   function setChip(el, label, value, tone) {
     if (!el) return;
-    el.textContent = label + ': ' + value;
+    el.textContent = I18N.t(label) + ': ' + value;
     el.classList.remove('is-ok', 'is-warn');
     if (tone === 'ok') el.classList.add('is-ok');
     if (tone === 'warn') el.classList.add('is-warn');

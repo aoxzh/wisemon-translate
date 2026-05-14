@@ -123,12 +123,12 @@
 
   <details class="pop-advanced">
     <summary>
-      <span>Model & subtitle controls</span>
+      <span data-i18n="popup_advanced_controls">Model & subtitle controls</span>
       <span class="pop-advanced-meta" id="advanced-summary">Default</span>
     </summary>
     <div class="pop-config-grid">
       <label class="pop-config-field">
-        <span>Provider</span>
+        <span data-i18n="preset_label">Provider</span>
         <select id="provider-preset-select" class="pop-select pop-config-select">
           <option value="deepseek-v4-flash">DeepSeek Flash</option>
           <option value="deepseek-v4-pro">DeepSeek Pro</option>
@@ -144,25 +144,25 @@
         </select>
       </label>
       <label class="pop-config-field">
-        <span>Model</span>
-        <input id="model-input" class="pop-input" type="text" spellcheck="false" placeholder="model">
+        <span data-i18n="model_label">Model</span>
+        <input id="model-input" class="pop-input" type="text" spellcheck="false" data-i18n-placeholder="model_label" placeholder="model">
       </label>
     </div>
     <div class="pop-subtitle-compact">
       <div class="pop-card-head">
-        <strong>Subtitles</strong>
+        <strong data-i18n="popup_subtitles">Subtitles</strong>
         <label class="pop-switch"><input type="checkbox" id="subtitle-enable"><span></span></label>
       </div>
       <div class="pop-config-grid">
         <label class="pop-config-field">
-          <span>Mode</span>
+          <span data-i18n="mode_label">Mode</span>
           <select id="subtitle-mode-select" class="pop-select pop-config-select">
-            <option value="bilingual">Bilingual</option>
-            <option value="translation">Translation only</option>
+            <option value="bilingual" data-i18n="mode_bilingual">Bilingual</option>
+            <option value="translation" data-i18n="mode_replace">Translation only</option>
           </select>
         </label>
         <label class="pop-config-field">
-          <span>Style</span>
+          <span data-i18n="theme_label">Style</span>
           <select id="subtitle-style-select" class="pop-select pop-config-select">
             <option value="cinema">Cinema</option>
             <option value="outline">Outline</option>
@@ -170,18 +170,18 @@
           </select>
         </label>
         <label class="pop-config-field">
-          <span>Track</span>
+          <span data-i18n="popup_track">Track</span>
           <select id="subtitle-track-select" class="pop-select pop-config-select">
-            <option value="manual">Manual first</option>
-            <option value="auto">Auto first</option>
-            <option value="any">Any</option>
+            <option value="manual" data-i18n="popup_track_manual">Manual first</option>
+            <option value="auto" data-i18n="popup_track_auto">Auto first</option>
+            <option value="any" data-i18n="popup_track_any">Any</option>
           </select>
         </label>
         <label class="pop-config-field">
-          <span>Translate</span>
+          <span data-i18n="shortcut_translate">Translate</span>
           <select id="subtitle-scope-select" class="pop-select pop-config-select">
-            <option value="nearby">Nearby only</option>
-            <option value="full">Full video</option>
+            <option value="nearby" data-i18n="popup_scope_nearby">Nearby only</option>
+            <option value="full" data-i18n="popup_scope_full">Full video</option>
           </select>
         </label>
       </div>
@@ -190,13 +190,13 @@
 
   <details class="pop-site-card" id="site-card">
     <summary>
-      <span>Current site</span>
+      <span data-i18n="popup_current_site">Current site</span>
       <span class="pop-advanced-meta" id="site-host">No active website</span>
     </summary>
     <div class="pop-site-body">
       <div class="pop-card-head">
-        <strong>Site controls</strong>
-        <button id="open-site-settings" class="pop-mini-btn" title="Open site settings">Manage</button>
+        <strong data-i18n="popup_site_controls">Site controls</strong>
+        <button id="open-site-settings" class="pop-mini-btn" data-i18n="popup_manage" data-i18n-title="popup_manage_site_title" title="Open site settings">Manage</button>
       </div>
       <div class="pop-site-row">
         <div class="pop-site-status">
@@ -205,8 +205,8 @@
           <span class="pop-site-chip" id="site-excluded-chip">Excluded: -</span>
         </div>
         <div class="pop-site-actions">
-          <button id="add-site-terms" class="pop-mini-btn">Terms</button>
-          <button id="exclude-site" class="pop-mini-btn">Exclude</button>
+          <button id="add-site-terms" class="pop-mini-btn" data-i18n="popup_terms_action">Terms</button>
+          <button id="exclude-site" class="pop-mini-btn" data-i18n="popup_exclude_action">Exclude</button>
         </div>
       </div>
     </div>

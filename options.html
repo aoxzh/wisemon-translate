@@ -35,7 +35,7 @@
       </a>
       <a href="#subtitles" data-section="subtitles">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 13h4"/><path d="M13 13h4"/><path d="M7 16h10"/></svg>
-        <span>Subtitles</span>
+        <span data-i18n="nav_subtitles">Subtitles</span>
       </a>
       <a href="#glossary" data-section="glossary">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
@@ -327,14 +327,14 @@
         </select>
       </div>
       <div class="opt-field">
-        <label for="translationStylePreset">Quality Preset</label>
+        <label for="translationStylePreset" data-i18n="quality_preset_label">Quality Preset</label>
         <select id="translationStylePreset">
-          <option value="balanced">Balanced</option>
-          <option value="natural">Natural</option>
-          <option value="faithful">Faithful</option>
-          <option value="subtitle">Subtitle dialogue</option>
-          <option value="technical">Technical docs</option>
-          <option value="novel">Novel prose</option>
+          <option value="balanced" data-i18n="quality_balanced">Balanced</option>
+          <option value="natural" data-i18n="quality_natural">Natural</option>
+          <option value="faithful" data-i18n="quality_faithful">Faithful</option>
+          <option value="subtitle" data-i18n="quality_subtitle">Subtitle dialogue</option>
+          <option value="technical" data-i18n="quality_technical">Technical docs</option>
+          <option value="novel" data-i18n="quality_novel">Novel prose</option>
         </select>
       </div>
       <div class="opt-field">
@@ -344,8 +344,8 @@
       <label class="opt-toggle">
         <input type="checkbox" id="largeTextMode">
         <span>
-          <span class="opt-toggle-title">Large text mode</span>
-          <span class="opt-toggle-desc">Faster batching for novels and long articles</span>
+          <span class="opt-toggle-title" data-i18n="large_text_label">Large text mode</span>
+          <span class="opt-toggle-desc" data-i18n="large_text_desc">Faster batching for novels and long articles</span>
         </span>
       </label>
       <div class="opt-field">
@@ -372,8 +372,8 @@
         <label class="opt-toggle-item">
           <div class="opt-toggle-switch"><input type="checkbox" id="enableHover"><span></span></div>
           <div class="opt-toggle-info">
-            <span class="opt-toggle-name">Hover Translation</span>
-            <span class="opt-toggle-desc">Hold key or hover over text to translate</span>
+            <span class="opt-toggle-name" data-i18n="hover_label">Hover Translation</span>
+            <span class="opt-toggle-desc" data-i18n="hover_desc">Hold key or hover over text to translate</span>
           </div>
         </label>
         <div class="opt-subfield" id="hoverSubfield">
@@ -398,7 +398,7 @@
           <div class="opt-toggle-switch"><input type="checkbox" id="enableSelection"><span></span></div>
           <div class="opt-toggle-info">
             <span class="opt-toggle-name" data-i18n="selection_label">Selection Translation</span>
-            <span class="opt-toggle-desc">Select text to see translation popup</span>
+            <span class="opt-toggle-desc" data-i18n="selection_desc">Select text to see translation popup</span>
           </div>
         </label>
 
@@ -463,8 +463,8 @@
     <!-- ===== SUBTITLES ===== -->
     <section id="subtitles" class="opt-panel">
       <div class="opt-panel-header">
-        <h2>Subtitle Translation</h2>
-        <p>Controls for YouTube and HTML video subtitle overlays.</p>
+        <h2 data-i18n="subtitles_title">Subtitle Translation</h2>
+        <p data-i18n="subtitles_desc">Controls for YouTube and HTML video subtitle overlays.</p>
       </div>
       <label class="opt-toggle-item">
         <div class="opt-toggle-switch"><input type="checkbox" id="enableSubtitle"><span></span></div>
@@ -475,29 +475,29 @@
       </label>
       <div class="opt-subfield opt-subtitle-grid" id="subtitleSubfield">
         <select id="subtitleMode">
-          <option value="bilingual">Bilingual subtitles</option>
-          <option value="translation">Translation only</option>
+          <option value="bilingual" data-i18n="subtitle_mode_bilingual">Bilingual subtitles</option>
+          <option value="translation" data-i18n="mode_replace">Translation only</option>
         </select>
         <select id="subtitleTrackPreference">
-          <option value="manual">Prefer manual captions</option>
-          <option value="auto">Prefer auto captions</option>
-          <option value="any">Any source track</option>
+          <option value="manual" data-i18n="subtitle_track_manual">Prefer manual captions</option>
+          <option value="auto" data-i18n="subtitle_track_auto">Prefer auto captions</option>
+          <option value="any" data-i18n="subtitle_track_any">Any source track</option>
         </select>
         <select id="subtitleTranslateScope">
-          <option value="nearby">Translate nearby only</option>
-          <option value="full">Pre-translate full video</option>
+          <option value="nearby" data-i18n="subtitle_scope_nearby">Translate nearby only</option>
+          <option value="full" data-i18n="subtitle_scope_full">Pre-translate full video</option>
         </select>
         <select id="subtitleStyle">
           <option value="cinema">Cinema</option>
           <option value="outline">Outline</option>
           <option value="paper">Paper</option>
         </select>
-        <label class="opt-inline-check"><input type="checkbox" id="subtitleSkipTargetLang"> Skip target-language tracks</label>
+        <label class="opt-inline-check"><input type="checkbox" id="subtitleSkipTargetLang"> <span data-i18n="subtitle_skip_target">Skip target-language tracks</span></label>
         <input type="number" id="subtitlePosition" min="4" max="30" step="1" placeholder="Bottom %">
         <input type="number" id="subtitleFontSize" min="11" max="24" step="1" placeholder="Font px">
         <div class="opt-subtitle-preview" id="subtitlePreview">
-          <div class="llm-sub-original">Original subtitle sample</div>
-          <div class="llm-sub-translated">Subtitle translation preview</div>
+          <div class="llm-sub-original" data-i18n="subtitle_preview_original">Original subtitle sample</div>
+          <div class="llm-sub-translated" data-i18n="subtitle_preview_translated">Subtitle translation preview</div>
         </div>
       </div>
     </section>
@@ -510,37 +510,37 @@
       </div>
 
       <!-- Structured Term Replacements -->
-      <h3 class="opt-section-title">Term Replacements</h3>
-      <p class="opt-hint">Define pattern→replacement rules applied before translation. Enable &quot;Regex&quot; for pattern-based matching, or leave unchecked for exact word-boundary matching.</p>
+      <h3 class="opt-section-title" data-i18n="term_replacements_title">Term Replacements</h3>
+      <p class="opt-hint" data-i18n="term_replacements_desc">Define pattern-to-replacement rules applied before translation. Enable &quot;Regex&quot; for pattern-based matching, or leave unchecked for exact word-boundary matching.</p>
 
       <div id="terms-list" class="opt-terms-list">
         <!-- Dynamic term rows -->
       </div>
 
       <div class="opt-actions" style="gap:10px; margin-top:12px">
-        <button id="add-term-row" class="opt-btn-outline-sm">+ Add Term</button>
-        <button id="import-terms-json" class="opt-btn-outline-sm">Import JSON</button>
-        <button id="export-terms-json" class="opt-btn-outline-sm">Export JSON</button>
+        <button id="add-term-row" class="opt-btn-outline-sm" data-i18n="term_add">+ Add Term</button>
+        <button id="import-terms-json" class="opt-btn-outline-sm" data-i18n="import_json">Import JSON</button>
+        <button id="export-terms-json" class="opt-btn-outline-sm" data-i18n="export_json">Export JSON</button>
       </div>
       <input type="file" id="terms-import-file" accept=".json" style="display:none">
 
-      <h3 class="opt-section-title" style="margin-top:28px">Site-bound Terms</h3>
-      <p class="opt-hint">Bind terms to specific domains. These rules apply only when the current page hostname matches the domain list.</p>
+      <h3 class="opt-section-title" style="margin-top:28px" data-i18n="site_terms_title">Site-bound Terms</h3>
+      <p class="opt-hint" data-i18n="site_terms_desc">Bind terms to specific domains. These rules apply only when the current page hostname matches the domain list.</p>
       <div id="site-terms-list" class="opt-site-terms-list"></div>
       <div class="opt-actions" style="gap:10px; margin-top:12px">
-        <button id="add-site-term-row" class="opt-btn-outline-sm">+ Add Site Term</button>
+        <button id="add-site-term-row" class="opt-btn-outline-sm" data-i18n="site_terms_add">+ Add Site Term</button>
       </div>
 
       <!-- AI Context Terms -->
-      <h3 class="opt-section-title" style="margin-top:28px">AI Context Terms</h3>
-      <p class="opt-hint">These terms are injected into the translation prompt to help the LLM understand domain-specific vocabulary. Format: one term per line as &quot;Term: definition&quot; or &quot;Term: definition (context)&quot;.</p>
+      <h3 class="opt-section-title" style="margin-top:28px" data-i18n="ai_terms_title">AI Context Terms</h3>
+      <p class="opt-hint" data-i18n="ai_terms_desc">These terms are injected into the translation prompt to help the LLM understand domain-specific vocabulary. Format: one term per line as &quot;Term: definition&quot; or &quot;Term: definition (context)&quot;.</p>
 
       <div class="opt-field">
-        <label for="aiTermsText">AI Terms</label>
+        <label for="aiTermsText" data-i18n="ai_terms_label">AI Terms</label>
         <textarea id="aiTermsText" rows="8" placeholder="API Gateway: An API gateway is a server that acts as an API front-end (Networking)
 Kubernetes: An open-source container orchestration platform (Cloud Computing)
 JWT: JSON Web Token, used for securely transmitting information (Authentication)"></textarea>
-        <p class="opt-hint">Each line: Term: Definition (optional context in parentheses). The definition and context help the LLM choose the right translation.</p>
+        <p class="opt-hint" data-i18n="ai_terms_hint">Each line: Term: Definition (optional context in parentheses). The definition and context help the LLM choose the right translation.</p>
       </div>
 
       <!-- Legacy Glossary -->
@@ -548,7 +548,7 @@ JWT: JSON Web Token, used for securely transmitting information (Authentication)
         <summary class="opt-details-summary" data-i18n="legacy_glossary_title">Legacy Glossary (comma-separated)</summary>
         <div class="opt-field" style="margin-top:12px">
           <textarea id="glossary" rows="6" placeholder="original,replacement (one per line)"></textarea>
-          <p class="opt-hint">Original format: source,translation per line. Used as fallback when structured terms are empty.</p>
+          <p class="opt-hint" data-i18n="legacy_glossary_hint">Original format: source,translation per line. Used as fallback when structured terms are empty.</p>
         </div>
       </details>
     </section>
@@ -565,9 +565,9 @@ JWT: JSON Web Token, used for securely transmitting information (Authentication)
         <p class="opt-hint" data-i18n="sites_hint_v2">One hostname per line. Supports exact and subdomain match.</p>
       </div>
       <div class="opt-field">
-        <label for="siteRules">Advanced Site Rules (JSON)</label>
+        <label for="siteRules" data-i18n="site_rules_label">Advanced Site Rules (JSON)</label>
         <textarea id="siteRules" rows="8" spellcheck="false" placeholder='[{"id":"example","matches":["example.com"],"excludeSelectors":["pre","code"],"mainSelectors":["article"]}]'></textarea>
-        <p class="opt-hint">Optional. Supports matches, excludeSelectors, mainSelectors, injectedCss, disableAutoTranslate, privacyMode.</p>
+        <p class="opt-hint" data-i18n="site_rules_hint">Optional. Supports matches, excludeSelectors, mainSelectors, injectedCss, disableAutoTranslate, privacyMode.</p>
       </div>
     </section>
 
@@ -594,9 +594,9 @@ JWT: JSON Web Token, used for securely transmitting information (Authentication)
         <p data-i18n="data_desc">Export, import, or clear your settings and translation cache.</p>
       </div>
       <div class="opt-actions" style="flex-wrap:wrap;gap:10px">
-        <button id="export-settings" class="opt-btn-outline">Export Settings</button>
-        <button id="import-settings" class="opt-btn-outline">Import Settings</button>
-        <button id="clear-cache" class="opt-btn-secondary">Clear Cache</button>
+        <button id="export-settings" class="opt-btn-outline" data-i18n="export_btn">Export Settings</button>
+        <button id="import-settings" class="opt-btn-outline" data-i18n="import_btn">Import Settings</button>
+        <button id="clear-cache" class="opt-btn-secondary" data-i18n="clear_cache_btn">Clear Cache</button>
       </div>
       <input type="file" id="import-file" accept=".json" style="display:none">
       <span id="data-status" class="opt-status-badge" style="margin-top:10px"></span>
@@ -606,7 +606,7 @@ JWT: JSON Web Token, used for securely transmitting information (Authentication)
     <section id="shortcuts" class="opt-panel">
       <div class="opt-panel-header">
         <h2 data-i18n="shortcuts_title">Keyboard Shortcuts</h2>
-        <p>Configure shortcuts in your browser settings.</p>
+        <p data-i18n="shortcuts_browser_desc">Configure shortcuts in your browser settings.</p>
       </div>
       <button id="open-shortcuts" class="opt-btn-primary" style="margin-bottom:16px" data-i18n="action_open_shortcuts">
         Open Browser Shortcut Settings
@@ -631,28 +631,28 @@ JWT: JSON Web Token, used for securely transmitting information (Authentication)
     <section id="logs" class="opt-panel">
       <div class="opt-panel-header">
         <h2 data-i18n="logs_title">Debug Logs</h2>
-        <p>Translation failures, provider responses, site rules, and content-script diagnostics.</p>
+        <p data-i18n="logs_desc">Translation failures, provider responses, site rules, and content-script diagnostics.</p>
       </div>
       <div class="opt-log-summary" id="log-summary">
-        <div><strong id="log-count-total">0</strong><span>Total</span></div>
-        <div><strong id="log-count-error">0</strong><span>Errors</span></div>
-        <div><strong id="log-count-warn">0</strong><span>Warnings</span></div>
+        <div><strong id="log-count-total">0</strong><span data-i18n="log_total">Total</span></div>
+        <div><strong id="log-count-error">0</strong><span data-i18n="log_errors">Errors</span></div>
+        <div><strong id="log-count-warn">0</strong><span data-i18n="log_warnings">Warnings</span></div>
         <div><strong id="log-count-api">0</strong><span>API</span></div>
       </div>
       <div class="opt-log-toolbar">
         <select id="log-level-filter">
-          <option value="ALL">All Levels</option>
-          <option value="ERROR">Errors Only</option>
-          <option value="WARN">Warnings+</option>
+          <option value="ALL" data-i18n="log_all_levels">All Levels</option>
+          <option value="ERROR" data-i18n="log_errors_only">Errors Only</option>
+          <option value="WARN" data-i18n="log_warnings_plus">Warnings+</option>
           <option value="INFO">Info+</option>
           <option value="DEBUG">Debug</option>
         </select>
-        <input type="text" id="log-search" placeholder="Search logs...">
-        <label class="opt-log-check"><input type="checkbox" id="log-auto-scroll" checked> Auto-scroll</label>
-        <button id="log-refresh" class="opt-btn-outline-sm">Refresh</button>
-        <button id="log-copy" class="opt-btn-outline-sm">Copy</button>
-        <button id="log-export" class="opt-btn-outline-sm">Export</button>
-        <button id="log-clear" class="opt-btn-secondary-sm">Clear</button>
+        <input type="text" id="log-search" data-i18n-placeholder="log_search" placeholder="Search logs...">
+        <label class="opt-log-check"><input type="checkbox" id="log-auto-scroll" checked> <span data-i18n="log_auto_scroll">Auto-scroll</span></label>
+        <button id="log-refresh" class="opt-btn-outline-sm" data-i18n="refresh_btn">Refresh</button>
+        <button id="log-copy" class="opt-btn-outline-sm" data-i18n="copy_btn">Copy</button>
+        <button id="log-export" class="opt-btn-outline-sm" data-i18n="export_json">Export</button>
+        <button id="log-clear" class="opt-btn-secondary-sm" data-i18n="action_clear">Clear</button>
       </div>
       <div id="log-entries" class="opt-log-container">
         <div class="opt-log-empty" data-i18n="logs_loading">Loading logs...</div>
@@ -667,10 +667,10 @@ JWT: JSON Web Token, used for securely transmitting information (Authentication)
       <div class="opt-about-body">
         <p data-i18n="about_desc">Free, open-source AI translation extension. Use your own API keys for DeepSeek, OpenAI, or any compatible LLM.</p>
         <p data-i18n="about_privacy">All requests go directly to your configured API endpoint. Keys stored locally.</p>
-        <p><a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a></p>
+        <p><a href="privacy.html" target="_blank" rel="noopener" data-i18n="privacy_policy">Privacy Policy</a></p>
         <div class="opt-about-meta">
           <span id="about-version">Version 1.0.0</span>
-          <span>MIT License</span>
+          <span data-i18n="mit_license">MIT License</span>
         </div>
       </div>
     </section>

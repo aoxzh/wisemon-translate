@@ -12,14 +12,17 @@
   font-family: var(--font-family);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
-  background: var(--s-2);
+  background:
+    radial-gradient(circle at 12% -6%, rgba(var(--p-main-rgb), 0.10), transparent 132px),
+    linear-gradient(180deg, color-mix(in srgb, var(--s-1) 78%, transparent), var(--s-2));
   color-scheme: dark;
 }
 
 :root:not(.t-light) .popup-root {
   background:
-    radial-gradient(circle at 16px 0, rgba(var(--p-main-rgb), 0.10), transparent 120px),
-    linear-gradient(180deg, #07090C 0%, #030405 100%);
+    radial-gradient(circle at 18px -12px, rgba(var(--p-main-rgb), 0.16), transparent 126px),
+    radial-gradient(circle at 104% 18%, rgba(82, 124, 255, 0.10), transparent 156px),
+    linear-gradient(180deg, #080B0F 0%, #030405 100%);
   --s-1: #0D1115;
   --s-2: #07090C;
   --s-3: #151A1F;
@@ -80,7 +83,7 @@
   justify-content: center;
   background: var(--s-1);
   border: 1px solid var(--border-default);
-  border-radius: var(--r-sm);
+  border-radius: 16px;
   color: var(--text-secondary);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
@@ -96,14 +99,15 @@
 
 /* ===== ACTION CARD ===== */
 .pop-action-card {
-  background: var(--s-1);
+  background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.035));
   border: 1px solid var(--border-default);
-  border-radius: var(--r-md);
+  border-radius: 18px;
   padding: 12px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.18);
   transition: border-color var(--duration-normal) var(--ease-out);
   position: relative;
   overflow: hidden;
+  backdrop-filter: blur(18px);
 }
 .pop-action-card::before {
   content: "";
@@ -124,9 +128,9 @@
 }
 
 .pop-insight {
-  background: linear-gradient(180deg, var(--s-1), var(--s-2));
+  background: rgba(255,255,255,0.045);
   border: 1px solid var(--border-default);
-  border-radius: var(--r-sm);
+  border-radius: 15px;
   min-height: 52px;
 }
 
@@ -201,7 +205,7 @@
   width: 100%;
   padding: var(--space-3) var(--space-4);
   border: none;
-  border-radius: var(--r-sm);
+  border-radius: 15px;
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
   font-family: var(--font-family);
@@ -249,9 +253,9 @@
 
 /* ===== LANGUAGE BAR ===== */
 .pop-lang-bar {
-  background: linear-gradient(180deg, var(--s-1), var(--s-2));
+  background: rgba(255,255,255,0.045);
   border: 1px solid var(--border-default);
-  border-radius: var(--r-sm);
+  border-radius: 16px;
   padding: 7px 10px;
   display: flex;
   align-items: center;
@@ -269,9 +273,9 @@
   display: flex;
   flex-direction: column;
   gap: 5px;
-  background: linear-gradient(180deg, var(--s-1), var(--s-2));
+  background: rgba(255,255,255,0.045);
   border: 1px solid var(--border-default);
-  border-radius: var(--r-sm);
+  border-radius: 14px;
   padding: 8px 10px;
 }
 
@@ -309,20 +313,23 @@
 }
 
 .pop-subtitle-card {
-  background: var(--s-1);
+  background: rgba(255,255,255,0.045);
   border: 1px solid var(--border-default);
-  border-radius: var(--r-sm);
+  border-radius: 14px;
   padding: var(--space-3);
 }
 
-.pop-advanced {
-  background: var(--s-1);
+.pop-advanced,
+.pop-site-card {
+  background: rgba(255,255,255,0.045);
   border: 1px solid var(--border-default);
-  border-radius: var(--r-sm);
+  border-radius: 16px;
   overflow: hidden;
+  backdrop-filter: blur(14px);
 }
 
-.pop-advanced summary {
+.pop-advanced summary,
+.pop-site-card summary {
   min-height: 38px;
   display: flex;
   align-items: center;
@@ -336,23 +343,31 @@
   list-style: none;
 }
 
-.pop-advanced summary::-webkit-details-marker {
+.pop-advanced summary::-webkit-details-marker,
+.pop-site-card summary::-webkit-details-marker {
   display: none;
 }
 
-.pop-advanced summary::after {
-  content: "⌄";
-  color: var(--text-muted);
-  font-size: 14px;
+.pop-advanced summary::after,
+.pop-site-card summary::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-right: 1.6px solid var(--text-muted);
+  border-bottom: 1.6px solid var(--text-muted);
   flex-shrink: 0;
+  transform: rotate(45deg);
+  transition: transform var(--duration-fast) var(--ease-out);
 }
 
-.pop-advanced[open] summary {
+.pop-advanced[open] summary,
+.pop-site-card[open] summary {
   border-bottom: 1px solid var(--border-subtle);
 }
 
-.pop-advanced[open] summary::after {
-  transform: rotate(180deg);
+.pop-advanced[open] summary::after,
+.pop-site-card[open] summary::after {
+  transform: rotate(225deg);
 }
 
 .pop-advanced > .pop-config-grid,
@@ -380,48 +395,8 @@
   font-size: var(--font-size-sm);
 }
 
-.pop-site-card {
-  background: var(--s-1);
-  border: 1px solid var(--border-default);
-  border-radius: var(--r-sm);
-  overflow: hidden;
-}
-
 .pop-site-card.is-disabled summary {
   opacity: 0.72;
-}
-
-.pop-site-card summary {
-  min-height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 0 11px;
-  cursor: pointer;
-  color: var(--text-secondary);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  list-style: none;
-}
-
-.pop-site-card summary::-webkit-details-marker {
-  display: none;
-}
-
-.pop-site-card summary::after {
-  content: "⌄";
-  color: var(--text-muted);
-  font-size: 14px;
-  flex-shrink: 0;
-}
-
-.pop-site-card[open] summary {
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.pop-site-card[open] summary::after {
-  transform: rotate(180deg);
 }
 
 .pop-site-body {
@@ -467,7 +442,7 @@
   justify-content: center;
   padding: 4px 7px;
   border: 1px solid var(--border-subtle);
-  border-radius: var(--r-xs);
+  border-radius: 999px;
   background: rgba(255,255,255,0.035);
   color: var(--text-muted);
   font-size: 10px;
@@ -498,7 +473,7 @@
   min-height: 28px;
   padding: 0 8px;
   border: 1px solid var(--border-default);
-  border-radius: var(--r-xs);
+  border-radius: 12px;
   background: var(--s-2);
   color: var(--text-secondary);
   font-size: var(--font-size-xs);
@@ -534,7 +509,7 @@
   width: 38px;
   height: 22px;
   border-radius: 999px;
-  background: var(--s-3);
+  background: rgba(255,255,255,0.08);
   border: 1px solid var(--border-default);
   position: relative;
   transition: all var(--duration-fast) var(--ease-out);
@@ -603,9 +578,9 @@
 /* ===== SEGMENTED CONTROL ===== */
 .pop-segment {
   display: flex;
-  background: var(--s-1);
+  background: rgba(255,255,255,0.045);
   border: 1px solid var(--border-default);
-  border-radius: var(--r-sm);
+  border-radius: 16px;
   padding: 3px;
 }
 
@@ -623,11 +598,11 @@
   font-weight: var(--font-weight-medium);
   font-family: var(--font-family);
   cursor: pointer;
-  border-radius: 5px;
+  border-radius: 12px;
   transition: all var(--duration-fast) var(--ease-out);
 }
 .pop-seg-btn.active {
-  background: var(--s-2);
+  background: rgba(255,255,255,0.10);
   color: var(--p-main);
   font-weight: var(--font-weight-semibold);
   box-shadow: var(--shadow-xs);
@@ -656,9 +631,9 @@
   justify-content: center;
   gap: var(--space-1);
   padding: 9px var(--space-2);
-  background: linear-gradient(180deg, var(--s-1), var(--s-2));
+  background: rgba(255,255,255,0.045);
   border: 1px solid var(--border-default);
-  border-radius: var(--r-sm);
+  border-radius: 15px;
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
   font-family: var(--font-family);
@@ -697,9 +672,9 @@
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-2) var(--space-3);
-  background: var(--s-1);
+  background: rgba(255,255,255,0.045);
   border: 1px solid var(--border-default);
-  border-radius: var(--r-sm);
+  border-radius: 15px;
   cursor: pointer;
   font-family: var(--font-family);
   transition: all var(--duration-fast) var(--ease-out);
@@ -730,7 +705,7 @@
   justify-content: center;
   background: var(--s-2);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--r-xs);
+  border-radius: 9px;
   padding: 1px 6px;
   font-size: 10px;
   font-family: var(--font-mono);
@@ -760,7 +735,7 @@
   font-family: var(--font-family);
   cursor: pointer;
   padding: var(--space-1) var(--space-2);
-  border-radius: var(--r-sm);
+  border-radius: 12px;
   transition: all var(--duration-fast) var(--ease-out);
 }
 .pop-footer-btn:hover {
