@@ -57,27 +57,6 @@
     </div>
   </div>
 
-  <div class="pop-site-card" id="site-card">
-    <div class="pop-card-head">
-      <div class="pop-site-title">
-        <strong>Current site</strong>
-        <span id="site-host">No active website</span>
-      </div>
-      <button id="open-site-settings" class="pop-mini-btn" title="Open site settings">Manage</button>
-    </div>
-    <div class="pop-site-row">
-      <div class="pop-site-status">
-        <span class="pop-site-chip" id="site-terms-chip">Terms: -</span>
-        <span class="pop-site-chip" id="site-rules-chip">Rules: -</span>
-        <span class="pop-site-chip" id="site-excluded-chip">Excluded: -</span>
-      </div>
-      <div class="pop-site-actions">
-        <button id="add-site-terms" class="pop-mini-btn">Terms</button>
-        <button id="exclude-site" class="pop-mini-btn">Exclude</button>
-      </div>
-    </div>
-  </div>
-
   <!-- ===== LANGUAGE BAR ===== -->
   <div class="pop-lang-bar">
     <div class="pop-lang-item">
@@ -205,6 +184,30 @@
             <option value="full">Full video</option>
           </select>
         </label>
+      </div>
+    </div>
+  </details>
+
+  <details class="pop-site-card" id="site-card">
+    <summary>
+      <span>Current site</span>
+      <span class="pop-advanced-meta" id="site-host">No active website</span>
+    </summary>
+    <div class="pop-site-body">
+      <div class="pop-card-head">
+        <strong>Site controls</strong>
+        <button id="open-site-settings" class="pop-mini-btn" title="Open site settings">Manage</button>
+      </div>
+      <div class="pop-site-row">
+        <div class="pop-site-status">
+          <span class="pop-site-chip" id="site-terms-chip">Terms: -</span>
+          <span class="pop-site-chip" id="site-rules-chip">Rules: -</span>
+          <span class="pop-site-chip" id="site-excluded-chip">Excluded: -</span>
+        </div>
+        <div class="pop-site-actions">
+          <button id="add-site-terms" class="pop-mini-btn">Terms</button>
+          <button id="exclude-site" class="pop-mini-btn">Exclude</button>
+        </div>
       </div>
     </div>
   </details>
