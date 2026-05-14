@@ -30,6 +30,7 @@ const DEFAULT_SETTINGS = {
   subtitleStyle: 'cinema',        // 'cinema' | 'outline' | 'paper'
   subtitleTrackPreference: 'manual', // 'manual' | 'auto' | 'any'
   subtitleSkipTargetLang: true,
+  subtitleTranslateScope: 'nearby', // 'nearby' | 'full'
   subtitlePosition: 12,          // overlay bottom offset in percent
   subtitleFontSize: 14,
   autoTranslate: false,         // auto translate page on load
@@ -54,6 +55,7 @@ const DEFAULT_SETTINGS = {
   customTranslationCss: '',
   glossary: '',                    // custom term replacements: "regex,replacement" per line
   terms: [],                       // structured term replacements: [{ pattern, replacement, regex }]
+  siteTerms: [],                   // site-bound replacements: [{ domains, pattern, replacement, regex }]
   aiTerms: [],                     // AI context terms: [{ term, definition, context }]
   uiTheme: 'auto',                  // 'auto' | 'light' | 'dark'
   privacyMasking: true,             // mask sensitive data before sending text to translation APIs

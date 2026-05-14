@@ -533,6 +533,34 @@
   margin-right: 2px;
 }
 
+.opt-subtitle-grid {
+  align-items: stretch;
+}
+
+.opt-site-terms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.opt-site-term-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.2fr) minmax(110px, 1fr) minmax(110px, 1fr) auto 34px;
+  gap: 8px;
+  align-items: center;
+}
+
+.opt-site-term-row input[type="text"] {
+  width: 100%;
+}
+
+@media (max-width: 760px) {
+  .opt-site-term-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .opt-log-check input[type="checkbox"] {
   width: 16px;
   height: 16px;

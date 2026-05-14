@@ -168,6 +168,7 @@ function populateFields(s) {
   setVal('subtitleMode', s.subtitleMode || 'bilingual');
   setVal('subtitleStyle', s.subtitleStyle || 'cinema');
   setVal('subtitleTrackPreference', s.subtitleTrackPreference || 'manual');
+  setVal('subtitleTranslateScope', s.subtitleTranslateScope || 'nearby');
   setChecked('subtitleSkipTargetLang', s.subtitleSkipTargetLang !== false);
   setVal('subtitlePosition', s.subtitlePosition || 12);
   setVal('subtitleFontSize', s.subtitleFontSize || 14);
@@ -189,6 +190,7 @@ function populateFields(s) {
   // Glossary
   setVal('glossary', s.glossary || '');
   renderTermRows(s.terms || []);
+  renderSiteTermRows(s.siteTerms || []);
   setVal('aiTermsText', formatAiTermsText(s.aiTerms || []));
 
   // Display shortcuts (read-only from manifest)
@@ -282,6 +284,78 @@ function readTermRows() {
       });
     }
   }
+  return terms;
+}
+
+function renderSiteTermRows(siteTerms) {
+  var list = $('site-terms-list');
+  if (!list) return;
+  list.innerHTML = '';
+  if (!siteTerms || siteTerms.length === 0) {
+    addSiteTermRow(list, { domains: '', pattern: '', replacement: '', regex: false });
+    return;
+  }
+  for (var i = 0; i < siteTerms.length; i++) addSiteTermRow(list, siteTerms[i]);
+  addSiteTermRow(list, { domains: '', pattern: '', replacement: '', regex: false });
+}
+
+function addSiteTermRow(list, term) {
+  var row = document.createElement('div');
+  row.className = 'opt-site-term-row';
+  var domainsInput = document.createElement('input');
+  domainsInput.type = 'text';
+  domainsInput.placeholder = 'example.com, docs.example.com';
+  domainsInput.value = term.domains || '';
+  domainsInput.setAttribute('data-key', 'domains');
+  var patternInput = document.createElement('input');
+  patternInput.type = 'text';
+  patternInput.placeholder = 'Pattern';
+  patternInput.value = term.pattern || '';
+  patternInput.setAttribute('data-key', 'pattern');
+  var replInput = document.createElement('input');
+  replInput.type = 'text';
+  replInput.placeholder = 'Replacement';
+  replInput.value = term.replacement || '';
+  replInput.setAttribute('data-key', 'replacement');
+  var checkLabel = document.createElement('label');
+  checkLabel.className = 'opt-term-check';
+  var checkInput = document.createElement('input');
+  checkInput.type = 'checkbox';
+  checkInput.checked = !!term.regex;
+  checkInput.setAttribute('data-key', 'regex');
+  checkLabel.appendChild(checkInput);
+  checkLabel.appendChild(document.createTextNode(' Regex'));
+  var removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.className = 'opt-term-remove';
+  removeBtn.textContent = '\u00D7';
+  removeBtn.title = 'Remove site term';
+  removeBtn.addEventListener('click', function() { row.remove(); });
+  row.appendChild(domainsInput);
+  row.appendChild(patternInput);
+  row.appendChild(replInput);
+  row.appendChild(checkLabel);
+  row.appendChild(removeBtn);
+  list.appendChild(row);
+}
+
+function readSiteTermRows() {
+  var list = $('site-terms-list');
+  if (!list) return [];
+  var rows = list.querySelectorAll('.opt-site-term-row');
+  var terms = [];
+  rows.forEach(function(row) {
+    var domains = row.querySelector('[data-key="domains"]')?.value.trim() || '';
+    var pattern = row.querySelector('[data-key="pattern"]')?.value.trim() || '';
+    var replacement = row.querySelector('[data-key="replacement"]')?.value.trim() || '';
+    if (!domains || !pattern || !replacement) return;
+    terms.push({
+      domains: domains,
+      pattern: pattern,
+      replacement: replacement,
+      regex: !!row.querySelector('[data-key="regex"]')?.checked
+    });
+  });
   return terms;
 }
 
@@ -506,6 +580,7 @@ function readSettingsFromUI() {
     subtitleMode: getVal('subtitleMode') || 'bilingual',
     subtitleStyle: getVal('subtitleStyle') || 'cinema',
     subtitleTrackPreference: getVal('subtitleTrackPreference') || 'manual',
+    subtitleTranslateScope: getVal('subtitleTranslateScope') || 'nearby',
     subtitleSkipTargetLang: isChecked('subtitleSkipTargetLang'),
     subtitlePosition: (function(v) { const n = parseInt(v); return isNaN(n) ? 12 : Math.max(4, Math.min(30, n)); })(getVal('subtitlePosition')),
     subtitleFontSize: (function(v) { const n = parseInt(v); return isNaN(n) ? 14 : Math.max(11, Math.min(24, n)); })(getVal('subtitleFontSize')),
@@ -521,6 +596,7 @@ function readSettingsFromUI() {
     excludedSites: excludedSites,
     glossary: getVal('glossary').trim(),
     terms: readTermRows(),
+    siteTerms: readSiteTermRows(),
     aiTerms: parseAiTermsText(getVal('aiTermsText')),
     privacyMasking: isChecked('privacyMasking'),
     maskEmail: isChecked('maskEmail'),
@@ -700,6 +776,14 @@ function setupEventListeners() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+    });
+  }
+
+  var addSiteTermBtn = $('add-site-term-row');
+  if (addSiteTermBtn) {
+    addSiteTermBtn.addEventListener('click', function() {
+      var list = $('site-terms-list');
+      if (list) addSiteTermRow(list, { domains: '', pattern: '', replacement: '', regex: false });
     });
   }
 

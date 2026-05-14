@@ -24,7 +24,7 @@ wisemon-translate is an open-source browser extension for bilingual reading. It 
 - Compact navigation, buttons, and menus are protected in bilingual mode to avoid breaking page layouts.
 - Focused translation styles: Clean, Subtle Background, Divider Line, and Card.
 - Side panel reader for pasted long text, TXT / HTML / PDF import, chapter-aware translation, failed-segment retry, and HTML / Markdown export.
-- YouTube bilingual subtitle overlay with track preference, transcript panel, per-video cache, search, copy, multiple subtitle styles, and VTT export.
+- YouTube bilingual subtitle overlay with popup controls, track preference, nearby/full-video pre-translation, transcript panel, per-video cache, search, copy, multiple subtitle styles, and VTT export.
 - Bring your own provider: DeepSeek, OpenAI, Anthropic, Gemini, OpenRouter, Ollama, Hunyuan HY-MT, LM Studio, DeepL, Baidu, Microsoft Translator, Google free translate, or any OpenAI-compatible endpoint.
 - Privacy masking for emails, phone numbers, card numbers, verification codes, private keys, and URLs before requests are sent.
 - Local-only settings, cache, and logs.
@@ -84,7 +84,7 @@ Available page translation styles are intentionally limited to:
 
 ### YouTube Subtitles
 
-YouTube support can translate available timedtext caption tracks into an overlay. Bilingual mode shows original and translated lines together; translation-only mode hides the original. Subtitle styles are intentionally kept to three maintainable choices: Cinema, Outline, and Paper. The extension can prefer manual captions, prefer auto captions, skip target-language tracks, cache translations for the same video, and open a searchable transcript panel with copy and VTT export.
+YouTube support can translate available timedtext caption tracks into an overlay. Bilingual mode shows original and translated lines together; translation-only mode hides the original. Subtitle styles are intentionally kept to three maintainable choices: Cinema, Outline, and Paper. The popup can control subtitle mode, style, track preference, and whether to translate only nearby captions or pre-translate the full video. The settings page keeps subtitle translation in its own dedicated panel.
 
 ### Free Self-Hosted Option: Hunyuan HY-MT
 
@@ -110,7 +110,7 @@ The settings page probes `/v1/models` before the test translation and explains c
 
 ### Translation Quality Controls
 
-Quality presets can be selected in settings: Balanced, Natural, Faithful, Subtitle dialogue, Technical docs, and Novel prose. Glossaries and AI term notes still apply on top of these presets.
+Quality presets can be selected in settings: Balanced, Natural, Faithful, Subtitle dialogue, Technical docs, and Novel prose. Glossaries and AI term notes still apply on top of these presets. Site-bound terms can be attached to specific domains, so the same source word can use different replacements on different websites.
 
 Example vLLM-style endpoint test after the server is running:
 

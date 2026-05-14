@@ -6,8 +6,9 @@
   function applyGlossary(text) {
     if (!text) return text;
     const settings = ctx.state.settings || {};
-    if (settings.terms && Array.isArray(settings.terms) && settings.terms.length > 0) {
-      return applyStructuredGlossary(text, settings.terms);
+    const activeTerms = getActiveTerms(settings);
+    if (activeTerms.length > 0) {
+      return applyStructuredGlossary(text, activeTerms);
     }
     if (!settings.glossary) return text;
     const glossary = settings.glossary;
@@ -24,6 +25,23 @@
       }
     }
     return result;
+  }
+
+  function getActiveTerms(settings) {
+    const terms = Array.isArray(settings.terms) ? settings.terms.slice() : [];
+    const siteTerms = Array.isArray(settings.siteTerms) ? settings.siteTerms : [];
+    const host = location.hostname.toLowerCase();
+    siteTerms.forEach(function(term) {
+      if (!term || !term.pattern || !term.replacement) return;
+      const domains = String(term.domains || '').split(/[\n,]+/).map(function(item) { return item.trim().toLowerCase(); }).filter(Boolean);
+      if (!domains.length) return;
+      const matched = domains.some(function(domain) {
+        const clean = domain.replace(/^\*\./, '');
+        return host === clean || host.endsWith('.' + clean);
+      });
+      if (matched) terms.push({ pattern: term.pattern, replacement: term.replacement, regex: !!term.regex });
+    });
+    return terms;
   }
 
   function applyStructuredGlossary(text, terms) {
@@ -62,6 +80,7 @@
 
   Object.assign(ctx.fn, {
     applyGlossary,
-    applyStructuredGlossary
+    applyStructuredGlossary,
+    getActiveTerms
   });
 })();

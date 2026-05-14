@@ -258,7 +258,8 @@ async function waitForContentReady(tabId, frameId, timeoutMs = 6000) {
 function applyRequestSiteContext(settings, pageUrl) {
   if (typeof getSiteRule !== 'function' || !pageUrl) return settings;
   const rule = getSiteRule(pageUrl, settings);
-  if (!rule?.contextHint && !rule?.systemPrompt && !rule?.userPromptTemplate) return settings;
+  const siteTerms = getSiteTermsForUrl(settings, pageUrl);
+  if (!rule?.contextHint && !rule?.systemPrompt && !rule?.userPromptTemplate && !siteTerms.length) return settings;
   const next = { ...settings };
   if (rule.contextHint) {
     const base = rule.systemPrompt || settings.systemPrompt || DEFAULT_SETTINGS.systemPrompt;
@@ -267,12 +268,30 @@ function applyRequestSiteContext(settings, pageUrl) {
     next.systemPrompt = rule.systemPrompt;
   }
   if (rule.userPromptTemplate) next.userPromptTemplate = rule.userPromptTemplate;
+  if (siteTerms.length) {
+    next.terms = [...(Array.isArray(settings.terms) ? settings.terms : []), ...siteTerms];
+  }
   _safeLog('debug', 'Rules', 'Applied site translation context', {
     pageUrl,
     matchedIds: rule.matchedIds,
-    hasContextHint: !!rule.contextHint
+    hasContextHint: !!rule.contextHint,
+    siteTermCount: siteTerms.length
   });
   return next;
+}
+
+function getSiteTermsForUrl(settings, pageUrl) {
+  const siteTerms = Array.isArray(settings.siteTerms) ? settings.siteTerms : [];
+  let host = '';
+  try { host = new URL(pageUrl).hostname.toLowerCase(); } catch (e) { return []; }
+  return siteTerms.filter(term => {
+    if (!term?.pattern || !term?.replacement) return false;
+    const domains = String(term.domains || '').split(/[\n,]+/).map(item => item.trim().toLowerCase()).filter(Boolean);
+    return domains.some(domain => {
+      const clean = domain.replace(/^\*\./, '');
+      return host === clean || host.endsWith('.' + clean);
+    });
+  }).map(term => ({ pattern: term.pattern, replacement: term.replacement, regex: !!term.regex }));
 }
 
 function estimateTokens(text) {

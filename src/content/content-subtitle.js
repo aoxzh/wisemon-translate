@@ -503,9 +503,11 @@
     const state = getYouTubeState();
     if (!state.video || !state.items.length) return;
     const now = state.video.currentTime * 1000;
+    const fullMode = (ctx.state.settings || {}).subtitleTranslateScope === 'full';
     const targets = state.items.filter(function(item) {
-      return item.start >= now && item.start <= now + 90000 && !item.translation && !item.isTranslating;
-    }).slice(0, 10);
+      if (item.translation || item.isTranslating) return false;
+      return fullMode || (item.start >= now && item.start <= now + 90000);
+    }).slice(0, fullMode ? 24 : 10);
     if (!targets.length) return;
     targets.forEach(function(item) { item.isTranslating = true; });
     const texts = targets.map(function(item) { return item.text; });

@@ -29,6 +29,13 @@
   const insightMode = $('insight-mode');
   const providerHealth = $('provider-health');
   const openDiagnostics = $('open-diagnostics');
+  const providerPresetSelect = $('provider-preset-select');
+  const modelInput = $('model-input');
+  const subtitleEnable = $('subtitle-enable');
+  const subtitleModeSelect = $('subtitle-mode-select');
+  const subtitleStyleSelect = $('subtitle-style-select');
+  const subtitleTrackSelect = $('subtitle-track-select');
+  const subtitleScopeSelect = $('subtitle-scope-select');
 
   /* ---- State ---- */
   let settings = null;
@@ -66,6 +73,7 @@
     updateProviderSubtitle();
     updateInsightCards();
     updateProviderHealth();
+    updateQuickConfigUI();
     // Hover toggle state
     updateHoverToggleUI();
     // Shortcut kbd display
@@ -74,6 +82,34 @@
       const hoverKbd = (settings.keyboardShortcuts && settings.keyboardShortcuts.toggleHover) || 'alt+h';
       scTranslateBtn.querySelector('kbd').textContent = formatKbd(translateKbd);
       scHoverBtn.querySelector('kbd').textContent = formatKbd(hoverKbd);
+    }
+  }
+
+  function determinePresetFromSettings(s) {
+    if (!s) return 'deepseek-v4-flash';
+    if (s.provider === 'deepseek') return s.model === 'deepseek-v4-pro' ? 'deepseek-v4-pro' : 'deepseek-v4-flash';
+    if (s.provider === 'zhipu') return 'glm-4.7-flash';
+    return s.provider || 'custom';
+  }
+
+  function updateQuickConfigUI() {
+    if (providerPresetSelect) providerPresetSelect.value = determinePresetFromSettings(settings);
+    if (modelInput) modelInput.value = settings.model || '';
+    if (subtitleEnable) subtitleEnable.checked = settings.enableSubtitle !== false;
+    if (subtitleModeSelect) subtitleModeSelect.value = settings.subtitleMode || 'bilingual';
+    if (subtitleStyleSelect) subtitleStyleSelect.value = settings.subtitleStyle || 'cinema';
+    if (subtitleTrackSelect) subtitleTrackSelect.value = settings.subtitleTrackPreference || 'manual';
+    if (subtitleScopeSelect) subtitleScopeSelect.value = settings.subtitleTranslateScope || 'nearby';
+  }
+
+  async function saveSettingsAndNotify() {
+    await chrome.runtime.sendMessage({ action: 'set-settings', settings });
+    updateProviderSubtitle();
+    updateInsightCards();
+    updateProviderHealth();
+    const tab = await getCurrentTab();
+    if (tab && tab.id) {
+      chrome.tabs.sendMessage(tab.id, { action: 'update-theme', settings }).catch(function(){});
     }
   }
 
@@ -98,7 +134,7 @@
       : (settings.apiKey || (settings.apiKeys && settings.apiKeys[settings.provider]));
     const needsKey = typeof providerNeedsApiKey === 'function'
       ? providerNeedsApiKey(settings.provider)
-      : (settings.provider !== 'ollama' && settings.provider !== 'custom' && settings.provider !== 'google');
+      : (settings.provider !== 'ollama' && settings.provider !== 'hunyuan' && settings.provider !== 'lmstudio' && settings.provider !== 'custom' && settings.provider !== 'google');
     // Only show (No Key) for providers that actually need it
     const keyWarning = (needsKey && !hasKey) ? ' - ' + I18N.t('no_api_key') : '';
     providerDesc.textContent = modelShort ? (name + ' · ' + modelShort + keyWarning) : (name + keyWarning);
@@ -287,6 +323,37 @@
       chrome.tabs.sendMessage(tab.id, { action: 'update-theme', ...settings }).catch(function(){});
     }
   });
+
+  if (providerPresetSelect) {
+    providerPresetSelect.addEventListener('change', async () => {
+      const preset = (typeof PROVIDER_PRESETS !== 'undefined' && PROVIDER_PRESETS[providerPresetSelect.value]) || null;
+      if (!preset) return;
+      settings.provider = preset.provider;
+      settings.baseURL = preset.baseURL;
+      settings.model = preset.model;
+      if (preset.thinkingMode) settings.thinkingMode = preset.thinkingMode;
+      if (modelInput) modelInput.value = settings.model || '';
+      await saveSettingsAndNotify();
+    });
+  }
+
+  if (modelInput) {
+    modelInput.addEventListener('change', async () => {
+      settings.model = modelInput.value.trim();
+      await saveSettingsAndNotify();
+    });
+  }
+
+  async function saveSubtitleSetting(key, value) {
+    settings[key] = value;
+    await saveSettingsAndNotify();
+  }
+
+  if (subtitleEnable) subtitleEnable.addEventListener('change', () => saveSubtitleSetting('enableSubtitle', subtitleEnable.checked));
+  if (subtitleModeSelect) subtitleModeSelect.addEventListener('change', () => saveSubtitleSetting('subtitleMode', subtitleModeSelect.value));
+  if (subtitleStyleSelect) subtitleStyleSelect.addEventListener('change', () => saveSubtitleSetting('subtitleStyle', subtitleStyleSelect.value));
+  if (subtitleTrackSelect) subtitleTrackSelect.addEventListener('change', () => saveSubtitleSetting('subtitleTrackPreference', subtitleTrackSelect.value));
+  if (subtitleScopeSelect) subtitleScopeSelect.addEventListener('change', () => saveSubtitleSetting('subtitleTranslateScope', subtitleScopeSelect.value));
 
   /* ---- Translate to bottom ---- */
   btnTranslateBottom.addEventListener('click', async () => {
