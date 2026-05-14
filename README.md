@@ -4,7 +4,7 @@
   <img src="./icons/icon128.png" width="96" height="96" alt="wisemon-translate icon">
   <p><strong>Private bilingual translation for web pages, long text, PDFs, and YouTube subtitles.</strong></p>
   <p>
-    <a href="./manifest.json"><img alt="Version" src="https://img.shields.io/badge/version-1.0.2-blue"></a>
+    <a href="./manifest.json"><img alt="Version" src="https://img.shields.io/badge/version-1.0.3-blue"></a>
     <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-green"></a>
     <a href="./manifest.json"><img alt="Chrome MV3" src="https://img.shields.io/badge/Chrome-MV3-4285F4?logo=googlechrome&logoColor=white"></a>
     <a href="./manifest-firefox.json"><img alt="Firefox MV3" src="https://img.shields.io/badge/Firefox-MV3-FF7139?logo=firefoxbrowser&logoColor=white"></a>

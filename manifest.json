@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "wisemon-translate",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "AI-powered bilingual web page translation. DeepSeek, OpenAI, or any compatible LLM. Just bring your own API key.",
   "permissions": [
     "storage",
