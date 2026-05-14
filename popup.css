@@ -321,6 +321,100 @@
   font-size: var(--font-size-sm);
 }
 
+.pop-site-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  background: linear-gradient(180deg, var(--s-1), var(--s-2));
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-sm);
+  padding: var(--space-3);
+}
+
+.pop-site-card.is-disabled {
+  opacity: 0.72;
+}
+
+.pop-site-title {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pop-site-title span {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 230px;
+}
+
+.pop-site-status {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.pop-site-chip {
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 7px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-xs);
+  background: rgba(255,255,255,0.035);
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.pop-site-chip.is-ok {
+  color: var(--s-success);
+  background: rgba(var(--s-success-rgb), 0.10);
+  border-color: rgba(var(--s-success-rgb), 0.22);
+}
+
+.pop-site-chip.is-warn {
+  color: var(--s-warning);
+  background: rgba(var(--s-warning-rgb), 0.10);
+  border-color: rgba(var(--s-warning-rgb), 0.24);
+}
+
+.pop-site-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.pop-mini-btn {
+  min-height: 30px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-xs);
+  background: var(--s-2);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-family);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.pop-mini-btn:hover:not(:disabled) {
+  background: var(--p-weak);
+  border-color: rgba(var(--p-main-rgb), 0.28);
+  color: var(--p-main);
+}
+
+.pop-mini-btn:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
 .pop-switch {
   display: inline-flex;
   align-items: center;
@@ -608,7 +702,9 @@
 .hidden { display: none !important; }
 
 @media (max-width: 420px) {
-  .pop-config-grid {
+  .pop-config-grid,
+  .pop-site-status,
+  .pop-site-actions {
     grid-template-columns: 1fr;
   }
 }

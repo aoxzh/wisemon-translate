@@ -36,10 +36,20 @@
   const subtitleStyleSelect = $('subtitle-style-select');
   const subtitleTrackSelect = $('subtitle-track-select');
   const subtitleScopeSelect = $('subtitle-scope-select');
+  const siteCard = $('site-card');
+  const siteHostEl = $('site-host');
+  const siteTermsChip = $('site-terms-chip');
+  const siteRulesChip = $('site-rules-chip');
+  const siteExcludedChip = $('site-excluded-chip');
+  const addSiteTerms = $('add-site-terms');
+  const excludeSite = $('exclude-site');
+  const openSiteSettings = $('open-site-settings');
 
   /* ---- State ---- */
   let settings = null;
   let pageTranslated = false;
+  let currentTabInfo = null;
+  let currentHost = '';
 
   /* ---- Init ---- */
   I18N.localizeContainer(document.querySelector('.popup-root'));
@@ -53,6 +63,7 @@
 
   await loadSettings();
   applyUiTheme(settings?.uiTheme || 'auto');
+  await loadCurrentSite();
   await checkPageStatus();
 
   /* ---- Load settings ---- */
@@ -111,6 +122,79 @@
     if (tab && tab.id) {
       chrome.tabs.sendMessage(tab.id, { action: 'update-theme', settings }).catch(function(){});
     }
+  }
+
+  async function loadCurrentSite() {
+    try {
+      currentTabInfo = await getCurrentTab();
+      currentHost = getTabHost(currentTabInfo);
+    } catch (e) {
+      currentTabInfo = null;
+      currentHost = '';
+    }
+    updateSiteCard();
+  }
+
+  function getTabHost(tab) {
+    try {
+      const url = new URL(tab?.url || '');
+      if (!/^https?:$/.test(url.protocol)) return '';
+      return url.hostname;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function updateSiteCard() {
+    if (!siteCard) return;
+    const hasHost = !!currentHost;
+    siteCard.classList.toggle('is-disabled', !hasHost);
+    if (siteHostEl) siteHostEl.textContent = hasHost ? currentHost : 'No active website';
+    const siteTerms = getMatchingSiteTerms();
+    const siteRule = hasHost && typeof getSiteRule === 'function' ? getSiteRule(currentTabInfo?.url || '', settings) : null;
+    const excluded = hasHost && isCurrentHostExcluded();
+    setChip(siteTermsChip, 'Terms', siteTerms.length ? siteTerms.length + ' bound' : 'none', siteTerms.length ? 'ok' : '');
+    setChip(siteRulesChip, 'Rules', siteRule?.matchedIds?.length ? siteRule.matchedIds.length + ' matched' : 'none', siteRule?.matchedIds?.length ? 'ok' : '');
+    setChip(siteExcludedChip, 'Excluded', excluded ? 'yes' : 'no', excluded ? 'warn' : '');
+    if (addSiteTerms) addSiteTerms.disabled = !hasHost;
+    if (excludeSite) {
+      excludeSite.disabled = !hasHost || excluded;
+      excludeSite.textContent = excluded ? 'Already excluded' : 'Exclude site';
+    }
+    if (openSiteSettings) openSiteSettings.disabled = !hasHost;
+  }
+
+  function setChip(el, label, value, tone) {
+    if (!el) return;
+    el.textContent = label + ': ' + value;
+    el.classList.remove('is-ok', 'is-warn');
+    if (tone === 'ok') el.classList.add('is-ok');
+    if (tone === 'warn') el.classList.add('is-warn');
+  }
+
+  function getMatchingSiteTerms() {
+    const siteTerms = Array.isArray(settings?.siteTerms) ? settings.siteTerms : [];
+    if (!currentHost) return [];
+    return siteTerms.filter(function(term) {
+      const domains = String(term.domains || '').split(/[\n,]+/).map(function(item) { return item.trim().toLowerCase(); }).filter(Boolean);
+      return domains.some(function(domain) {
+        const clean = domain.replace(/^\*\./, '');
+        return currentHost === clean || currentHost.endsWith('.' + clean);
+      });
+    });
+  }
+
+  function isCurrentHostExcluded() {
+    const sites = Array.isArray(settings?.excludedSites) ? settings.excludedSites : [];
+    const host = currentHost.toLowerCase();
+    return sites.some(function(site) {
+      const clean = String(site || '').trim().toLowerCase().replace(/^\*\./, '');
+      return clean && (host === clean || host.endsWith('.' + clean));
+    });
+  }
+
+  async function openOptionsSection(section) {
+    await chrome.tabs.create({ url: chrome.runtime.getURL('options.html#' + section) });
   }
 
   function applyUiTheme(theme) {
@@ -458,7 +542,40 @@
     langSwitchText.textContent = newLang === 'zh-CN' ? 'EN' : '中';
     updatePageStatusUI();
     updateProviderSubtitle();
+    updateSiteCard();
   });
+
+  if (addSiteTerms) {
+    addSiteTerms.addEventListener('click', async () => {
+      if (!currentHost) return;
+      const terms = Array.isArray(settings.siteTerms) ? settings.siteTerms.slice() : [];
+      const exists = getMatchingSiteTerms().length > 0;
+      if (!exists) {
+        terms.push({ domains: currentHost, pattern: '', replacement: '', regex: false });
+        settings.siteTerms = terms;
+        await saveSettingsAndNotify();
+      }
+      updateSiteCard();
+      await openOptionsSection('glossary');
+    });
+  }
+
+  if (excludeSite) {
+    excludeSite.addEventListener('click', async () => {
+      if (!currentHost || isCurrentHostExcluded()) return;
+      const excluded = Array.isArray(settings.excludedSites) ? settings.excludedSites.slice() : [];
+      excluded.push(currentHost);
+      settings.excludedSites = [...new Set(excluded)];
+      await saveSettingsAndNotify();
+      updateSiteCard();
+    });
+  }
+
+  if (openSiteSettings) {
+    openSiteSettings.addEventListener('click', async () => {
+      await openOptionsSection('sites');
+    });
+  }
 
   /* ---- Shortcut buttons: open browser shortcut settings ---- */
   scTranslateBtn.addEventListener('click', function() {
