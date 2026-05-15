@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editors Fixture</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; color: #111827; }
+    main { max-width: 760px; margin: 30px auto; padding: 0 20px; display: grid; gap: 18px; }
+    label { display: grid; gap: 8px; font-weight: 650; }
+    input, textarea, [contenteditable="true"] { font: inherit; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px; min-height: 42px; }
+    textarea { min-height: 90px; }
+    [contenteditable="true"] { min-height: 86px; }
+  </style>
+</head>
+<body>
+  <main>
+    <label>
+      Standard input
+      <input id="plain-input" value="">
+    </label>
+    <label>
+      Textarea
+      <textarea id="plain-textarea"></textarea>
+    </label>
+    <label>
+      React-like controlled input
+      <input id="controlled-input" value="">
+    </label>
+    <label>
+      Nested rich editor
+      <div id="nested-editor" contenteditable="true"><p><span>Initial editable draft.</span></p></div>
+    </label>
+  </main>
+  <script>
+    const controlled = document.getElementById('controlled-input');
+    const native = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    let controlledValue = '';
+    Object.defineProperty(controlled, 'value', {
+      configurable: true,
+      get() {
+        return controlledValue;
+      },
+      set(value) {
+        controlledValue = String(value || '');
+        native.set.call(this, controlledValue);
+      }
+    });
+    controlled.addEventListener('input', () => {
+      controlled.dataset.inputEvents = String(Number(controlled.dataset.inputEvents || '0') + 1);
+      controlledValue = native.get.call(controlled);
+    });
+  </script>
+</body>
+</html>

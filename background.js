@@ -177,17 +177,19 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
   else if (command === 'translate-to-bottom') send({ action: 'translate-to-bottom' });
 });
 
-async function ensureContentMain(tabId, frameId) {
+async function ensureContentMain(tabId, frameId, allFrames = false) {
   if (!chrome.scripting || !tabId) return false;
   try {
-    const target = frameId !== undefined ? { tabId, frameIds: [frameId] } : { tabId };
+    const target = allFrames ? { tabId, allFrames: true } : (frameId !== undefined ? { tabId, frameIds: [frameId] } : { tabId });
     const existing = await chrome.scripting.executeScript({
       target,
       func: () => window.__LLM_TRANSLATE_MAIN_STATUS__ || ''
     });
-    const status = existing?.find(item => item.result)?.result || '';
-    if (status === 'ready') return true;
-    if (status === 'loading') {
+    const statuses = (existing || []).map(item => item.result || '');
+    const status = statuses.find(Boolean) || '';
+    if (allFrames && statuses.length > 0 && statuses.every(item => item === 'ready')) return true;
+    if (!allFrames && status === 'ready') return true;
+    if (!allFrames && status === 'loading') {
       const ready = await waitForContentReady(tabId, frameId);
       if (ready) return true;
     }
@@ -198,7 +200,7 @@ async function ensureContentMain(tabId, frameId) {
     // Inject CSS separately (cannot include .css files in executeScript)
     try {
       await chrome.scripting.insertCSS({
-        target: frameId !== undefined ? { tabId, frameIds: [frameId] } : { tabId },
+        target: allFrames ? { tabId, allFrames: true } : (frameId !== undefined ? { tabId, frameIds: [frameId] } : { tabId }),
         files: CONTENT_CSS_FILES
       });
       _safeLog('debug', 'Background', 'Content CSS injected', { tabId, frameId });
@@ -208,7 +210,7 @@ async function ensureContentMain(tabId, frameId) {
     // Inject Shadow DOM patcher into MAIN world to detect web components
     try {
       await chrome.scripting.executeScript({
-        target: frameId !== undefined ? { tabId, frameIds: [frameId] } : { tabId },
+        target: allFrames ? { tabId, allFrames: true } : (frameId !== undefined ? { tabId, frameIds: [frameId] } : { tabId }),
         files: ['src/injectors/shadowroot-patcher.js'],
         world: 'MAIN'
       });
@@ -218,7 +220,7 @@ async function ensureContentMain(tabId, frameId) {
     }
     try {
       await chrome.scripting.executeScript({
-        target: frameId !== undefined ? { tabId, frameIds: [frameId] } : { tabId },
+        target: allFrames ? { tabId, allFrames: true } : (frameId !== undefined ? { tabId, frameIds: [frameId] } : { tabId }),
         files: ['src/injectors/youtube-subtitle-injector.js'],
         world: 'MAIN'
       });
@@ -227,7 +229,7 @@ async function ensureContentMain(tabId, frameId) {
       _safeLog('debug', 'Background', 'YouTube subtitle injector skipped: ' + e.message, { tabId, frameId });
     }
     _safeLog('debug', 'Background', 'Content main injected', { tabId, frameId });
-    return await waitForContentReady(tabId, frameId);
+    return allFrames ? true : await waitForContentReady(tabId, frameId);
   } catch (err) {
     _safeLog('warn', 'Background', `Content main injection failed: ${err.message}`, { tabId, frameId });
     return false;
@@ -321,8 +323,8 @@ async function handleMessage(request, sender) {
 
   if (request.action === 'inject-content-main') {
     const tabId = request.tabId || sender?.tab?.id;
-    const frameId = sender?.frameId;
-    const success = await ensureContentMain(tabId, frameId);
+    const frameId = request.frameId !== undefined ? request.frameId : sender?.frameId;
+    const success = await ensureContentMain(tabId, frameId, !!request.allFrames);
     return { success };
   }
 

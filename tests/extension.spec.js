@@ -15,6 +15,9 @@ const NEWS_FIXTURE_FILE = path.resolve(__dirname, 'fixtures', 'news.html');
 const DOCS_FIXTURE_FILE = path.resolve(__dirname, 'fixtures', 'docs.html');
 const FORUM_FIXTURE_FILE = path.resolve(__dirname, 'fixtures', 'forum.html');
 const SPA_FIXTURE_FILE = path.resolve(__dirname, 'fixtures', 'spa.html');
+const IFRAME_FIXTURE_FILE = path.resolve(__dirname, 'fixtures', 'iframe.html');
+const EDITORS_FIXTURE_FILE = path.resolve(__dirname, 'fixtures', 'editors.html');
+const NESTED_SHADOW_FIXTURE_FILE = path.resolve(__dirname, 'fixtures', 'nested-shadow.html');
 
 async function launchExtensionContext() {
   const context = await chromium.launchPersistentContext('', {
@@ -735,6 +738,152 @@ test.describe('extension smoke', () => {
 
       await expect(page.locator('.llm-translate-hover-btn')).toContainText('TRANSLATED:', { timeout: 15000 });
       await expect(page.locator('.llm-translate-hover-btn')).toHaveCount(1);
+    } finally {
+      await context.close();
+      await fixture.close();
+    }
+  });
+
+  test('iframe fixture translates the targeted child frame document', async () => {
+    const fixture = await startFixtureServer(IFRAME_FIXTURE_FILE);
+    const context = await launchExtensionContext();
+    try {
+      await mockGoogleTranslate(context);
+      const extensionId = await getExtensionId(context);
+      await setExtensionSettings(context, extensionId, {
+        provider: 'google',
+        model: 'google-free',
+        targetLang: 'zh-CN',
+        sourceLang: 'auto',
+        translateMainOnly: false,
+        maxConcurrency: 1
+      });
+
+      const page = await context.newPage();
+      await page.goto(fixture.url);
+      const child = page.frameLocator('#article-frame');
+      await expect(child.locator('#iframe-copy')).toBeVisible({ timeout: 5000 });
+
+      const extensionPage = await context.newPage();
+      await extensionPage.goto(`chrome-extension://${extensionId}/options.html`);
+      const result = await extensionPage.evaluate(async (targetUrl) => {
+        const tabs = await chrome.tabs.query({ url: targetUrl });
+        const tabId = tabs[0] && tabs[0].id;
+        await chrome.runtime.sendMessage({ action: 'inject-content-main', tabId, allFrames: true });
+        const frames = await chrome.scripting.executeScript({
+          target: { tabId, allFrames: true },
+          func: () => ({
+            hasIframeCopy: !!document.querySelector('#iframe-copy'),
+            status: window.__LLM_TRANSLATE_MAIN_STATUS__ || ''
+          })
+        });
+        const childFrame = frames.find(frame => frame.result?.hasIframeCopy);
+        if (!childFrame) return { error: 'child frame not found' };
+        await chrome.runtime.sendMessage({ action: 'inject-content-main', tabId, frameId: childFrame.frameId });
+        return await chrome.tabs.sendMessage(tabId, { action: 'toggle-translation' }, { frameId: childFrame.frameId });
+      }, fixture.url);
+      await extensionPage.close();
+
+      expect(result.error || '').toBe('');
+      await expect(child.locator('article .llm-translate-inner').first()).toContainText('TRANSLATED:', { timeout: 15000 });
+      await expect(page.locator('#parent-copy .llm-translate-inner')).toHaveCount(0);
+    } finally {
+      await context.close();
+      await fixture.close();
+    }
+  });
+
+  test('input translation handles textarea and React-like controlled input', async () => {
+    const fixture = await startFixtureServer(EDITORS_FIXTURE_FILE);
+    const context = await launchExtensionContext();
+    try {
+      await mockGoogleTranslate(context);
+      const extensionId = await getExtensionId(context);
+      await setExtensionSettings(context, extensionId, {
+        provider: 'google',
+        model: 'google-free',
+        targetLang: 'zh-CN',
+        sourceLang: 'auto',
+        enableInputBox: true
+      });
+
+      const page = await context.newPage();
+      await page.goto(fixture.url);
+      await page.locator('#plain-textarea').fill('Translate this textarea draft into the target language.   ');
+      await page.locator('#plain-textarea').press('Space');
+      await page.locator('#plain-textarea').press('Space');
+      await page.locator('#plain-textarea').press('Space');
+      await expect(page.locator('#plain-textarea')).toHaveValue(/TRANSLATED:/, { timeout: 15000 });
+
+      await page.locator('#controlled-input').fill('Translate this controlled input safely.   ');
+      await page.locator('#controlled-input').press('Space');
+      await page.locator('#controlled-input').press('Space');
+      await page.locator('#controlled-input').press('Space');
+      await expect(page.locator('#controlled-input')).toHaveValue(/TRANSLATED:/, { timeout: 15000 });
+      const inputEvents = await page.locator('#controlled-input').getAttribute('data-input-events');
+      expect(Number(inputEvents || '0')).toBeGreaterThan(0);
+    } finally {
+      await context.close();
+      await fixture.close();
+    }
+  });
+
+  test('input translation replaces nested contenteditable editor text', async () => {
+    const fixture = await startFixtureServer(EDITORS_FIXTURE_FILE);
+    const context = await launchExtensionContext();
+    try {
+      await mockGoogleTranslate(context);
+      const extensionId = await getExtensionId(context);
+      await setExtensionSettings(context, extensionId, {
+        provider: 'google',
+        model: 'google-free',
+        targetLang: 'zh-CN',
+        sourceLang: 'auto',
+        enableInputBox: true
+      });
+
+      const page = await context.newPage();
+      await page.goto(fixture.url);
+      await page.locator('#nested-editor').click();
+      await page.locator('#nested-editor').press('Control+A');
+      await page.locator('#nested-editor').type('Translate this nested rich editor content.   ');
+      await expect(page.locator('#nested-editor')).toContainText('TRANSLATED:', { timeout: 15000 });
+    } finally {
+      await context.close();
+      await fixture.close();
+    }
+  });
+
+  test('nested shadow dom fixture translates inner web component text', async () => {
+    const fixture = await startFixtureServer(NESTED_SHADOW_FIXTURE_FILE);
+    const context = await launchExtensionContext();
+    try {
+      await mockGoogleTranslate(context);
+      const extensionId = await getExtensionId(context);
+      await setExtensionSettings(context, extensionId, {
+        provider: 'google',
+        model: 'google-free',
+        targetLang: 'zh-CN',
+        sourceLang: 'auto',
+        translateMainOnly: false,
+        maxConcurrency: 1
+      });
+
+      const page = await context.newPage();
+      await page.goto(fixture.url);
+      await page.waitForTimeout(1200);
+      const result = await translateFixturePage(context, extensionId, fixture.url);
+
+      expect(result.error || '').toBe('');
+      const shadowText = await page.locator('#shadow-host').evaluate((host) => {
+        const inner = host.shadowRoot.querySelector('inner-panel');
+        return [
+          host.shadowRoot.textContent,
+          inner.shadowRoot.textContent
+        ].join('\n');
+      });
+      expect(shadowText).toContain('TRANSLATED:');
+      expect(shadowText).toContain('Nested shadow DOM text');
     } finally {
       await context.close();
       await fixture.close();

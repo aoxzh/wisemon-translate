@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nested Shadow Fixture</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; color: #1f2937; }
+    main { max-width: 760px; margin: 30px auto; padding: 0 20px; }
+    nested-card { display: block; border: 1px solid #d1d5db; border-radius: 6px; padding: 14px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Nested component page</h1>
+    <nested-card id="shadow-host"></nested-card>
+  </main>
+  <script>
+    class InnerPanel extends HTMLElement {
+      connectedCallback() {
+        const root = this.attachShadow({ mode: 'open' });
+        root.innerHTML = '<section><h2>Inner shadow panel</h2><p id="nested-shadow-copy">Nested shadow DOM text should be discovered even when one web component creates another inside its own shadow root.</p></section>';
+      }
+    }
+    class NestedCard extends HTMLElement {
+      connectedCallback() {
+        const root = this.attachShadow({ mode: 'open' });
+        root.innerHTML = '<article><h2>Outer shadow card</h2><p>Outer shadow text should be translated too.</p><inner-panel></inner-panel></article>';
+      }
+    }
+    customElements.define('inner-panel', InnerPanel);
+    customElements.define('nested-card', NestedCard);
+  </script>
+</body>
+</html>

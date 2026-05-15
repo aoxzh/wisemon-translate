@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iframe Fixture</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; color: #1f2937; }
+    main { max-width: 860px; margin: 28px auto; padding: 0 20px; }
+    iframe { width: 100%; min-height: 260px; border: 1px solid #d1d5db; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Parent article around an embedded document</h1>
+    <p id="parent-copy">The parent page has ordinary text and an embedded frame that contains the real document readers care about.</p>
+    <iframe id="article-frame" srcdoc='<!doctype html><html lang="en"><head><meta charset="utf-8"><style>body{font-family:system-ui,sans-serif;margin:18px}.card{border:1px solid #ddd;padding:14px;border-radius:6px}</style></head><body><article class="card"><h1>Embedded report</h1><p id="iframe-copy">This iframe contains a separate article body that should be translated when the extension targets the child frame. Many real documentation portals render tutorials, legal notices, payment explanations, or partner knowledge base articles inside embedded frames instead of placing every paragraph in the parent document.</p><p>Frame content often appears inside documentation portals, payment widgets, and publishing platforms. A reliable translator needs to distinguish meaningful reading surfaces from advertising frames, social widgets, and analytics containers, then translate only the frame that contains enough readable text.</p><p>The embedded article continues with operational details, policy notes, and several paragraphs of body copy so the frame is large enough to be treated as useful content by the extension guard. This mirrors a real user opening a manual in an iframe and expecting the same bilingual translation behavior as a normal page.</p><p>Readers should see the translated result inside the iframe without changing the parent page controls. The parent page remains available for navigation, but the child document owns its own translation state and message bridge.</p></article></body></html>'></iframe>
+  </main>
+</body>
+</html>
