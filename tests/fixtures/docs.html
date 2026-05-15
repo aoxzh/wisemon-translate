@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Docs Fixture</title>
+  <style>
+    body { margin: 0; font-family: Inter, system-ui, sans-serif; color: #202124; }
+    .layout { display: grid; grid-template-columns: 230px minmax(0, 760px); gap: 36px; max-width: 1120px; margin: 0 auto; padding: 28px; }
+    nav { position: sticky; top: 20px; align-self: start; display: grid; gap: 8px; font-size: 14px; }
+    main { min-width: 0; }
+    h1 { font-size: 34px; margin: 0 0 12px; }
+    section { margin: 26px 0; }
+    pre { overflow: auto; padding: 14px; border-radius: 6px; background: #f1f3f4; }
+    code, kbd { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+    .callout { border-left: 4px solid #1a73e8; background: #f3f8ff; padding: 12px 14px; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav>
+      <a href="#intro">Introduction</a>
+      <a href="#setup">Setup</a>
+      <a href="#limits">Limits</a>
+    </nav>
+    <main>
+      <article>
+        <h1>Developer guide for streaming translation</h1>
+        <p id="docs-intro">This guide explains how to configure a translation provider, keep request batches small, and retry failed paragraphs without losing the original document structure.</p>
+        <section id="setup">
+          <h2>Setup</h2>
+          <p>Use a stable model name and verify that the service endpoint accepts browser extension requests before enabling automatic translation.</p>
+          <pre><code>const response = await fetch('/v1/chat/completions', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ model: 'local-model', messages })
+});</code></pre>
+        </section>
+        <section id="limits">
+          <h2>Operational limits</h2>
+          <p class="callout">Large manuals should be translated chapter by chapter so readers can review terminology and formatting before exporting the final bilingual document.</p>
+          <p>Keyboard shortcuts such as <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd> must remain readable and should not be sent to the translation provider.</p>
+        </section>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

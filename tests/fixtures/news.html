@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>News Fixture</title>
+  <style>
+    body { margin: 0; font-family: Georgia, 'Times New Roman', serif; color: #1d1d1f; background: #f7f7f5; }
+    header { position: sticky; top: 0; display: flex; gap: 18px; align-items: center; padding: 14px 28px; background: rgba(255,255,255,.94); border-bottom: 1px solid #ddd; }
+    header nav { display: flex; gap: 12px; font-family: system-ui, sans-serif; font-size: 13px; }
+    main { display: grid; grid-template-columns: minmax(0, 720px) 260px; gap: 32px; max-width: 1100px; margin: 34px auto; padding: 0 22px; }
+    article { background: #fff; padding: 26px; border: 1px solid #e5e5e5; }
+    h1 { font-size: 42px; line-height: 1.06; margin: 0 0 12px; }
+    .dek { font-size: 20px; color: #555; }
+    .byline, aside { font-family: system-ui, sans-serif; color: #666; font-size: 14px; }
+    .live { border-left: 4px solid #b42318; padding: 10px 14px; background: #fff7f7; font-family: system-ui, sans-serif; }
+    aside { background: #fff; border: 1px solid #e5e5e5; padding: 18px; align-self: start; }
+    button, input { font: inherit; }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>Daily Ledger</strong>
+    <nav>
+      <a href="#world">World</a>
+      <a href="#business">Business</a>
+      <a href="#science">Science</a>
+    </nav>
+    <button>Subscribe</button>
+  </header>
+  <main>
+    <article>
+      <h1>Coastal cities prepare new flood defenses after record spring tides</h1>
+      <p class="dek">Engineers and local officials say the latest models changed the timetable for several waterfront neighborhoods.</p>
+      <p class="byline">By Mira Chen, May 11, 2026</p>
+      <p class="live">Live update: emergency managers will publish a revised shelter map before the weekend.</p>
+      <p id="news-lead">The city council approved a fast-track review of drainage tunnels, temporary sea walls, and neighborhood evacuation routes after a week of unusually high tides.</p>
+      <p>Residents near the old ferry terminal said water reached storefront entrances twice this month, disrupting deliveries and public transportation during the morning commute.</p>
+      <blockquote>The most important thing now is predictable communication, not another dashboard that nobody checks during a storm.</blockquote>
+    </article>
+    <aside>
+      <h2>Most read</h2>
+      <p>Markets opened lower after chip exporters warned of delays.</p>
+      <p>Do not translate newsletter controls below.</p>
+      <input placeholder="Email address">
+      <button>Sign up</button>
+    </aside>
+  </main>
+</body>
+</html>

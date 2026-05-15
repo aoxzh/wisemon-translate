@@ -18,12 +18,34 @@
       hideSelectionPopup();
       return;
     }
+    ctx.state.lastSelectionAnchor = {
+      x: e.clientX,
+      y: e.clientY
+    };
     showSelectionPopup(text, e.clientX, e.clientY);
+  }
+
+  function getSelectionAnchor() {
+    try {
+      const selection = window.getSelection?.();
+      if (!selection || selection.rangeCount < 1) return null;
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect?.();
+      if (!rect || (!rect.width && !rect.height && !rect.left && !rect.top)) return null;
+      const x = rect.right || rect.left || innerWidth / 2;
+      const y = rect.top || rect.bottom || 80;
+      return { x, y };
+    } catch (e) {
+      return null;
+    }
   }
 
   function showSelectionPopup(text, x, y) {
     hideSelectionPopup();
     const escapeHtml = ctx.fn.escapeHtml;
+    const anchor = (typeof x === 'number' && typeof y === 'number')
+      ? { x, y }
+      : (getSelectionAnchor() || ctx.state.lastSelectionAnchor || { x: innerWidth / 2, y: 80 });
     const popup = document.createElement('div');
     popup.className = 'llm-translate-popup';
     popup.innerHTML = '<div class="llm-popup-header">' +
@@ -42,7 +64,7 @@
         '<button type="button" data-action="copy-result">Copy Result</button>' +
         '<button type="button" data-action="open-side">Side Panel</button>' +
       '</div>';
-    positionPopup(popup, (x || innerWidth / 2) + 10, (y || 80) + 10);
+    positionPopup(popup, anchor.x + 10, anchor.y + 10);
     document.body.appendChild(popup);
     ctx.state.currentSelectionPopup = popup;
     let translatedText = '';

@@ -15,6 +15,12 @@
     return el.innerText || el.textContent || '';
   }
 
+  function getEditableRawText(el) {
+    if (!el) return '';
+    if (el.value !== undefined) return el.value || '';
+    return el.textContent || el.innerText || '';
+  }
+
   function setNativeValue(el, value) {
     const valueSetter = Object.getOwnPropertyDescriptor(el, 'value')?.set;
     const prototype = Object.getPrototypeOf(el);
@@ -86,6 +92,34 @@
     return null;
   }
 
+  async function onEditableKeyDown(e) {
+    const settings = ctx.state.settings || {};
+    if (!settings.enableInputBox || e.key !== ' ') return;
+    const el = e.target;
+    if (!el || (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA' && !el.isContentEditable)) return;
+
+    let state = ctx.state.inputState.get(el);
+    if (!state) {
+      state = { lastValue: getEditableRawText(el), translating: false, trailingSpaceCount: 0 };
+      ctx.state.inputState.set(el, state);
+    }
+
+    state.trailingSpaceCount = (state.trailingSpaceCount || 0) + 1;
+    if (state.translating || state.trailingSpaceCount < 3) return;
+
+    const text = getEditableRawText(el).replace(/\s+$/, '').trim();
+    if (!text) return;
+
+    state.translating = true;
+    state.trailingSpaceCount = 0;
+    try {
+      await translateInputElement(el, text);
+    } finally {
+      state.translating = false;
+      state.lastValue = getEditableRawText(el);
+    }
+  }
+
   async function onInput(e) {
     const settings = ctx.state.settings || {};
     if (!settings.enableInputBox) return;
@@ -93,10 +127,10 @@
     if (!el || (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA' && !el.isContentEditable)) return;
     let state = ctx.state.inputState.get(el);
     if (!state) {
-      state = { lastValue: getEditableText(el), translating: false };
+      state = { lastValue: getEditableRawText(el), translating: false };
       ctx.state.inputState.set(el, state);
     }
-    const val = getEditableText(el);
+    const val = getEditableRawText(el);
     const explicitText = getExplicitInputTrigger(val);
     const tripleSpaceText = val.endsWith('   ') && !state.lastValue.endsWith('   ') ? val.trimEnd() : null;
     const triggerText = explicitText || tripleSpaceText;
@@ -108,13 +142,16 @@
         finally { state.translating = false; }
       }
     }
-    state.lastValue = getEditableText(el);
+    if (!/\s$/.test(val)) state.trailingSpaceCount = 0;
+    state.lastValue = getEditableRawText(el);
   }
 
   Object.assign(ctx.fn, {
     getDeepActiveElement,
     getEditableText,
+    getEditableRawText,
     getExplicitInputTrigger,
+    onEditableKeyDown,
     onInput,
     translateInputElement
   });

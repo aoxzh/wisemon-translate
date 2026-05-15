@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SPA Fixture</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; color: #1f2937; }
+    header { display: flex; gap: 10px; align-items: center; padding: 16px 24px; border-bottom: 1px solid #e5e7eb; }
+    main { max-width: 820px; margin: 28px auto; padding: 0 22px; }
+    .panel { border: 1px solid #d1d5db; border-radius: 6px; padding: 18px; margin: 14px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>Single Page Console</strong>
+    <button id="route-docs">Open docs route</button>
+    <button id="route-thread">Open thread route</button>
+  </header>
+  <main id="app">
+    <section class="panel">
+      <h1>Dashboard overview</h1>
+      <p id="spa-initial">This single page application replaces sections of the document without performing a full navigation.</p>
+    </section>
+  </main>
+  <script>
+    const app = document.getElementById('app');
+    function render(route) {
+      if (route === 'docs') {
+        app.innerHTML = '<section class="panel"><h1>Dynamic documentation route</h1><p id="spa-dynamic">Newly rendered documentation should be discovered by the mutation observer and translated after the route transition.</p><p>The second paragraph verifies that batched dynamic content is not skipped.</p></section>';
+      } else {
+        app.innerHTML = '<section class="panel"><h1>Dynamic forum route</h1><p id="spa-dynamic">A discussion route can appear after client side routing and should still be available for page translation.</p></section>';
+      }
+    }
+    document.getElementById('route-docs').addEventListener('click', () => {
+      history.pushState({}, '', '#docs');
+      render('docs');
+      window.dispatchEvent(new Event('popstate'));
+    });
+    document.getElementById('route-thread').addEventListener('click', () => {
+      history.pushState({}, '', '#thread');
+      render('thread');
+      window.dispatchEvent(new Event('popstate'));
+    });
+    setTimeout(() => {
+      history.replaceState({}, '', '#docs');
+      render('docs');
+      window.dispatchEvent(new Event('popstate'));
+    }, 700);
+  </script>
+</body>
+</html>

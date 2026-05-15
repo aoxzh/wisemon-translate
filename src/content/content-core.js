@@ -50,15 +50,16 @@
     if (window.__LLM_MESSAGE_BRIDGE_ATTACHED__) return;
     window.__LLM_MESSAGE_BRIDGE_ATTACHED__ = true;
 
-    addOptionalListener(document, 'keydown', ctx.fn.onKeyCombo);
-    addOptionalListener(document, 'keydown', ctx.fn.onKeyDown);
-    addOptionalListener(document, 'keyup', ctx.fn.onKeyUp);
-    addOptionalListener(document, 'mouseover', ctx.fn.onMouseOver);
-    addOptionalListener(document, 'mouseout', ctx.fn.onMouseOut);
-    addOptionalListener(document, 'input', ctx.fn.onInput, true);
-    addOptionalListener(document, 'mouseup', ctx.fn.onMouseUp);
-    addOptionalListener(document, '__llm_shadowroot_created__', ctx.fn.onShadowRootCreated);
-    addOptionalListener(document, '__llm_shadowroot_batch__', ctx.fn.onShadowRootBatch);
+    addOptionalListener(document, 'keydown', 'onKeyCombo');
+    addOptionalListener(document, 'keydown', 'onKeyDown');
+    addOptionalListener(document, 'keydown', 'onEditableKeyDown', true);
+    addOptionalListener(document, 'keyup', 'onKeyUp');
+    addOptionalListener(document, 'mouseover', 'onMouseOver');
+    addOptionalListener(document, 'mouseout', 'onMouseOut');
+    addOptionalListener(document, 'input', 'onInput', true);
+    addOptionalListener(document, 'mouseup', 'onMouseUp');
+    addOptionalListener(document, '__llm_shadowroot_created__', 'onShadowRootCreated');
+    addOptionalListener(document, '__llm_shadowroot_batch__', 'onShadowRootBatch');
 
     try {
       if (typeof ctx.fn.setupVideoSubtitleTranslation === 'function') ctx.fn.setupVideoSubtitleTranslation();
@@ -78,12 +79,12 @@
     });
   }
 
-  function addOptionalListener(target, eventName, handler, options) {
-    if (typeof handler !== 'function') {
-      ctx.fn.safeLog?.('warn', 'Content', 'Optional listener missing: ' + eventName);
-      return;
-    }
-    target.addEventListener(eventName, handler, options);
+  function addOptionalListener(target, eventName, handlerName, options) {
+    target.addEventListener(eventName, function(event) {
+      const handler = ctx.fn[handlerName];
+      if (typeof handler !== 'function') return;
+      return handler(event);
+    }, options);
   }
 
   function waitUntilReady(timeoutMs = 5000) {

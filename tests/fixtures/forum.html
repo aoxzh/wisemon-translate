@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forum Fixture</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; background: #f4f6f8; color: #17202a; }
+    header, main { max-width: 960px; margin: 0 auto; padding: 20px; }
+    .thread, .reply, .composer { background: #fff; border: 1px solid #d8dee4; border-radius: 6px; padding: 16px; margin: 14px 0; }
+    .meta { color: #687078; font-size: 13px; }
+    blockquote { border-left: 3px solid #ccd3da; margin: 12px 0; padding-left: 12px; color: #4b5563; }
+    [contenteditable="true"] { min-height: 90px; outline: 1px solid #ccd3da; border-radius: 4px; padding: 10px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Translation reliability discussion</h1>
+    <p>Community notes about selection, hover, and editor behavior across complicated web applications.</p>
+  </header>
+  <main>
+    <article class="thread">
+      <p class="meta">opened by user-lin about 2 hours ago</p>
+      <p id="forum-topic">The extension works well on normal articles, but forum pages often include quotes, nested replies, short controls, and editable comment boxes on the same screen.</p>
+    </article>
+    <section class="reply">
+      <p class="meta">reply from maya</p>
+      <blockquote>Previous message: selection translation should keep the original sentence visible near the translated result.</blockquote>
+      <p>Hover translation should not create several floating buttons when the pointer moves quickly across neighboring paragraphs.</p>
+    </section>
+    <section class="reply">
+      <p class="meta">reply from devon</p>
+      <p>Input translation needs to preserve drafts in rich text editors and should ignore the toolbar buttons around the composer.</p>
+      <button>Like</button>
+      <button>Reply</button>
+    </section>
+    <section class="composer">
+      <div role="toolbar">
+        <button>Bold</button>
+        <button>Link</button>
+      </div>
+      <div id="forum-editor" contenteditable="true">Draft reply text that should remain editable until the user triggers input translation.</div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Selection Fixture</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 32px auto; max-width: 760px; line-height: 1.6; }
+    article { border: 1px solid #d7dce3; border-radius: 12px; padding: 20px; }
+    .selectable { user-select: text; }
+  </style>
+</head>
+<body>
+  <article>
+    <h1>Selection Translation Fixture</h1>
+    <p id="selection-source" class="selectable">Right click selection translation should open the translation popup close to the selected text and keep the chosen source sentence stable.</p>
+    <p class="selectable">This extra paragraph helps us verify that selection logic stays anchored to the intended range.</p>
+  </article>
+</body>
+</html>
