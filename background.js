@@ -313,6 +313,41 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return true; // async keepalive
 });
 
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== 'translate-stream') return;
+  let closed = false;
+  port.onDisconnect.addListener(() => { closed = true; });
+  port.onMessage.addListener(async (request) => {
+    if (!request || request.action !== 'translate-stream') return;
+    const requestId = request.requestId || '';
+    const post = (payload) => {
+      if (closed) return;
+      try { port.postMessage({ requestId, ...payload }); } catch (e) { closed = true; }
+    };
+    try {
+      const settings = typeof normalizeSettings === 'function' ? normalizeSettings(await getSettings()) : await getSettings();
+      const effectiveSettings = applyRequestSiteContext(settings, request.pageUrl || port.sender?.tab?.url);
+      effectiveSettings.useStream = true;
+      effectiveSettings.streamRenderMode = 'single';
+      if (request.targetLang) effectiveSettings.targetLang = request.targetLang;
+      if (request.sourceLang) effectiveSettings.sourceLang = request.sourceLang;
+      const api = _safeApi(effectiveSettings);
+      let lastPost = 0;
+      const translated = await api.translate(request.text || '', effectiveSettings.sourceLang, effectiveSettings.targetLang, {
+        onDelta: (_delta, full) => {
+          const now = Date.now();
+          if (now - lastPost < 80 && full.length > 24) return;
+          lastPost = now;
+          post({ type: 'delta', text: full });
+        }
+      });
+      post({ type: 'done', text: translated || '' });
+    } catch (err) {
+      post({ type: 'error', error: err.message || 'Translation failed' });
+    }
+  });
+});
+
 async function handleMessage(request, sender) {
   if (request.action === 'append-log') {
     if (typeof LOG !== 'undefined' && request.entry) {

@@ -34,7 +34,7 @@
     }
     if (sc.toggleStyle && checkCombo(e, sc.toggleStyle)) {
       e.preventDefault();
-      const themes = ['none','subtle','divider','card'];
+      const themes = ['none','grey','underline','divider','blockquote','background','highlight','card','mask'];
       const idx = themes.indexOf(settings.translationTheme || 'none');
       const newTheme = themes[(idx + 1) % themes.length];
       settings.translationTheme = newTheme;

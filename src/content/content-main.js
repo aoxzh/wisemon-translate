@@ -117,6 +117,15 @@
   let subtitleObserver = null;    // MutationObserver for video subtitle detection
   const scannedShadowRoots = new WeakSet();  // shadow roots already scanned
 
+  function syncSharedTrackingState() {
+    ctx.fn.observedElements = observedElements;
+    ctx.fn.processedElements = processedElements;
+  }
+
+  function isDeepSeekFlash(config) {
+    return config?.provider === 'deepseek' && config?.model === 'deepseek-v4-flash';
+  }
+
   // ---- Initialization ----
   async function init() {
     LOG.info('Content', 'Content script v2 initializing...');
@@ -150,10 +159,10 @@
 
     translateQueue = typeof createBatchQueue === 'function'
       ? createBatchQueue(sendTranslateBatch, {
-          batchInterval: settings.largeTextMode ? 120 : 160,
-          batchSize: settings.largeTextMode ? Math.min(Math.max(settings.maxConcurrency || 6, 8), 16) : Math.min(Math.max(settings.maxConcurrency || 6, 6), 12),
-          batchLength: settings.largeTextMode ? Math.min(Math.max(settings.maxCharsPerRequest || 12000, 9000), 12000) : (settings.maxCharsPerRequest || 12000),
-          maxParallelBatches: Math.max(1, Math.min(4, Math.ceil((settings.maxConcurrency || 6) / 3))),
+          batchInterval: isDeepSeekFlash(settings) ? 40 : (settings.largeTextMode ? 90 : 140),
+          batchSize: isDeepSeekFlash(settings) ? 12 : (settings.largeTextMode ? Math.min(Math.max(settings.maxConcurrency || 8, 8), 16) : Math.min(Math.max(settings.maxConcurrency || 8, 6), 12)),
+          batchLength: isDeepSeekFlash(settings) ? Math.min(Math.max(settings.maxCharsPerRequest || 16000, 12000), 16000) : (settings.largeTextMode ? Math.min(Math.max(settings.maxCharsPerRequest || 12000, 9000), 12000) : (settings.maxCharsPerRequest || 12000)),
+          maxParallelBatches: isDeepSeekFlash(settings) ? Math.max(2, Math.min(5, Math.ceil((settings.maxConcurrency || 8) / 2))) : Math.max(1, Math.min(4, Math.ceil((settings.maxConcurrency || 8) / 3))),
           tag: 'TranslateQueue'
         })
       : null;
@@ -201,6 +210,7 @@
       scheduleProcessViewBatch,
       togglePageTranslation,
       restoreOriginal,
+      removeTranslationFrom,
       applyPageState,
       processedElements,
       observedElements,
@@ -218,6 +228,7 @@
       ATTR_PROCESSED,
       ATTR_ID
     });
+    syncSharedTrackingState();
 
     ctx.state.ready = true;
     ctx.fn.attachEventListeners();
@@ -232,7 +243,7 @@
       _safeLog('warn', 'Content', 'Subtitle setup skipped after init: ' + err.message);
     }
     try {
-      if (typeof ctx.fn.createFab === 'function') ctx.fn.createFab();
+      if (typeof ctx.fn.updateFabFromSettings === 'function') ctx.fn.updateFabFromSettings();
     } catch (err) {
       _safeLog('warn', 'Content', 'FAB setup skipped after init: ' + err.message);
     }
@@ -303,6 +314,7 @@
     // Clear all tracking state so re-translate works cleanly
     observedElements = new WeakSet();
     processedElements = new WeakMap();
+    syncSharedTrackingState();
     viewElements.clear();
     dirtyQueue.clear();
     dirtyProcessing = false;
@@ -320,6 +332,7 @@
     // Fully reset state for clean re-translation
     observedElements = new WeakSet();
     processedElements = new WeakMap();
+    syncSharedTrackingState();
     viewElements.clear();
     dirtyQueue.clear();
     dirtyProcessing = false;
@@ -474,7 +487,25 @@
       chrome.runtime.sendMessage({ action: 'translation-progress', translatedCount: translationStats.succeeded, totalVisibleCount: totalVisible2 }).catch(function(){});
     }
 
-    if (translateQueue) {
+    if (shouldStreamGroup(groups[0], groups.length)) {
+      const group = groups[0];
+      const live = createTranslationWrapper(group);
+      group.onStreamUpdate = function(text) {
+        if (!live?.inner || group.runId !== translationRunId) return;
+        live.inner.textContent = cleanTranslatedText(text);
+      };
+      try {
+        const raw = await sendTranslateStream(group);
+        if (live?.wrapper) live.wrapper.remove();
+        injectOne(group, raw);
+      } catch (err) {
+        if (live?.wrapper) live.wrapper.remove();
+        failedCount++;
+        translationStats.failed++;
+        _safeLog('error', 'Content', 'Stream item failed: ' + err.message, { textLength: group.text.length });
+        showRetry(group, err.message);
+      }
+    } else if (translateQueue) {
       groups.forEach(function(group) {
         if (group.runId !== translationRunId) return;
         translateQueue.add(group.text, { runId: translationRunId }).then(function(raw) {
@@ -515,6 +546,81 @@
     const res = await chrome.runtime.sendMessage({ action: 'translate-batch', texts });
     if (res.error) throw new Error(res.error);
     return res.results || [];
+  }
+
+  function shouldStreamGroup(group, groupCount) {
+    if (!settings?.useStream || settings.streamRenderMode === 'disabled') return false;
+    if (groupCount !== 1) return false;
+    if (!group?.text || group.text.length > 1800) return false;
+    if (settings.displayMode === 'replace') return false;
+    return true;
+  }
+
+  function createTranslationWrapper(group) {
+    const element = group.element;
+    if (!element.isConnected || !element.parentNode) return null;
+    const isBlock = isBlockNode(element) || isCompactUiTextElement(element, group.text);
+    const wrapperClass = isBlock ? `${TAG_NAME}-block-wrapper` : `${TAG_NAME}-inline-wrapper`;
+    const hasStrictParent = element.parentNode && element.parentNode.nodeType === 1 && STRICT_PARENT_TAGS.has(element.parentNode.tagName);
+
+    const wrapper = document.createElement(isBlock && !hasStrictParent ? 'div' : 'span');
+    wrapper.className = wrapperClass + (hasStrictParent ? ' llm-strict-wrapper' : '');
+    wrapper.setAttribute(ATTR_ID, element.getAttribute(ATTR_ID));
+
+    const inner = document.createElement('span');
+    inner.className = `${TAG_NAME}-inner`;
+    wrapper.appendChild(inner);
+
+    if (hasStrictParent) {
+      element.appendChild(wrapper);
+    } else if ((settings.translationPosition || 'after') === 'before') {
+      element.parentNode.insertBefore(wrapper, element);
+    } else if (element.nextSibling) {
+      element.parentNode.insertBefore(wrapper, element.nextSibling);
+    } else {
+      element.parentNode.appendChild(wrapper);
+    }
+    applyPageState('dual');
+    return { wrapper, inner };
+  }
+
+  function sendTranslateStream(group) {
+    return new Promise((resolve, reject) => {
+      const requestId = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      const port = chrome.runtime.connect({ name: 'translate-stream' });
+      let settled = false;
+      let latest = '';
+
+      const settle = (fn, value) => {
+        if (settled) return;
+        settled = true;
+        try { port.disconnect(); } catch (e) {}
+        fn(value);
+      };
+
+      port.onMessage.addListener((message) => {
+        if (!message || message.requestId !== requestId) return;
+        if (message.type === 'delta') {
+          latest = message.text || latest;
+          if (typeof group.onStreamUpdate === 'function') group.onStreamUpdate(latest);
+        } else if (message.type === 'done') {
+          settle(resolve, message.text || latest);
+        } else if (message.type === 'error') {
+          settle(reject, new Error(message.error || 'Translation failed'));
+        }
+      });
+      port.onDisconnect.addListener(() => {
+        if (!settled) settle(resolve, latest);
+      });
+      port.postMessage({
+        action: 'translate-stream',
+        requestId,
+        text: group.text,
+        pageUrl: location.href,
+        sourceLang: settings.sourceLang,
+        targetLang: settings.targetLang
+      });
+    });
   }
 
   // ---- DOM Scanning ----
@@ -1019,31 +1125,11 @@
   }
 
   function normalizeTranslationTheme(theme) {
-    const allowed = ['none', 'subtle', 'divider', 'card'];
+    const allowed = ['none', 'grey', 'weakening', 'underline', 'nativeUnderline', 'nativeDashed', 'nativeDotted', 'thinDashed', 'wavy', 'dashed', 'divider', 'dividingLine', 'blockquote', 'background', 'highlight', 'marker', 'marker2', 'italic', 'bold', 'subtle', 'card', 'paper', 'dashedBorder', 'solidBorder', 'mask', 'opacity'];
     if (allowed.includes(theme)) return theme;
     const legacyMap = {
-      underline: 'subtle',
-      dashedBorder: 'card',
-      solidBorder: 'card',
       dividingLine: 'divider',
-      blockquote: 'divider',
-      paper: 'card',
-      background: 'subtle',
-      highlight: 'subtle',
-      marker: 'subtle',
-      grey: 'none',
-      italic: 'none',
-      bold: 'none',
-      weakening: 'none',
-      mask: 'none',
-      opacity: 'none',
-      wavy: 'subtle',
-      nativeUnderline: 'subtle',
-      nativeDashed: 'subtle',
-      nativeDotted: 'subtle',
-      thinDashed: 'subtle',
-      marker2: 'subtle',
-      blurReveal: 'none'
+      blurReveal: 'mask'
     };
     return legacyMap[theme] || 'none';
   }

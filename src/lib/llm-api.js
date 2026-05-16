@@ -43,6 +43,10 @@ class LLMAPI {
     }
   }
 
+  _isDeepSeekFlash() {
+    return this.settings.provider === 'deepseek' && this.settings.model === 'deepseek-v4-flash';
+  }
+
   _checkIsFreeAPI(baseURL) {
     try {
       const hostname = new URL(baseURL).hostname;
@@ -199,7 +203,7 @@ class LLMAPI {
     ];
   }
 
-  async _parseSSEStream(response) {
+  async _parseSSEStream(response, options = {}) {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let content = '';
@@ -231,7 +235,12 @@ class LLMAPI {
             if (chunk.usage) usage = chunk.usage;
 
             const delta = chunk.choices?.[0]?.delta;
-            if (delta?.content) content += delta.content;
+            if (delta?.content) {
+              content += delta.content;
+              if (typeof options.onDelta === 'function') {
+                try { options.onDelta(delta.content, content); } catch (e) {}
+              }
+            }
             if (delta?.reasoning_content) reasoningContent += delta.reasoning_content;
           } catch (e) {
             // Skip malformed JSON lines
@@ -255,7 +264,12 @@ class LLMAPI {
         if (chunk.model) model = chunk.model;
         if (chunk.usage) usage = chunk.usage;
         const delta = chunk.choices?.[0]?.delta;
-        if (delta?.content) content += delta.content;
+        if (delta?.content) {
+          content += delta.content;
+          if (typeof options.onDelta === 'function') {
+            try { options.onDelta(delta.content, content); } catch (e) {}
+          }
+        }
         if (delta?.reasoning_content) reasoningContent += delta.reasoning_content;
       } catch (e) { /* skip malformed */ }
     }
@@ -271,10 +285,10 @@ class LLMAPI {
     return this.settings.useStream === true && this.settings.streamRenderMode !== 'disabled';
   }
 
-  async _parseChatCompletionResponse(response, requestTextForLog) {
+  async _parseChatCompletionResponse(response, requestTextForLog, options = {}) {
     const contentType = response.headers?.get?.('content-type') || '';
     if (contentType.includes('text/event-stream')) {
-      const streamResult = await this._parseSSEStream(response);
+      const streamResult = await this._parseSSEStream(response, options);
       return {
         content: streamResult.content || '',
         usage: streamResult.usage,
@@ -384,8 +398,8 @@ class LLMAPI {
     }
 
     // --- Retry loop ---
-    const maxRetries = options.retries ?? LLM_API_CONFIG.MAX_RETRIES;
-    const timeout = options.timeout ?? LLM_API_CONFIG.REQUEST_TIMEOUT_MS;
+    const maxRetries = options.retries ?? (this._isDeepSeekFlash() ? 1 : LLM_API_CONFIG.MAX_RETRIES);
+    const timeout = options.timeout ?? (this._isDeepSeekFlash() ? 22000 : LLM_API_CONFIG.REQUEST_TIMEOUT_MS);
     let lastError = null;
     this._log('info', tag, 'Translation request queued', this._usagePayload(null, requestText, {
       sourceLang,
@@ -480,7 +494,7 @@ class LLMAPI {
         // Parse streaming or JSON response. Some OpenAI-compatible providers
         // silently ignore/alter stream responses, so empty streamed content gets
         // one non-stream fallback before the request is treated as failed.
-        let responseResult = await this._parseChatCompletionResponse(response, requestText);
+        let responseResult = await this._parseChatCompletionResponse(response, requestText, options);
         let translatedStream = responseResult.content || '';
         let translated = translatedStream.trim();
         if (!translated && body.stream === true) {
@@ -621,14 +635,16 @@ class LLMAPI {
     // Try multi-text batching: combine multiple texts into a single API call
     // if total length is reasonable and API supports it
     const useMultiTextBatch = this.settings.provider !== 'hunyuan' && this.settings.maxCharsPerRequest >= 2000 && total > 1;
-    const maxBatchSize = Math.min(Math.max(this.concurrency || 6, 6), 16);
+    const maxBatchSize = this._isDeepSeekFlash() ? Math.min(Math.max(this.concurrency || 8, 8), 24) : Math.min(Math.max(this.concurrency || 8, 6), 16);
 
     if (useMultiTextBatch) {
       // Group texts into batches where combined length is within limits
       const batches = [];
       let currentBatch = [];
       let currentLen = 0;
-      const maxChars = this.settings.largeTextMode ? Math.min(Math.max(this.settings.maxCharsPerRequest || 12000, 9000), 12000) : (this.settings.maxCharsPerRequest || 12000);
+      const maxChars = this._isDeepSeekFlash()
+        ? Math.min(Math.max(this.settings.maxCharsPerRequest || 16000, 12000), 16000)
+        : (this.settings.largeTextMode ? Math.min(Math.max(this.settings.maxCharsPerRequest || 12000, 9000), 12000) : (this.settings.maxCharsPerRequest || 12000));
 
       for (let i = 0; i < texts.length; i++) {
         const t = texts[i];
@@ -643,7 +659,9 @@ class LLMAPI {
       }
       if (currentBatch.length > 0) batches.push(currentBatch);
 
-      const batchConcurrency = Math.max(1, Math.min(Math.ceil((this.concurrency || 6) / 3), 4, batches.length));
+      const batchConcurrency = this._isDeepSeekFlash()
+        ? Math.max(2, Math.min(Math.ceil((this.concurrency || 8) / 2), 5, batches.length))
+        : Math.max(1, Math.min(Math.ceil((this.concurrency || 8) / 3), 4, batches.length));
       this._log('info', 'Batch', `Grouped into ${batches.length} multi-text batches, batchConcurrency=${batchConcurrency}`);
 
       await this._runWithConcurrency(batches, batchConcurrency, async (batch) => {
@@ -741,6 +759,9 @@ class LLMAPI {
 
   _getMaxTokensForRequest(text) {
     const estimated = this._estimateTokens(text);
+    if (this._isDeepSeekFlash()) {
+      return Math.max(768, Math.min(12000, Math.ceil(estimated * 1.45) + 512));
+    }
     return Math.max(1024, Math.min(16000, Math.ceil(estimated * 1.8) + 768));
   }
 
@@ -769,6 +790,9 @@ class LLMAPI {
     const provider = this.settings.provider || '';
     if (['google', 'deepl', 'baidu', 'microsoft'].includes(provider)) {
       return Math.max(1200, Math.min(configured, 4000));
+    }
+    if (this._isDeepSeekFlash()) {
+      return Math.max(4000, Math.min(configured, 12000));
     }
     return Math.max(3000, Math.min(configured, this.settings.largeTextMode ? 9000 : 6000));
   }
@@ -935,7 +959,7 @@ class LLMAPI {
         { role: 'system', content: multiSystemMsg },
         { role: 'user', content: prompt }
       ],
-      stream: this._shouldUseStreaming(),
+      stream: false,
       max_tokens: this._getMaxTokensForRequest(combinedText)
     };
     if (this._supportsJsonResponseFormat()) {
@@ -983,7 +1007,7 @@ class LLMAPI {
         throw new Error(`API Error ${response.status}: ${errorText.slice(0, 200)}`);
       }
 
-      // Parse streaming or JSON response for multi-text
+      // Multi-text returns strict JSON, so streaming is disabled to avoid partial JSON overhead.
       let responseResult = await this._parseChatCompletionResponse(response, combinedText);
       if (!responseResult.content && body.stream === true) {
         this._log('warn', tag, 'Multi-text stream returned empty content; retrying once without stream', {

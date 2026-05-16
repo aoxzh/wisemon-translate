@@ -67,7 +67,7 @@
       ctx.fn.safeLog?.('warn', 'Content', 'Subtitle setup skipped: ' + err.message);
     }
     try {
-      if (typeof ctx.fn.createFab === 'function') ctx.fn.createFab();
+      if (ctx.state.settings?.enableFab !== false && typeof ctx.fn.createFab === 'function') ctx.fn.createFab();
     } catch (err) {
       ctx.fn.safeLog?.('warn', 'Content', 'FAB setup skipped: ' + err.message);
     }
@@ -139,6 +139,7 @@
       case 'update-theme':
         state.settings = { ...(state.settings || {}), ...(request.settings || request) };
         fn.injectCustomTranslationCss();
+        if (typeof fn.updateFabFromSettings === 'function') fn.updateFabFromSettings();
         fn.applyPageState(state.pageTranslated ? (state.settings.displayMode === 'replace' ? 'translation' : 'dual') : 'dual');
         document.documentElement.style.setProperty('--llm-font-size', ((state.settings.fontSize || 94) / 100) + 'em');
         document.querySelectorAll('.llm-original-hidden').forEach(el => {

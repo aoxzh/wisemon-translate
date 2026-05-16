@@ -132,9 +132,9 @@
       ],
       mainSelectors: ['article[data-testid="tweet"]', 'main[role="main"]'],
       injectedCss: [
-        '.llm-translate-block-wrapper{display:inline!important;margin:0 0 0 6px!important;padding:0!important;border:none!important;background:none!important;box-shadow:none!important}',
-        '.llm-translate-block-wrapper .llm-translate-inner{display:inline!important;font-size:0.88em!important;font-weight:400!important;line-height:1.35!important}',
-        '[data-testid="tweetText"] .llm-translate-block-wrapper{display:inline!important}'
+        '[data-testid="tweetText"] .llm-translate-block-wrapper{display:block!important;margin:4px 0 0!important;padding:0!important;border:none!important;background:none!important;box-shadow:none!important}',
+        '[data-testid="tweetText"] .llm-translate-block-wrapper .llm-translate-inner{display:block!important;color:#71767b!important;font-size:.94em!important;font-weight:400!important;line-height:1.35!important}',
+        '[data-testid="tweetText"] .llm-translate-inline-wrapper{display:inline!important;margin-left:6px!important}'
       ],
       contextHint: 'This is a social media feed. Keep usernames (@), hashtags (#), URLs, and emoji untranslated. Only translate the actual post content.'
     },

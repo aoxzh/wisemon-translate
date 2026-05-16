@@ -270,7 +270,7 @@
         </div>
         <div class="opt-field">
           <label for="maxConcurrency" data-i18n="concurrency_label">Parallel Requests</label>
-          <input type="number" id="maxConcurrency" min="1" max="12" value="6">
+          <input type="number" id="maxConcurrency" min="1" max="12" value="8">
         </div>
       </div>
 
@@ -320,10 +320,27 @@
       <div class="opt-field">
         <label for="translationTheme" data-i18n="theme_label">Translation Style</label>
         <select id="translationTheme">
-          <option value="none">None (Clean)</option>
-          <option value="subtle">Subtle Background</option>
+          <option value="none">Clean</option>
+          <option value="grey">Grey Text</option>
+          <option value="weakening">Faded</option>
+          <option value="underline">Underline</option>
+          <option value="nativeDashed">Dashed Underline</option>
+          <option value="nativeDotted">Dotted Underline</option>
+          <option value="wavy">Wavy Underline</option>
           <option value="divider">Divider Line</option>
+          <option value="blockquote">Blockquote</option>
+          <option value="background">Soft Background</option>
+          <option value="highlight">Highlight</option>
+          <option value="marker">Marker</option>
+          <option value="italic">Italic</option>
+          <option value="bold">Bold</option>
+          <option value="subtle">Subtle Line</option>
           <option value="card">Card</option>
+          <option value="paper">Paper</option>
+          <option value="dashedBorder">Dashed Border</option>
+          <option value="solidBorder">Solid Border</option>
+          <option value="mask">Blur Reveal</option>
+          <option value="opacity">Opacity Reveal</option>
         </select>
       </div>
       <div class="opt-field">
@@ -346,6 +363,13 @@
         <span>
           <span class="opt-toggle-title" data-i18n="large_text_label">Large text mode</span>
           <span class="opt-toggle-desc" data-i18n="large_text_desc">Faster batching for novels and long articles</span>
+        </span>
+      </label>
+      <label class="opt-toggle">
+        <input type="checkbox" id="useStream">
+        <span>
+          <span class="opt-toggle-title" data-i18n="stream_label">Streaming translation</span>
+          <span class="opt-toggle-desc" data-i18n="stream_desc">Show single visible paragraphs while the LLM is still generating</span>
         </span>
       </label>
       <div class="opt-field">
@@ -399,6 +423,14 @@
           <div class="opt-toggle-info">
             <span class="opt-toggle-name" data-i18n="selection_label">Selection Translation</span>
             <span class="opt-toggle-desc" data-i18n="selection_desc">Select text to see translation popup</span>
+          </div>
+        </label>
+
+        <label class="opt-toggle-item">
+          <div class="opt-toggle-switch"><input type="checkbox" id="enableFab"><span></span></div>
+          <div class="opt-toggle-info">
+            <span class="opt-toggle-name" data-i18n="fab_label">Floating Button</span>
+            <span class="opt-toggle-desc" data-i18n="fab_desc">Show the page translation button; drag it to set its position</span>
           </div>
         </label>
 

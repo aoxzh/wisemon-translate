@@ -37,21 +37,39 @@
   function queueForRescan(node) {
     const container = findTranslatableContainer(node);
     if (!container) return;
-    ctx.state.dirtyQueue.add(container);
+    ctx.state.dirtyQueue.add({ node, container });
     if (!ctx.state.dirtyProcessing) {
       ctx.state.dirtyProcessing = true;
       const schedule = typeof requestIdleCallback === 'function'
         ? (cb) => requestIdleCallback(cb, { timeout: 200 })
         : (cb) => setTimeout(cb, 50);
       schedule(() => {
-        ctx.state.dirtyQueue.forEach(el => {
-          ctx.fn.removeTranslationFrom(el);
-          ctx.fn.scanNode(el);
+        ctx.state.dirtyQueue.forEach(item => {
+          const target = item.node instanceof Element ? item.node : item.container;
+          if (!target || !target.isConnected) return;
+          ctx.fn.removeTranslationFrom(target);
+          ctx.fn.scanNode(target);
+          if (item.container && item.container !== target && item.container.isConnected) {
+            ctx.fn.scanNode(item.container);
+          }
+          processVisiblePending(target);
         });
         ctx.state.dirtyQueue.clear();
         ctx.state.dirtyProcessing = false;
       });
     }
+  }
+
+  function processVisiblePending(root) {
+    if (!(root instanceof Element)) return;
+    const pending = [];
+    const candidates = [root].concat(Array.from(root.querySelectorAll('*')));
+    candidates.forEach(el => {
+      if (!ctx.fn.observedElements?.has(el) || ctx.fn.processedElements?.has(el)) return;
+      const rect = el.getBoundingClientRect();
+      if (rect.top < window.innerHeight + 500 && rect.bottom > -500) pending.push(el);
+    });
+    if (pending.length > 0) ctx.fn.scheduleProcessViewBatch(pending);
   }
 
   function findTranslatableContainer(start) {

@@ -135,7 +135,7 @@ function populateFields(s) {
   setVal('thinkingMode', s.thinkingMode || 'disabled');
   setVal('temperature', typeof s.temperature === 'number' ? s.temperature : 0);
   if ($('tempValue')) $('tempValue').textContent = typeof s.temperature === 'number' ? s.temperature : 0;
-  setVal('maxConcurrency', s.maxConcurrency || 6);
+  setVal('maxConcurrency', s.maxConcurrency || 8);
 
   let thinkingField = $('thinkingField');
   if (thinkingField) {
@@ -153,6 +153,7 @@ function populateFields(s) {
   setVal('customTranslationCss', s.customTranslationCss || '');
   setVal('maxChars', s.maxCharsPerRequest || 12000);
   setChecked('largeTextMode', s.largeTextMode !== false);
+  setChecked('useStream', s.useStream !== false && (s.streamRenderMode || 'single') !== 'disabled');
   setVal('uiTheme', s.uiTheme || 'auto');
   applyUiTheme(s.uiTheme || 'auto');
 
@@ -168,6 +169,7 @@ function populateFields(s) {
   setChecked('enableHover', s.enableHover);
   setVal('hoverMode', s.hoverMode || 'key');
   setVal('hoverKey', s.hoverKey || 'shift');
+  setChecked('enableFab', s.enableFab !== false);
   setChecked('enableInputBox', s.enableInputBox);
   setChecked('enableSelection', s.enableSelection);
   setChecked('enableSubtitle', s.enableSubtitle !== false);
@@ -443,32 +445,14 @@ function updateProviderCards() {
 }
 
 function normalizeTranslationThemeOption(theme) {
-  if (['none', 'subtle', 'divider', 'card'].includes(theme)) return theme;
+  const allowed = ['none', 'grey', 'weakening', 'underline', 'nativeUnderline', 'nativeDashed', 'nativeDotted', 'thinDashed', 'wavy', 'dashed', 'divider', 'dividingLine', 'blockquote', 'background', 'highlight', 'marker', 'marker2', 'italic', 'bold', 'subtle', 'card', 'paper', 'dashedBorder', 'solidBorder', 'mask', 'opacity'];
+  if (allowed.includes(theme)) return theme;
   const legacyMap = {
-    underline: 'subtle',
-    dashedBorder: 'card',
-    solidBorder: 'card',
-    dividingLine: 'divider',
-    blockquote: 'divider',
-    paper: 'card',
-    background: 'subtle',
-    highlight: 'subtle',
-    marker: 'subtle',
+    blurReveal: 'mask',
     grey: 'none',
-    italic: 'none',
-    bold: 'none',
-    weakening: 'none',
-    mask: 'none',
-    opacity: 'none',
-    wavy: 'subtle',
-    nativeUnderline: 'subtle',
-    nativeDashed: 'subtle',
-    nativeDotted: 'subtle',
-    thinDashed: 'subtle',
-    marker2: 'subtle',
-    blurReveal: 'none'
+    dividingLine: 'divider'
   };
-  return legacyMap[theme] || 'subtle';
+  return legacyMap[theme] || 'none';
 }
 
 function syncProviderCardText() {
@@ -564,7 +548,7 @@ function readSettingsFromUI() {
     apiKeys: apiKeys,
     model: getVal('model').trim(),
     temperature: (function(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; })(getVal('temperature')),
-    maxConcurrency: (function(v) { const n = parseInt(v); return isNaN(n) ? 6 : n; })(getVal('maxConcurrency')),
+    maxConcurrency: (function(v) { const n = parseInt(v); return isNaN(n) ? 8 : n; })(getVal('maxConcurrency')),
     thinkingMode: getVal('thinkingMode') || 'disabled',
     targetLang: getVal('targetLang').trim() || 'zh-CN',
     sourceLang: getVal('sourceLang').trim() || 'auto',
@@ -574,12 +558,14 @@ function readSettingsFromUI() {
     customTranslationCss: getVal('customTranslationCss').trim() || '',
     largeTextMode: isChecked('largeTextMode'),
     maxCharsPerRequest: (function(v) { const n = parseInt(v); return isNaN(n) ? 12000 : n; })(getVal('maxChars')),
-    useStream: false,
-    streamRenderMode: 'disabled',
+    useStream: isChecked('useStream'),
+    streamRenderMode: isChecked('useStream') ? 'single' : 'disabled',
     uiTheme: getVal('uiTheme') || 'auto',
     enableHover: isChecked('enableHover'),
     hoverMode: getVal('hoverMode') || 'key',
     hoverKey: getVal('hoverKey') || 'shift',
+    enableFab: isChecked('enableFab'),
+    fabPosition: currentSettings.fabPosition || null,
     enableInputBox: isChecked('enableInputBox'),
     enableSelection: isChecked('enableSelection'),
     enableSubtitle: isChecked('enableSubtitle'),
@@ -992,6 +978,7 @@ function onPresetChange(presetVal) {
   if (preset.provider === 'deepseek') {
     setChecked('largeTextMode', true);
     setVal('maxChars', preset.model === 'deepseek-v4-flash' ? '16000' : '12000');
+    setVal('maxConcurrency', preset.model === 'deepseek-v4-flash' ? '8' : '6');
   } else if (preset.provider === 'hunyuan') {
     setChecked('largeTextMode', true);
     setVal('maxChars', '4000');

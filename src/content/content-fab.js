@@ -2,8 +2,66 @@
   'use strict';
 
   const ctx = window.__LLM_CTX__ = window.__LLM_CTX__ || { state: {}, fn: {}, features: {} };
+  const FAB_MARGIN = 8;
+
+  function clampFabPosition(position, fabElement) {
+    const width = fabElement?.offsetWidth || 44;
+    const height = fabElement?.offsetHeight || 44;
+    const left = Number(position?.left);
+    const top = Number(position?.top);
+    if (!Number.isFinite(left) || !Number.isFinite(top)) return null;
+    return {
+      left: Math.max(FAB_MARGIN, Math.min(window.innerWidth - width - FAB_MARGIN, left)),
+      top: Math.max(FAB_MARGIN, Math.min(window.innerHeight - height - FAB_MARGIN, top))
+    };
+  }
+
+  function applyFabPosition(fabElement) {
+    const position = clampFabPosition(ctx.state.settings?.fabPosition, fabElement);
+    if (!position) {
+      fabElement.style.left = '';
+      fabElement.style.top = '';
+      fabElement.style.right = '';
+      fabElement.style.bottom = '';
+      return;
+    }
+    fabElement.style.left = position.left + 'px';
+    fabElement.style.top = position.top + 'px';
+    fabElement.style.right = 'auto';
+    fabElement.style.bottom = 'auto';
+  }
+
+  function persistFabPosition(fabElement) {
+    const position = clampFabPosition({
+      left: parseFloat(fabElement.style.left),
+      top: parseFloat(fabElement.style.top)
+    }, fabElement);
+    if (!position) return;
+    const settings = ctx.state.settings || {};
+    settings.fabPosition = position;
+    ctx.state.settings = settings;
+    chrome.runtime.sendMessage({ action: 'set-settings', settings }).catch(function() {});
+  }
+
+  function removeFab() {
+    if (ctx.state.fabElement) {
+      ctx.state.fabElement.remove();
+      ctx.state.fabElement = null;
+      ctx.state.fabProgress = null;
+    }
+  }
+
+  function updateFabFromSettings() {
+    if (ctx.state.settings?.enableFab === false) {
+      removeFab();
+      return;
+    }
+    createFab();
+    if (ctx.state.fabElement) applyFabPosition(ctx.state.fabElement);
+  }
 
   function createFab() {
+    if (ctx.state.settings?.enableFab === false) return;
     if (ctx.state.fabElement) return;
     const fabElement = document.createElement('div');
     fabElement.id = 'llm-fab';
@@ -19,8 +77,60 @@
 
     ctx.state.fabElement = fabElement;
     ctx.state.fabProgress = fabElement.querySelector('#llm-fab-progress');
+    applyFabPosition(fabElement);
 
-    fabElement.querySelector('#llm-fab-main').addEventListener('click', () => {
+    let dragState = null;
+    const mainButton = fabElement.querySelector('#llm-fab-main');
+
+    mainButton.addEventListener('pointerdown', event => {
+      if (event.button !== undefined && event.button !== 0) return;
+      const rect = fabElement.getBoundingClientRect();
+      dragState = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        left: rect.left,
+        top: rect.top,
+        moved: false
+      };
+      try { mainButton.setPointerCapture(event.pointerId); } catch (e) {}
+    });
+
+    mainButton.addEventListener('pointermove', event => {
+      if (!dragState || dragState.pointerId !== event.pointerId) return;
+      const dx = event.clientX - dragState.startX;
+      const dy = event.clientY - dragState.startY;
+      if (!dragState.moved && Math.hypot(dx, dy) < 4) return;
+      dragState.moved = true;
+      const next = clampFabPosition({ left: dragState.left + dx, top: dragState.top + dy }, fabElement);
+      if (!next) return;
+      fabElement.classList.add('llm-fab-dragging');
+      fabElement.style.left = next.left + 'px';
+      fabElement.style.top = next.top + 'px';
+      fabElement.style.right = 'auto';
+      fabElement.style.bottom = 'auto';
+      fabElement.querySelector('#llm-fab-menu').style.display = 'none';
+      event.preventDefault();
+    });
+
+    function endDrag(event) {
+      if (!dragState || dragState.pointerId !== event.pointerId) return;
+      const wasMoved = dragState.moved;
+      dragState = null;
+      fabElement.classList.remove('llm-fab-dragging');
+      try { mainButton.releasePointerCapture(event.pointerId); } catch (e) {}
+      if (wasMoved) {
+        ctx.state.fabSuppressClick = true;
+        setTimeout(() => { ctx.state.fabSuppressClick = false; }, 0);
+        persistFabPosition(fabElement);
+      }
+    }
+
+    mainButton.addEventListener('pointerup', endDrag);
+    mainButton.addEventListener('pointercancel', endDrag);
+
+    mainButton.addEventListener('click', () => {
+      if (ctx.state.fabSuppressClick) return;
       const menu = fabElement.querySelector('#llm-fab-menu');
       menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
     });
@@ -79,6 +189,8 @@
 
   Object.assign(ctx.fn, {
     createFab,
+    removeFab,
+    updateFabFromSettings,
     updateFabProgress
   });
 })();

@@ -23,6 +23,8 @@ const DEFAULT_SETTINGS = {
   enableHover: true,
   hoverKey: 'shift',          // 'shift' | 'ctrl' | 'alt' | 'none' (direct hover)
   hoverMode: 'key',           // 'key' = hold key, 'direct' = hover to translate, 'off' = disabled
+  enableFab: true,
+  fabPosition: null,          // { left, top } viewport position for the floating action button
   enableInputBox: true,
   enableSelection: true,
   enableSubtitle: true,
@@ -46,11 +48,11 @@ const DEFAULT_SETTINGS = {
   largeTextMode: true,
   maxCharsPerRequest: 12000,
   temperature: 0,
-  maxConcurrency: 6,
-  useStream: false,
-  streamRenderMode: 'disabled',
+  maxConcurrency: 8,
+  useStream: true,
+  streamRenderMode: 'single',
   thinkingMode: 'disabled',
-  translationTheme: 'subtle',
+  translationTheme: 'none',
   translationStylePreset: 'balanced', // 'balanced' | 'natural' | 'faithful' | 'subtitle' | 'technical' | 'novel'
   customTranslationCss: '',
   glossary: '',                    // custom term replacements: "regex,replacement" per line
