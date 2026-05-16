@@ -513,6 +513,44 @@
   gap: 6px;
 }
 
+.pop-site-diagnostics {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 5px;
+  padding: 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.032);
+}
+
+.pop-site-diagnostics[hidden] {
+  display: none !important;
+}
+
+.pop-diag-row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 20px;
+}
+
+.pop-diag-row span {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+}
+
+.pop-diag-row strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: var(--font-weight-medium);
+}
+
 .pop-mini-btn {
   min-height: 28px;
   padding: 0 8px;

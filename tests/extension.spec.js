@@ -586,6 +586,45 @@ test.describe('extension smoke', () => {
     }
   });
 
+  test('popup current site diagnostics summarize rules and progress', async () => {
+    const fixture = await startFixtureServer(COMPLEX_FIXTURE_FILE);
+    const context = await launchExtensionContext();
+    try {
+      await mockGoogleTranslate(context);
+      const extensionId = await getExtensionId(context);
+      await setExtensionSettings(context, extensionId, {
+        provider: 'google',
+        model: 'google-free',
+        targetLang: 'zh-CN',
+        sourceLang: 'auto',
+        displayMode: 'bilingual',
+        maxConcurrency: 1
+      });
+
+      const page = await context.newPage();
+      await page.goto(fixture.url);
+      await page.waitForTimeout(1200);
+      const result = await translateFixturePage(context, extensionId, fixture.url, 'translate-page');
+      expect(result.error || '').toBe('');
+
+      const diagnostics = await sendToFixtureTab(context, extensionId, fixture.url, { action: 'get-site-diagnostics' });
+      expect(diagnostics.success).toBe(true);
+      expect(diagnostics.page.mainRoot).toBeTruthy();
+      expect(diagnostics.progress.totalObserved).toBeGreaterThan(0);
+
+      const popup = await context.newPage();
+      await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+      await popup.locator('#site-card summary').click();
+      await expect(popup.locator('#site-diagnostics')).toBeVisible({ timeout: 10000 });
+      await expect(popup.locator('#diag-rule')).not.toHaveText('-', { timeout: 10000 });
+      await expect(popup.locator('#diag-progress')).toContainText('/', { timeout: 10000 });
+      await popup.close();
+    } finally {
+      await context.close();
+      await fixture.close();
+    }
+  });
+
   test('selection popup opens from runtime selection action', async () => {
     const fixture = await startFixtureServer(SELECTION_FIXTURE_FILE);
     const context = await launchExtensionContext();

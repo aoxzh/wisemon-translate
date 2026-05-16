@@ -47,6 +47,12 @@
   const addSiteTerms = $('add-site-terms');
   const excludeSite = $('exclude-site');
   const openSiteSettings = $('open-site-settings');
+  const siteDiagnostics = $('site-diagnostics');
+  const diagRule = $('diag-rule');
+  const diagRoot = $('diag-root');
+  const diagProgress = $('diag-progress');
+  const diagPage = $('diag-page');
+  const diagMode = $('diag-mode');
   const advancedSummary = $('advanced-summary');
 
   /* ---- State ---- */
@@ -182,6 +188,7 @@
       excludeSite.textContent = excluded ? I18N.t('popup_already_excluded') : I18N.t('popup_exclude_action');
     }
     if (openSiteSettings) openSiteSettings.disabled = !hasHost;
+    refreshSiteDiagnostics();
   }
 
   function setChip(el, label, value, tone) {
@@ -211,6 +218,43 @@
       const clean = String(site || '').trim().toLowerCase().replace(/^\*\./, '');
       return clean && (host === clean || host.endsWith('.' + clean));
     });
+  }
+
+  async function refreshSiteDiagnostics() {
+    if (!siteDiagnostics) return;
+    if (!currentTabInfo?.id || !currentHost) {
+      siteDiagnostics.hidden = true;
+      return;
+    }
+    try {
+      const diag = await sendTabMessage({ action: 'get-site-diagnostics' }, 1);
+      if (!diag || diag.error || diag.frameSkipped) {
+        siteDiagnostics.hidden = true;
+        return;
+      }
+      const ids = diag.siteRule?.matchedIds || [];
+      const progress = diag.progress || {};
+      const page = diag.page || {};
+      const mode = diag.settings || {};
+      siteDiagnostics.hidden = false;
+      diagRule.textContent = ids.length ? ids.slice(0, 3).join(', ') : 'default';
+      diagRule.title = ids.join(', ');
+      diagRoot.textContent = page.mainRoot || 'body';
+      diagProgress.textContent = `${progress.totalProcessed || 0}/${Math.max(progress.totalObserved || 0, progress.queued || 0, progress.totalProcessed || 0)}`;
+      diagPage.textContent = [
+        page.state || 'idle',
+        page.tone || 'tone?',
+        `${page.wrappers || 0} blocks`
+      ].join(' · ');
+      diagMode.textContent = [
+        mode.displayMode || 'bilingual',
+        mode.translationTheme || 'none',
+        mode.translateMainOnly ? 'main only' : 'full page',
+        diag.siteRule?.disableAutoTranslate ? 'manual' : (mode.autoTranslate ? 'auto' : 'manual')
+      ].join(' · ');
+    } catch (e) {
+      siteDiagnostics.hidden = true;
+    }
   }
 
   async function openOptionsSection(section) {
@@ -302,8 +346,15 @@
 
   /* ---- Tab helpers ---- */
   async function getCurrentTab() {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    return tabs[0];
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (/^https?:\/\//.test(activeTab?.url || '')) return activeTab;
+
+    const currentWindowTabs = await chrome.tabs.query({ currentWindow: true });
+    const pageTab = currentWindowTabs
+      .filter(tab => /^https?:\/\//.test(tab.url || ''))
+      .sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0))[0];
+    if (pageTab) return pageTab;
+    return activeTab;
   }
 
   function wait(ms) { return new Promise(r => setTimeout(r, ms)); }

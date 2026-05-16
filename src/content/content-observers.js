@@ -157,12 +157,23 @@
     return document.body;
   }
 
+  function describeMainContentRoot() {
+    const root = getMainContentRoot();
+    if (!root) return '';
+    if (root === document.body) return 'body';
+    const tag = root.tagName ? root.tagName.toLowerCase() : 'root';
+    const id = root.id ? '#' + root.id : '';
+    const cls = root.classList?.length ? '.' + Array.from(root.classList).slice(0, 2).join('.') : '';
+    return tag + id + cls;
+  }
+
   Object.assign(ctx.fn, {
     setupMutationObserver,
     queueForRescan,
     findTranslatableContainer,
     setupIntersectionObserver,
     stopObservers,
-    getMainContentRoot
+    getMainContentRoot,
+    describeMainContentRoot
   });
 })();

@@ -176,6 +176,36 @@
           totalObserved: state.totalObserved || 0,
           totalProcessed: state.totalProcessed || 0
         };
+      case 'get-site-diagnostics':
+        if (typeof fn.syncSharedTrackingState === 'function') fn.syncSharedTrackingState();
+        return {
+          success: true,
+          pageTranslated: !!state.pageTranslated,
+          hoverEnabled: !!state.hoverEnabled,
+          siteRule: state.siteRule || null,
+          settings: {
+            autoTranslate: !!state.settings?.autoTranslate,
+            translateMainOnly: !!state.settings?.translateMainOnly,
+            displayMode: state.settings?.displayMode || 'bilingual',
+            translationTheme: state.settings?.translationTheme || 'none'
+          },
+          progress: {
+            succeeded: state.translationStats?.succeeded || 0,
+            failed: state.translationStats?.failed || 0,
+            queued: state.translationStats?.queued || 0,
+            totalObserved: state.totalObserved || 0,
+            totalProcessed: state.totalProcessed || 0
+          },
+          page: {
+            tone: document.documentElement.getAttribute('llm-page-tone') || '',
+            theme: document.documentElement.getAttribute('llm-theme') || '',
+            state: document.documentElement.getAttribute('llm-state') || '',
+            mainRoot: fn.describeMainContentRoot ? fn.describeMainContentRoot() : '',
+            wrappers: document.querySelectorAll('.llm-translate-block-wrapper, .llm-translate-inline-wrapper').length,
+            observed: document.querySelectorAll(`[${state.attrObserved || 'data-llm-observed'}="true"]`).length,
+            processed: document.querySelectorAll(`[${state.attrProcessed || 'data-llm-done'}]`).length
+          }
+        };
     }
     return { error: 'Unknown action' };
   }
