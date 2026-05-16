@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Nyaa Fixture</title>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    .container { max-width: 920px; margin: 32px auto; }
+    .panel { border: 1px solid #ccc; margin-bottom: 16px; }
+    .panel-heading, .panel-footer { background: #f6f6f6; padding: 8px 12px; }
+    .panel-body { padding: 12px; }
+    .row { display: grid; grid-template-columns: 120px 1fr 120px 1fr; gap: 8px; margin-bottom: 8px; }
+    .comment-panel .panel-body { display: grid; grid-template-columns: 140px 1fr; gap: 12px; }
+    .torrent-file-list li { margin: 4px 0; }
+    .torrent-list { width: 100%; border-collapse: collapse; }
+    .torrent-list td { border-bottom: 1px solid #ddd; padding: 6px; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/">Nyaa</a>
+    <a href="/upload">Upload</a>
+    <form><input placeholder="Search..."><button>Search</button></form>
+  </nav>
+  <div class="container">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title">[Group] Example Release [Multi Audio]</h3>
+      </div>
+      <div class="panel-body">
+        <div class="row">
+          <div>Category:</div><div>Anime - English-translated</div>
+          <div>Date:</div><div data-timestamp="1537289028">2018-09-18 16:43 UTC</div>
+        </div>
+        <div class="row">
+          <div>Submitter:</div><div><a href="/user/example">example-user</a></div>
+          <div>Seeders:</div><div><span style="color: green;">12</span></div>
+        </div>
+        <div class="row">
+          <div>Info hash:</div><div><kbd>da52cda1a126f95f3972fe695ba1ce2e6d7c0317</kbd></div>
+          <div>File size:</div><div>11.0 GiB</div>
+        </div>
+      </div>
+      <div class="panel-footer">
+        <a href="/download/1076664.torrent">Download Torrent</a>
+        <a href="magnet:?xt=urn:btih:da52cda1a126f95f3972fe695ba1ce2e6d7c0317">Magnet</a>
+      </div>
+    </div>
+
+    <div class="panel panel-default">
+      <div markdown-text class="panel-body" id="torrent-description">
+        Japanese DVD rips with all available English dubs synced to it.
+        This should be our definitive version with improved video quality and additional subtitles.
+      </div>
+    </div>
+
+    <div class="panel panel-default">
+      <div class="panel-heading"><h3 class="panel-title">File list</h3></div>
+      <div class="torrent-file-list panel-body">
+        <ul>
+          <li><span>Example Release 001.mkv</span> <span class="file-size">(958.1 MiB)</span></li>
+          <li><span>Example Release 002.mkv</span> <span class="file-size">(872.9 MiB)</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <table class="torrent-list">
+      <tbody>
+        <tr>
+          <td>Anime</td>
+          <td><a href="/view/1">A carefully named release should be easy to inspect</a> <a class="comments" href="/view/1#comments">2 comments</a></td>
+          <td>1.2 GiB</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="panel panel-default comment-panel" id="com-1">
+      <div class="panel-body">
+        <div><a class="text-default" href="/user/viewer">viewer</a></div>
+        <div class="comment">
+          <div class="row comment-details"><a href="#com-1"><small data-timestamp-swap data-timestamp="1576278136">2019-12-13 23:02 UTC</small></a></div>
+          <div class="row comment-body">
+            <div markdown-text class="comment-content" id="torrent-comment1">Thank you for this release. The subtitle timing looks much better now.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

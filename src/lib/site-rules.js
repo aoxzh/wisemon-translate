@@ -117,17 +117,38 @@
       id: 'video-common',
       matches: ['youtube.com', 'youtu.be', 'vimeo.com', 'coursera.org', 'udemy.com'],
       preferSubtitleOverlay: true,
-      excludeSelectors: ['.ytp-caption-window-container', '.vjs-text-track-display']
+      mainSelectors: ['ytd-page-manager', 'main', '#content'],
+      excludeSelectors: [
+        'aside', 'button', 'footer', 'form', 'header', 'nav', 'pre', 'mark',
+        '#player', '#container', '#secondary', '#masthead', '#guide',
+        '.ytp-caption-window-container', '.vjs-text-track-display',
+        '#kiss-youtube-subtitle-list-container'
+      ],
+      injectedCss: [
+        '#content-text, #description, ytd-watch-metadata{-webkit-line-clamp:unset!important;max-height:none!important;height:auto!important}'
+      ]
     },
     {
       id: 'twitter-x',
       matches: ['x.com', 'twitter.com', 'tweetdeck.twitter.com', 'pro.twitter.com'],
+      includeSelectors: [
+        '[data-testid="tweetText"]',
+        '[data-testid="twitter-article-title"]',
+        '[data-testid="UserDescription"]',
+        '.public-DraftStyleDefault-block',
+        'span.text-body',
+        'div.css-175oi2r.r-3pj75a div.css-175oi2r > span',
+        'div.css-175oi2r.r-3pj75a li > span',
+        'div.r-1s2bzr4 > div.r-16dba41',
+        'div.r-16y2uox > div.r-1jeg54m'
+      ],
       excludeSelectors: [
         '[data-testid="app-bar-back"]', '[data-testid="topNavBar"]',
         '[role="navigation"]', 'nav[aria-label]', '[data-testid="SideNav"]',
         '[data-testid="tweetButton"]', '[data-testid="tweetButtonInline"]',
         'time', '[data-testid="User-Name"] a', '[href*="/status/"] time',
         'input', 'textarea', '[contenteditable="true"]',
+        '[data-testid="videoPlayer"]', '[data-testid^="tweetTextarea"]',
         '[aria-label][role="button"][data-testid]', '[data-testid="appTabBar"]'
       ],
       mainSelectors: ['article[data-testid="tweet"]', 'main[role="main"]'],
@@ -152,6 +173,18 @@
         '.llm-translate-block-wrapper{display:inline!important;margin:0 0 0 6px!important;padding:0!important}'
       ],
       contextHint: 'This is a social media / forum page. Preserve usernames, subreddit names, vote counts, timestamps, and platform-specific terms.'
+    },
+    {
+      id: 'hacker-news',
+      matches: ['news.ycombinator.com'],
+      includeSelectors: [
+        'p', '.titleline', '.commtext',
+        '.hn-item-title', '.hn-comment-text', '.hn-story-title'
+      ],
+      excludeSelectors: [
+        'button', 'code', 'footer', 'form', 'header', 'mark', 'nav', 'pre', '.reply', '.sitebit'
+      ],
+      contextHint: 'This is Hacker News. Preserve usernames, domains, code, and short UI labels. Translate story titles and comment text.'
     },
     {
       id: 'wikipedia',
@@ -190,12 +223,38 @@
     {
       id: 'telegram-discord',
       matches: ['web.telegram.org', 'web.telegram.k', 'discord.com', 'discordapp.com'],
+      includeSelectors: ['.text-content', '.embedded-text-wrapper', '[class*="message-content"]', '[class*="chat-content"]'],
       excludeSelectors: [
         '[class*="username"]', '[class*="timestamp"]', '[class*="time"]',
         '[class*="reaction"]', '[class*="emoji"]', 'input', 'textarea'
       ],
-      mainSelectors: ['[class*="message-content"]', '[class*="chat-content"]'],
+      mainSelectors: ['.Transition', '[class*="message-content"]', '[class*="chat-content"]'],
       contextHint: 'This is an instant messaging platform. Preserve usernames, timestamps, emoji reactions, and message metadata. Translate message text only.'
+    },
+    {
+      id: 'nyaa-torrent',
+      matches: ['nyaa.si', 'sukebei.nyaa.si'],
+      mainSelectors: ['.container', '#torrent-description', '.comment-panel', '.torrent-list'],
+      includeSelectors: [
+        '.panel-title',
+        '#torrent-description',
+        '.comment-content',
+        '.torrent-list td:nth-child(2) a:not(.comments)',
+        '.torrent-list .comments'
+      ],
+      excludeSelectors: [
+        'nav', 'footer', 'form', 'input', 'select', 'button',
+        '.navbar', '.search-container', '.panel-footer',
+        '.torrent-file-list', '.file-size', 'kbd',
+        'a[href^="magnet:"]', 'a[href*="/download/"]',
+        '[data-timestamp]', '[data-timestamp-swap]',
+        '.fa', '.avatar', '.comment-actions'
+      ],
+      injectedCss: [
+        '#torrent-description .llm-translate-block-wrapper,.comment-content .llm-translate-block-wrapper{white-space:normal!important;margin-top:8px!important}',
+        '.torrent-list .llm-translate-inline-wrapper{display:block!important;margin:2px 0 0!important}'
+      ],
+      contextHint: 'This is a torrent listing/detail page. Preserve release names, file names, hashes, magnet links, sizes, dates, usernames, and numeric stats. Translate the torrent description and user comments.'
     },
     {
       id: 'ecommerce',

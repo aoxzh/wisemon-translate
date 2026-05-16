@@ -20,6 +20,7 @@ const EDITORS_FIXTURE_FILE = path.resolve(__dirname, 'fixtures', 'editors.html')
 const NESTED_SHADOW_FIXTURE_FILE = path.resolve(__dirname, 'fixtures', 'nested-shadow.html');
 const LONG_TABLE_FIXTURE_FILE = path.resolve(__dirname, 'fixtures', 'long-table.html');
 const DARK_PAGE_FIXTURE_FILE = path.resolve(__dirname, 'fixtures', 'dark-page.html');
+const NYAA_FIXTURE_FILE = path.resolve(__dirname, 'fixtures', 'nyaa.html');
 
 async function launchExtensionContext() {
   const context = await chromium.launchPersistentContext('', {
@@ -1353,6 +1354,92 @@ test.describe('extension smoke', () => {
       await expect(page.locator('.orderbook .llm-translate-inner')).toHaveCount(0);
       await expect(page.locator('.trade-panel .llm-translate-inner')).toHaveCount(0);
       await expect(page.locator('.wallet-balance .llm-translate-inner')).toHaveCount(0);
+    } finally {
+      await context.close();
+      await fixture.close();
+    }
+  });
+
+  test('nyaa rule translates descriptions and comments while skipping torrent metadata', async () => {
+    const fixture = await startFixtureServer(NYAA_FIXTURE_FILE);
+    const context = await launchExtensionContext();
+    try {
+      const extensionId = await getExtensionId(context);
+      const optionsPage = await context.newPage();
+      await optionsPage.goto(`chrome-extension://${extensionId}/options.html`);
+      const ruleInfo = await optionsPage.evaluate(async () => {
+        const src = chrome.runtime.getURL('src/lib/site-rules.js');
+        await import(src);
+        const rule = getSiteRule('https://nyaa.si/view/1076664', {});
+        return {
+          ids: rule.matchedIds,
+          includes: rule.includeSelectors,
+          excludes: rule.excludeSelectors
+        };
+      });
+      expect(ruleInfo.ids).toContain('nyaa-torrent');
+      expect(ruleInfo.includes).toContain('#torrent-description');
+      expect(ruleInfo.excludes).toContain('.torrent-file-list');
+
+      await context.route('https://translate.googleapis.com/translate_a/single**', async route => {
+        const url = new URL(route.request().url());
+        const source = url.searchParams.get('q') || '';
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([[[`TRANSLATED:${source.slice(0, 60)}`, source, null, null]]])
+        });
+      });
+
+      await setExtensionSettings(context, extensionId, {
+        provider: 'google',
+        model: 'google-free',
+        targetLang: 'zh-CN',
+        sourceLang: 'auto',
+        siteRules: JSON.stringify([{
+          id: 'fixture-nyaa',
+          matches: ['127.0.0.1'],
+          mainSelectors: ['.container', '#torrent-description', '.comment-panel', '.torrent-list'],
+          includeSelectors: [
+            '.panel-title',
+            '#torrent-description',
+            '.comment-content',
+            '.torrent-list td:nth-child(2) a:not(.comments)',
+            '.torrent-list .comments'
+          ],
+          excludeSelectors: [
+            'nav', 'footer', 'form', 'input', 'button',
+            '.panel-footer', '.torrent-file-list', '.file-size', 'kbd',
+            'a[href^="magnet:"]', 'a[href*="/download/"]', '[data-timestamp]'
+          ]
+        }]),
+        maxConcurrency: 1
+      });
+
+      const page = await context.newPage();
+      await page.goto(fixture.url);
+      await page.waitForTimeout(1200);
+      const result = await optionsPage.evaluate(async (targetUrl) => {
+        const tabs = await chrome.tabs.query({ url: targetUrl });
+        const tabId = tabs[0] && tabs[0].id;
+        for (let attempt = 0; attempt < 8; attempt++) {
+          try {
+            await chrome.runtime.sendMessage({ action: 'inject-content-main', tabId });
+            return await chrome.tabs.sendMessage(tabId, { action: 'toggle-translation' });
+          } catch (err) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
+        return { error: 'toggle-translation did not connect' };
+      }, fixture.url);
+
+      expect(result.error || '').toBe('');
+      await expect(page.locator('#torrent-description + .llm-translate-block-wrapper .llm-translate-inner').first()).toContainText('TRANSLATED:', { timeout: 15000 });
+      await expect(page.locator('.comment-content + .llm-translate-block-wrapper .llm-translate-inner').first()).toContainText('TRANSLATED:', { timeout: 15000 });
+      await expect(page.locator('.torrent-list .llm-translate-inner').first()).toContainText('TRANSLATED:', { timeout: 15000 });
+      await expect(page.locator('.torrent-file-list .llm-translate-inner')).toHaveCount(0);
+      await expect(page.locator('kbd .llm-translate-inner')).toHaveCount(0);
+      await expect(page.locator('.panel-footer .llm-translate-inner')).toHaveCount(0);
     } finally {
       await context.close();
       await fixture.close();
