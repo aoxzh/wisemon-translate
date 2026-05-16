@@ -17,9 +17,11 @@
   const TAG_NAME = 'llm-translate';
   const ATTR_PROCESSED = 'data-llm-done';
   const ATTR_ID = 'data-llm-id';
+  const ATTR_OBSERVED = 'data-llm-observed';
   if (!window.__LLM_CTX__) window.__LLM_CTX__ = { state: {}, fn: {}, features: {} };
   window.__LLM_CTX__.state.tagName = TAG_NAME;
   window.__LLM_CTX__.state.attrProcessed = ATTR_PROCESSED;
+  window.__LLM_CTX__.state.attrObserved = ATTR_OBSERVED;
 
   // Block elements: treated as translatable containers
   const BLOCK_TAGS = new Set([
@@ -96,6 +98,8 @@
   let siteRule = null;
   let translateQueue = null;
   let translationStats = { queued: 0, succeeded: 0, failed: 0 };
+  let totalObserved = 0;      // total elements observed by IO (counter because WeakSet has no size)
+  let totalProcessed = 0;     // total elements processed (success or fail)
   let currentScanStats = null;
   let initialVisibleElements = null;
   const ctx = window.__LLM_CTX__;
@@ -120,6 +124,21 @@
   function syncSharedTrackingState() {
     ctx.fn.observedElements = observedElements;
     ctx.fn.processedElements = processedElements;
+    ctx.state.translationStats = translationStats;
+    ctx.state.totalObserved = totalObserved;
+    ctx.state.totalProcessed = totalProcessed;
+  }
+
+  function publishTranslationProgress() {
+    syncSharedTrackingState();
+    chrome.runtime.sendMessage({
+      action: 'translation-progress',
+      translatedCount: translationStats.succeeded,
+      totalVisibleCount: totalObserved,
+      processedCount: totalProcessed,
+      failedCount: translationStats.failed,
+      queuedCount: translationStats.queued
+    }).catch(function(){});
   }
 
   function isDeepSeekFlash(config) {
@@ -208,10 +227,13 @@
       cleanTextForTranslation,
       scanNode,
       scheduleProcessViewBatch,
+      translateToBottom,
       togglePageTranslation,
       restoreOriginal,
       removeTranslationFrom,
       applyPageState,
+      syncSharedTrackingState,
+      publishTranslationProgress,
       processedElements,
       observedElements,
       shouldSkipTranslation,
@@ -306,6 +328,9 @@
     document.querySelectorAll(`[${ATTR_PROCESSED}]`).forEach(el => {
       el.removeAttribute(ATTR_PROCESSED);
     });
+    document.querySelectorAll(`[${ATTR_OBSERVED}]`).forEach(el => {
+      el.removeAttribute(ATTR_OBSERVED);
+    });
     // Reset root state
     document.documentElement.removeAttribute('llm-state');
     document.documentElement.removeAttribute('llm-theme');
@@ -320,7 +345,10 @@
     dirtyProcessing = false;
     translatedTextHashes.clear();
     translatedTextCache.clear();
-    translationStats = { queued: 0, succeeded: 0, failed: 0 };
+    translationStats.queued = 0; translationStats.succeeded = 0; translationStats.failed = 0;
+    totalObserved = 0;
+    totalProcessed = 0;
+    publishTranslationProgress();
   }
 
   async function startTranslation() {
@@ -338,7 +366,10 @@
     dirtyProcessing = false;
     translatedTextHashes.clear();
     translatedTextCache.clear();
-    translationStats = { queued: 0, succeeded: 0, failed: 0 };
+    translationStats.queued = 0; translationStats.succeeded = 0; translationStats.failed = 0;
+    totalObserved = 0;
+    totalProcessed = 0;
+    syncSharedTrackingState();
     currentScanStats = { observed: 0, skippedByRule: 0, skippedIgnored: 0, skippedInvalid: 0, skippedSameLanguage: 0 };
     initialVisibleElements = new Set();
     LOG.info('Content', 'Starting page translation, scanning DOM...');
@@ -363,6 +394,7 @@
     startShadowRootObservation();
 
     LOG.info('Content', 'DOM scan complete. Waiting for first visible translation.', currentScanStats);
+    publishTranslationProgress();
     const result = await waitForInitialTranslation();
     currentScanStats = null;
     initialVisibleElements = null;
@@ -372,7 +404,9 @@
   async function waitForInitialTranslation(timeoutMs = 20000) {
     var startedAt = Date.now();
     while (Date.now() - startedAt < timeoutMs) {
-      if (translationStats.succeeded > 0) {
+      const completed = translationStats.succeeded + translationStats.failed;
+      // Wait until all queued items are processed (not just the first success)
+      if (translationStats.queued > 0 && completed >= translationStats.queued) {
         return { succeeded: translationStats.succeeded, failed: translationStats.failed, queued: translationStats.queued, reason: '' };
       }
       if (translationStats.failed > 0 && translationStats.queued > 0 && (Date.now() - startedAt) > 3000) {
@@ -385,6 +419,7 @@
       }
       await new Promise(function(resolve) { setTimeout(resolve, 250); });
     }
+    const completed = translationStats.succeeded + translationStats.failed;
     return { succeeded: translationStats.succeeded, failed: translationStats.failed, queued: translationStats.queued, reason: translationStats.succeeded > 0 ? '' : 'Timed out waiting for the first translation result.' };
   }
 
@@ -451,6 +486,7 @@
     }
     if (groups.length === 0) return { attempted: 0, succeeded: 0, failed: 0 };
     translationStats.queued += groups.length;
+    publishTranslationProgress();
 
     // Update FAB progress
     const totalVisible = translationStats.queued;
@@ -463,6 +499,7 @@
 
     function injectOne(group, raw) {
       if (group.runId !== translationRunId) return;
+      totalProcessed++;
       if (!raw || raw.indexOf('[Translation Error:') === 0) {
         failedCount++;
         translationStats.failed++;
@@ -483,8 +520,9 @@
           showRetry(group, 'Empty result after cleaning');
         }
       }
-      ctx.fn.updateFabProgress(totalVisible2 - (groups.length - doneCount - failedCount), totalVisible2);
-      chrome.runtime.sendMessage({ action: 'translation-progress', translatedCount: translationStats.succeeded, totalVisibleCount: totalVisible2 }).catch(function(){});
+      const batchCompleted = doneCount + failedCount;
+      ctx.fn.updateFabProgress(totalVisible2 - (groups.length - batchCompleted), totalVisible2);
+      publishTranslationProgress();
     }
 
     if (shouldStreamGroup(groups[0], groups.length)) {
@@ -502,8 +540,10 @@
         if (live?.wrapper) live.wrapper.remove();
         failedCount++;
         translationStats.failed++;
+        totalProcessed++;
         _safeLog('error', 'Content', 'Stream item failed: ' + err.message, { textLength: group.text.length });
         showRetry(group, err.message);
+        publishTranslationProgress();
       }
     } else if (translateQueue) {
       groups.forEach(function(group) {
@@ -514,8 +554,10 @@
           if (group.runId === translationRunId) {
             failedCount++;
             translationStats.failed++;
+            totalProcessed++;
             _safeLog('error', 'Content', 'Viewport item failed: ' + err.message, { textLength: group.text.length });
             showRetry(group, err.message);
+            publishTranslationProgress();
           }
         });
       });
@@ -526,9 +568,11 @@
         groups.forEach(function(group, i) { injectOne(group, results[i]); });
       } catch (err) {
         translationStats.failed += groups.length;
+        totalProcessed += groups.length;
         doneCount = 0;
         failedCount = groups.length;
         _safeLog('error', 'Content', 'Viewport batch failed: ' + err.message, { count: groups.length, runId: translationRunId });
+        publishTranslationProgress();
       }
     }
   }
@@ -537,6 +581,88 @@
     processViewBatch(elements).catch(err => {
       _safeLog('error', 'Content', 'Scheduled viewport batch crashed: ' + err.message, err.stack);
     });
+  }
+
+  async function translateToBottom() {
+    if (!pageTranslated) {
+      pageTranslated = true;
+      ctx.state.pageTranslated = true;
+      translationRunId++;
+      ctx.state.translationRunId = translationRunId;
+      await startTranslation();
+    }
+
+    const root = ctx.fn.getMainContentRoot ? ctx.fn.getMainContentRoot() : document.body;
+    scanRuleIncludedElements(root);
+    scanNode(root);
+    scanTextNodes(root);
+
+    const candidates = collectUnprocessedCandidates(root);
+    if (candidates.length > 0) {
+      candidates.forEach(el => {
+        if (!observedElements.has(el)) {
+          observedElements.add(el);
+          totalObserved++;
+          el.setAttribute(ATTR_OBSERVED, 'true');
+        }
+      });
+      publishTranslationProgress();
+      await processViewBatch(candidates);
+    } else {
+      publishTranslationProgress();
+    }
+
+    return {
+      success: true,
+      pageTranslated: true,
+      queued: translationStats.queued,
+      succeeded: translationStats.succeeded,
+      failed: translationStats.failed,
+      totalObserved,
+      totalProcessed,
+      remaining: candidates.length
+    };
+  }
+
+  function collectUnprocessedCandidates(root) {
+    const out = [];
+    const seen = new WeakSet();
+    function add(el) {
+      if (!(el instanceof Element) || seen.has(el) || processedElements.has(el)) return;
+      if (!isBottomScanCandidate(el)) return;
+      seen.add(el);
+      out.push(el);
+    }
+
+    root.querySelectorAll?.(`[${ATTR_OBSERVED}="true"]`).forEach(add);
+    root.querySelectorAll?.('p, li, td, th, dd, dt, figcaption, caption, blockquote, h1, h2, h3, h4, h5, h6').forEach(add);
+
+    try {
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+        acceptNode(node) {
+          const value = (node.nodeValue || '').replace(/\s+/g, ' ').trim();
+          if (!value || isInvalidText(value)) return NodeFilter.FILTER_REJECT;
+          const parent = node.parentElement;
+          if (!parent || isIgnored(parent) || matchesSiteRuleSelector(parent, siteRule?.excludeSelectors)) return NodeFilter.FILTER_REJECT;
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      });
+      while (walker.nextNode()) add(findTranslationHostForTextNode(walker.currentNode));
+    } catch (err) {
+      LOG.debug('Content', `Bottom text scan skipped: ${err.message}`);
+    }
+
+    return out;
+  }
+
+  function isBottomScanCandidate(el) {
+    if (!(el instanceof Element)) return false;
+    if (isIgnored(el)) return false;
+    if (matchesSiteRuleSelector(el, siteRule?.excludeSelectors)) return false;
+    const text = getVisibleText(el);
+    if (isInvalidText(text)) return false;
+    if (shouldSkipTranslation(text, settings.targetLang)) return false;
+    return true;
   }
 
   async function sendTranslateBatch(texts, args = {}) {
@@ -790,6 +916,9 @@
     }
 
     observedElements.add(el);
+    totalObserved++;
+    el.setAttribute(ATTR_OBSERVED, 'true');
+    syncSharedTrackingState();
     if (currentScanStats) currentScanStats.observed++;
     if (ctx.state.intersectionObserver) ctx.state.intersectionObserver.observe(el);
 
@@ -946,9 +1075,12 @@
     // Clean up any remaining placeholder-like artifacts in the source text
     plainText = cleanTextForTranslation(plainText);
 
+    if (!plainText || plainText.length < 2) return null;
+
     processedElements.set(hostEl, { id: generateId() });
     hostEl.setAttribute(ATTR_PROCESSED, 'true');
     hostEl.setAttribute(ATTR_ID, processedElements.get(hostEl).id);
+    hostEl.removeAttribute(ATTR_OBSERVED);
 
     return { element: hostEl, text: plainText, nodes, placeholderMap };
   }

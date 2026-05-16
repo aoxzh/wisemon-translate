@@ -121,6 +121,45 @@
   background: linear-gradient(135deg, var(--s-1) 0%, rgba(var(--s-success-rgb), 0.08) 100%);
 }
 
+/* ===== PROGRESS CARD ===== */
+.pop-progress-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+  border: 1px solid var(--border-default);
+  border-radius: 14px;
+  padding: 10px 12px;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+.pop-progress-card.hidden {
+  display: none;
+}
+.pop-progress-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+.pop-progress-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+.pop-progress-track {
+  height: 5px;
+  background: var(--s-3);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.pop-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--p-main), rgba(var(--p-main-rgb), 0.7));
+  border-radius: 999px;
+  transition: width 0.35s var(--ease-out);
+}
+.pop-progress-card.is-done .pop-progress-bar {
+  background: linear-gradient(90deg, var(--s-success), rgba(var(--s-success-rgb), 0.7));
+}
+
 .pop-insight-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

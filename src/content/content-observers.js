@@ -15,12 +15,12 @@
       for (const m of mutations) {
         if (m.type === 'childList') {
           for (const node of m.addedNodes) {
-            if (node.nodeType === Node.ELEMENT_NODE && !ctx.fn.isIgnored(node)) {
+            if (node.nodeType === Node.ELEMENT_NODE && !isIgnored(node)) {
               queueForRescan(node);
             }
           }
         } else if (m.type === 'characterData') {
-          if (!ctx.fn.isIgnored(m.target.parentElement)) {
+          if (!isIgnored(m.target.parentElement)) {
             queueForRescan(m.target.parentElement);
           }
         }
@@ -34,29 +34,61 @@
     });
   }
 
+  function isIgnored(node) {
+    return typeof ctx.fn.isIgnored === 'function' ? ctx.fn.isIgnored(node) : false;
+  }
+
+  function getDirtyQueue() {
+    if (!ctx.state.dirtyQueue) ctx.state.dirtyQueue = new Set();
+    return ctx.state.dirtyQueue;
+  }
+
+  function rescanDependenciesReady() {
+    return typeof ctx.fn.scanNode === 'function'
+      && typeof ctx.fn.scheduleProcessViewBatch === 'function'
+      && ctx.fn.observedElements
+      && ctx.fn.processedElements;
+  }
+
   function queueForRescan(node) {
     const container = findTranslatableContainer(node);
     if (!container) return;
-    ctx.state.dirtyQueue.add({ node, container });
-    if (!ctx.state.dirtyProcessing) {
-      ctx.state.dirtyProcessing = true;
-      const schedule = typeof requestIdleCallback === 'function'
+    const dirtyQueue = getDirtyQueue();
+    dirtyQueue.add({ node, container });
+    scheduleDirtyFlush();
+  }
+
+  function scheduleDirtyFlush(delay) {
+    if (ctx.state.dirtyProcessing) return;
+    ctx.state.dirtyProcessing = true;
+    const schedule = delay
+      ? (cb) => setTimeout(cb, delay)
+      : (typeof requestIdleCallback === 'function'
         ? (cb) => requestIdleCallback(cb, { timeout: 200 })
-        : (cb) => setTimeout(cb, 50);
-      schedule(() => {
-        ctx.state.dirtyQueue.forEach(item => {
-          const target = item.node instanceof Element ? item.node : item.container;
-          if (!target || !target.isConnected) return;
+        : (cb) => setTimeout(cb, 50));
+    schedule(flushDirtyQueue);
+  }
+
+  function flushDirtyQueue() {
+    const dirtyQueue = getDirtyQueue();
+    try {
+      if (!rescanDependenciesReady()) return;
+      dirtyQueue.forEach(item => {
+        const target = item.node instanceof Element ? item.node : item.container;
+        if (!target || !target.isConnected) return;
+        if (typeof ctx.fn.removeTranslationFrom === 'function') {
           ctx.fn.removeTranslationFrom(target);
-          ctx.fn.scanNode(target);
-          if (item.container && item.container !== target && item.container.isConnected) {
-            ctx.fn.scanNode(item.container);
-          }
-          processVisiblePending(target);
-        });
-        ctx.state.dirtyQueue.clear();
-        ctx.state.dirtyProcessing = false;
+        }
+        ctx.fn.scanNode(target);
+        if (item.container && item.container !== target && item.container.isConnected) {
+          ctx.fn.scanNode(item.container);
+        }
+        processVisiblePending(target);
       });
+      dirtyQueue.clear();
+    } finally {
+      ctx.state.dirtyProcessing = false;
+      if (dirtyQueue.size > 0) scheduleDirtyFlush(rescanDependenciesReady() ? 0 : 100);
     }
   }
 
@@ -74,10 +106,10 @@
 
   function findTranslatableContainer(start) {
     if (!(start instanceof Element)) return null;
-    if (ctx.fn.isIgnored(start)) return null;
+    if (isIgnored(start)) return null;
     let curr = start;
     while (curr && curr !== document.body) {
-      if (ctx.fn.BLOCK_TAGS.has(curr.tagName) || ctx.fn.observedElements.has(curr)) return curr;
+      if (ctx.fn.BLOCK_TAGS?.has(curr.tagName) || ctx.fn.observedElements?.has(curr)) return curr;
       curr = curr.parentElement;
     }
     return null;

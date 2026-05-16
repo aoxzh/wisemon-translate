@@ -18,6 +18,7 @@ const SPA_FIXTURE_FILE = path.resolve(__dirname, 'fixtures', 'spa.html');
 const IFRAME_FIXTURE_FILE = path.resolve(__dirname, 'fixtures', 'iframe.html');
 const EDITORS_FIXTURE_FILE = path.resolve(__dirname, 'fixtures', 'editors.html');
 const NESTED_SHADOW_FIXTURE_FILE = path.resolve(__dirname, 'fixtures', 'nested-shadow.html');
+const LONG_TABLE_FIXTURE_FILE = path.resolve(__dirname, 'fixtures', 'long-table.html');
 
 async function launchExtensionContext() {
   const context = await chromium.launchPersistentContext('', {
@@ -101,6 +102,31 @@ async function sendToFixtureTab(context, extensionId, targetUrl, message, attemp
 
 async function translateFixturePage(context, extensionId, targetUrl, action = 'toggle-translation') {
   return await sendToFixtureTab(context, extensionId, targetUrl, { action });
+}
+
+async function removeCleanupHookAndAppendDynamicParagraph(context, extensionId, targetUrl) {
+  const extensionPage = await context.newPage();
+  try {
+    await extensionPage.goto(`chrome-extension://${extensionId}/options.html`);
+    return await extensionPage.evaluate(async (targetUrl) => {
+      const tabs = await chrome.tabs.query({ url: targetUrl });
+      const tabId = tabs[0] && tabs[0].id;
+      const [result] = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: () => {
+          delete window.__LLM_CTX__.fn.removeTranslationFrom;
+          const p = document.createElement('p');
+          p.id = 'dynamic-rescan-target';
+          p.textContent = 'Fresh dynamic content that should still translate after a timeline update.';
+          document.querySelector('article, main, body').appendChild(p);
+          return true;
+        }
+      });
+      return result && result.result;
+    }, targetUrl);
+  } finally {
+    await extensionPage.close();
+  }
 }
 
 test.describe('extension smoke', () => {
@@ -409,6 +435,75 @@ test.describe('extension smoke', () => {
       }, fixture.url);
       expect(status).toBeTruthy();
       expect(status.error || '').toBe('');
+    } finally {
+      await context.close();
+      await fixture.close();
+    }
+  });
+
+  test('dynamic rescan keeps translating when cleanup hook is unavailable', async () => {
+    const fixture = await startFixtureServer();
+    const context = await launchExtensionContext();
+    const pageErrors = [];
+    try {
+      await mockGoogleTranslate(context);
+      const extensionId = await getExtensionId(context);
+      await setExtensionSettings(context, extensionId, {
+        provider: 'google',
+        model: 'google-free',
+        targetLang: 'zh-CN',
+        sourceLang: 'auto',
+        displayMode: 'bilingual',
+        maxConcurrency: 1
+      });
+
+      const page = await context.newPage();
+      page.on('pageerror', err => pageErrors.push(err.message || String(err)));
+      await page.goto(fixture.url);
+      await page.waitForTimeout(1200);
+      const result = await translateFixturePage(context, extensionId, fixture.url, 'translate-page');
+      expect(result.error || '').toBe('');
+      await expect(page.locator('.llm-translate-block-wrapper').first()).toContainText('TRANSLATED:', { timeout: 15000 });
+
+      await removeCleanupHookAndAppendDynamicParagraph(context, extensionId, fixture.url);
+
+      await expect(page.locator('#dynamic-rescan-target + .llm-translate-block-wrapper')).toContainText('TRANSLATED:', { timeout: 15000 });
+      expect(pageErrors.filter(message => message.includes('removeTranslationFrom'))).toEqual([]);
+    } finally {
+      await context.close();
+      await fixture.close();
+    }
+  });
+
+  test('translate to bottom processes below-fold table content and reports progress', async () => {
+    const fixture = await startFixtureServer(LONG_TABLE_FIXTURE_FILE);
+    const context = await launchExtensionContext();
+    try {
+      await mockGoogleTranslate(context);
+      const extensionId = await getExtensionId(context);
+      await setExtensionSettings(context, extensionId, {
+        provider: 'google',
+        model: 'google-free',
+        targetLang: 'zh-CN',
+        sourceLang: 'auto',
+        displayMode: 'bilingual',
+        maxConcurrency: 1
+      });
+
+      const page = await context.newPage();
+      await page.goto(fixture.url);
+      await page.waitForTimeout(1200);
+      const result = await translateFixturePage(context, extensionId, fixture.url, 'translate-to-bottom');
+      expect(result.error || '').toBe('');
+      expect(result.success).toBe(true);
+      expect(result.queued).toBeGreaterThan(0);
+      await expect(page.locator('#table-description .llm-translate-inner')).toContainText('TRANSLATED:', { timeout: 15000 });
+      await expect(page.locator('#comments .llm-translate-inner').first()).toContainText('TRANSLATED:', { timeout: 15000 });
+
+      const progress = await sendToFixtureTab(context, extensionId, fixture.url, { action: 'get-translation-progress' });
+      expect(progress.totalObserved).toBeGreaterThan(0);
+      expect(progress.queued).toBeGreaterThan(0);
+      expect(progress.totalProcessed).toBeGreaterThan(0);
     } finally {
       await context.close();
       await fixture.close();

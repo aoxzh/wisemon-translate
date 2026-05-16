@@ -28,6 +28,10 @@
   const engineName = $('engine-name');
   const providerHealth = $('provider-health');
   const openDiagnostics = $('open-diagnostics');
+  const progressCard = $('progress-card');
+  const progressBar = $('progress-bar');
+  const progressCount = $('progress-count');
+  const progressLabel = $('progress-label');
   const providerPresetSelect = $('provider-preset-select');
   const modelInput = $('model-input');
   const subtitleEnable = $('subtitle-enable');
@@ -50,6 +54,9 @@
   let pageTranslated = false;
   let currentTabInfo = null;
   let currentHost = '';
+  let progressPollTimer = null;
+  let progressMaxDenominator = 1;
+  let progressMaxPercent = 0;
 
   /* ---- Init ---- */
   I18N.localizeContainer(document.querySelector('.popup-root'));
@@ -328,6 +335,10 @@
       const res = await sendTabMessage({ action: 'get-status' });
       pageTranslated = res && res.pageTranslated || false;
       updatePageStatusUI();
+      if (pageTranslated) {
+        const progress = await fetchTranslationProgress();
+        updateProgressUI(progress);
+      }
     } catch (e) {
       statusText.textContent = I18N.t('status_ready');
       actionCard.classList.remove('is-translated');
@@ -347,6 +358,7 @@
       statusDot.className = 'pop-status-dot';
       statusText.textContent = I18N.t('status_ready');
       actionCard.classList.remove('is-translated');
+      progressCard.classList.add('hidden');
     }
   }
 
@@ -359,10 +371,100 @@
     }
   }
 
+  /* ---- Progress ---- */
+  async function fetchTranslationProgress() {
+    try {
+      return await sendTabMessage({ action: 'get-translation-progress' });
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function updateProgressUI(progress) {
+    if (!progress) {
+      progressCard.classList.add('hidden');
+      return;
+    }
+    const succeeded = progress.succeeded || 0;
+    const failed = progress.failed || 0;
+    const queued = progress.queued || 0;
+    const totalObserved = progress.totalObserved || 0;
+    const totalProcessed = progress.totalProcessed || 0;
+
+    const hasWork = queued > 0 || totalObserved > 0;
+    if (!hasWork) {
+      progressCard.classList.add('hidden');
+      return;
+    }
+
+    progressCard.classList.remove('hidden');
+
+    // For static/long pages: show processed / observed
+    // For dynamic pages (X/Twitter): observed grows over time; cap denominator so bar never retreats
+    const denominator = Math.max(progressMaxDenominator, totalObserved, queued, totalProcessed, 1);
+    progressMaxDenominator = denominator;
+    const rawPct = Math.min(100, Math.round((totalProcessed / denominator) * 100));
+    const pending = queued - (succeeded + failed);
+    const pct = pending <= 0 && queued > 0 ? 100 : Math.max(progressMaxPercent, rawPct);
+    progressMaxPercent = pct;
+    progressBar.style.width = pct + '%';
+
+    // Show counts
+    progressCount.textContent = totalProcessed + ' / ' + denominator;
+
+    // Label: active if there are pending items, done otherwise
+    if (pending > 0) {
+      progressLabel.textContent = I18N.t('status_translating') || 'Translating';
+      progressCard.classList.remove('is-done');
+    } else if (queued > 0 || (totalProcessed >= totalObserved && totalObserved > 0)) {
+      progressLabel.textContent = I18N.t('status_translated') || 'Translated';
+      progressCard.classList.add('is-done');
+    } else {
+      progressLabel.textContent = I18N.t('status_translating') || 'Translating';
+      progressCard.classList.remove('is-done');
+    }
+  }
+
+  function startProgressPolling() {
+    stopProgressPolling();
+    let stableCount = 0;
+    let lastTotalProcessed = -1;
+    progressPollTimer = setInterval(async () => {
+      const progress = await fetchTranslationProgress();
+      if (!progress) return;
+      updateProgressUI(progress);
+      // Auto-stop polling when progress stabilizes for a while
+      const pending = (progress.queued || 0) - ((progress.succeeded || 0) + (progress.failed || 0));
+      if (pending <= 0 && progress.totalProcessed === lastTotalProcessed) {
+        stableCount++;
+        if (stableCount >= 12) { // ~6 seconds of no change
+          stopProgressPolling();
+        }
+      } else {
+        stableCount = 0;
+        lastTotalProcessed = progress.totalProcessed;
+      }
+    }, 500);
+  }
+
+  function stopProgressPolling() {
+    if (progressPollTimer) {
+      clearInterval(progressPollTimer);
+      progressPollTimer = null;
+    }
+  }
+
+  function resetProgressMemory() {
+    progressMaxDenominator = 1;
+    progressMaxPercent = 0;
+  }
+
   /* ---- Translate ---- */
   btnTranslate.addEventListener('click', async () => {
     btnTranslate.disabled = true;
     setStatus('is-translating');
+    resetProgressMemory();
+    startProgressPolling();
     try {
       const res = await sendTabMessage({ action: 'translate-page' });
       if (res && res.success) {
@@ -389,6 +491,9 @@
   btnRestore.addEventListener('click', async () => {
     btnRestore.disabled = true;
     setStatus('is-translating');
+    stopProgressPolling();
+    resetProgressMemory();
+    progressCard.classList.add('hidden');
     try {
       const res = await sendTabMessage({ action: 'toggle-translation' });
       if (res && res.success) {
@@ -455,6 +560,8 @@
   btnTranslateBottom.addEventListener('click', async () => {
     btnTranslateBottom.disabled = true;
     setStatus('is-translating');
+    resetProgressMemory();
+    startProgressPolling();
     try {
       const res = await sendTabMessage({ action: 'translate-to-bottom' });
       if (res && res.success) {

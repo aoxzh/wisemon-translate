@@ -165,13 +165,17 @@
         return { success: true, displayMode: state.settings.displayMode };
       }
       case 'translate-to-bottom':
-        if (!state.pageTranslated) await fn.togglePageTranslation();
-        else {
-          fn.scanNode(document.body);
-          const remaining = [...document.querySelectorAll(`[${state.attrProcessed || 'data-llm-done'}="true"]`)].filter(el => !fn.processedElements.has(el));
-          if (remaining.length > 0) fn.scheduleProcessViewBatch(remaining);
-        }
-        return { success: true };
+        return await fn.translateToBottom();
+      case 'get-translation-progress':
+        if (typeof fn.syncSharedTrackingState === 'function') fn.syncSharedTrackingState();
+        return {
+          pageTranslated: !!state.pageTranslated,
+          succeeded: state.translationStats?.succeeded || 0,
+          failed: state.translationStats?.failed || 0,
+          queued: state.translationStats?.queued || 0,
+          totalObserved: state.totalObserved || 0,
+          totalProcessed: state.totalProcessed || 0
+        };
     }
     return { error: 'Unknown action' };
   }

@@ -75,6 +75,7 @@ function _safeApi(settings) {
 }
 
 let currentSettings = null;
+const tabProgress = new Map(); // tabId -> { succeeded, failed, queued, totalObserved, totalProcessed, updatedAt }
 const CONTENT_MAIN_FILES = [
   'src/lib/i18n.js',
   'src/lib/i18n-locales/common.js',
@@ -379,11 +380,30 @@ async function handleMessage(request, sender) {
   }
 
   if (request.action === 'translation-progress') {
+    const tabId = sender?.tab?.id;
+    if (tabId) {
+      tabProgress.set(tabId, {
+        succeeded: request.translatedCount || 0,
+        failed: request.failedCount || 0,
+        queued: request.queuedCount || 0,
+        totalObserved: request.totalVisibleCount || 0,
+        totalProcessed: request.processedCount || 0,
+        updatedAt: Date.now()
+      });
+    }
     return {
       success: true,
       translatedCount: request.translatedCount || 0,
       totalVisibleCount: request.totalVisibleCount || 0
     };
+  }
+
+  if (request.action === 'get-translation-progress') {
+    const tabId = sender?.tab?.id;
+    if (tabId && tabProgress.has(tabId)) {
+      return { success: true, ...tabProgress.get(tabId) };
+    }
+    return { success: true, succeeded: 0, failed: 0, queued: 0, totalObserved: 0, totalProcessed: 0 };
   }
 
   _safeLog('debug', 'Background', `Action: ${request.action}`);
