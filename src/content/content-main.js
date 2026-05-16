@@ -1150,6 +1150,7 @@
   function applyPageState(state) {
     const root = document.documentElement;
     root.setAttribute('llm-state', state);
+    root.setAttribute('llm-page-tone', detectPageTone());
     // Theme
     const theme = normalizeTranslationTheme(settings.translationTheme);
     root.setAttribute('llm-theme', theme);
@@ -1159,6 +1160,30 @@
     // Font size as CSS variable
     const fontSize = (settings.fontSize || 94) / 100;
     root.style.setProperty('--llm-font-size', fontSize + 'em');
+  }
+
+  function detectPageTone() {
+    try {
+      const samples = [document.body, document.documentElement].filter(Boolean);
+      for (const el of samples) {
+        const color = getComputedStyle(el).backgroundColor;
+        const rgb = parseCssRgb(color);
+        if (!rgb) continue;
+        const luminance = (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255;
+        return luminance < 0.42 ? 'dark' : 'light';
+      }
+    } catch (e) {}
+    return 'light';
+  }
+
+  function parseCssRgb(value) {
+    if (!value || value === 'transparent' || value === 'rgba(0, 0, 0, 0)') return null;
+    const match = String(value).match(/rgba?\(([^)]+)\)/i);
+    if (!match) return null;
+    const parts = match[1].split(',').map(part => parseFloat(part.trim()));
+    if (parts.length < 3 || parts.some((part, index) => index < 3 && Number.isNaN(part))) return null;
+    if (parts.length >= 4 && parts[3] === 0) return null;
+    return parts.slice(0, 3);
   }
 
   // Strict-child tags: parents that only allow specific child elements

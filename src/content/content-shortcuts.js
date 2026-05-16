@@ -2,6 +2,53 @@
   'use strict';
 
   const ctx = window.__LLM_CTX__ = window.__LLM_CTX__ || { state: {}, fn: {}, features: {} };
+  const THEME_CYCLE = [
+    'none',
+    'grey',
+    'weakening',
+    'underline',
+    'nativeDashed',
+    'nativeDotted',
+    'wavy',
+    'divider',
+    'blockquote',
+    'background',
+    'highlight',
+    'marker',
+    'italic',
+    'bold',
+    'subtle',
+    'card',
+    'paper',
+    'dashedBorder',
+    'solidBorder',
+    'mask',
+    'opacity'
+  ];
+
+  const THEME_LABELS = {
+    none: 'Clean',
+    grey: 'Grey Text',
+    weakening: 'Faded',
+    underline: 'Underline',
+    nativeDashed: 'Dashed Underline',
+    nativeDotted: 'Dotted Underline',
+    wavy: 'Wavy Underline',
+    divider: 'Divider Line',
+    blockquote: 'Blockquote',
+    background: 'Soft Background',
+    highlight: 'Highlight',
+    marker: 'Marker',
+    italic: 'Italic',
+    bold: 'Bold',
+    subtle: 'Subtle Line',
+    card: 'Card',
+    paper: 'Paper',
+    dashedBorder: 'Dashed Border',
+    solidBorder: 'Solid Border',
+    mask: 'Blur Reveal',
+    opacity: 'Opacity Reveal'
+  };
 
   function checkCombo(e, comboStr) {
     if (!comboStr) return false;
@@ -34,18 +81,20 @@
     }
     if (sc.toggleStyle && checkCombo(e, sc.toggleStyle)) {
       e.preventDefault();
-      const themes = ['none','grey','underline','divider','blockquote','background','highlight','card','mask'];
-      const idx = themes.indexOf(settings.translationTheme || 'none');
-      const newTheme = themes[(idx + 1) % themes.length];
+      const idx = THEME_CYCLE.indexOf(settings.translationTheme || 'none');
+      const newTheme = THEME_CYCLE[(idx + 1) % THEME_CYCLE.length];
       settings.translationTheme = newTheme;
       ctx.fn.applyPageState(ctx.state.pageTranslated ? (settings.displayMode === 'replace' ? 'translation' : 'dual') : 'dual');
-      ctx.fn.showToast('Style: ' + newTheme, 1500);
+      chrome.runtime.sendMessage({ action: 'set-settings', settings }).catch(function(){});
+      const prefix = typeof I18N !== 'undefined' ? I18N.t('theme_changed') : 'Style';
+      ctx.fn.showToast(prefix + ': ' + (THEME_LABELS[newTheme] || newTheme), 1500);
       if (typeof LOG !== 'undefined') LOG.info('Content', 'Theme: ' + settings.translationTheme);
     }
   }
 
   Object.assign(ctx.fn, {
     checkCombo,
+    getThemeCycle: () => THEME_CYCLE.slice(),
     onKeyCombo
   });
 })();
