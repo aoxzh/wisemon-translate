@@ -63,7 +63,7 @@
   let translationRunId = 0;
   let siteRule = null;
   let translateQueue = null;
-  let translationStats = { queued: 0, succeeded: 0, failed: 0 };
+  let translationStats = { queued: 0, succeeded: 0, failed: 0, recovered: 0, lastError: '' };
   let totalObserved = 0;      // total elements observed by IO (counter because WeakSet has no size)
   let totalProcessed = 0;     // total elements processed (success or fail)
   const translationTask = typeof ctx.fn.createTranslationTask === 'function'
@@ -108,6 +108,8 @@
       processedCount: totalProcessed,
       failedCount: translationStats.failed,
       queuedCount: translationStats.queued,
+      recoveredCount: translationStats.recovered || 0,
+      lastError: translationStats.lastError || '',
       taskState: task.state || 'idle',
       taskReason: task.reason || '',
       taskRunId: task.runId || translationRunId,
@@ -325,6 +327,7 @@
     translatedTextHashes.clear();
     translatedTextCache.clear();
     translationStats.queued = 0; translationStats.succeeded = 0; translationStats.failed = 0;
+    translationStats.recovered = 0; translationStats.lastError = '';
     totalObserved = 0;
     totalProcessed = 0;
     translationTask.setState(translationTask.states.IDLE || 'idle', { runId: translationRunId, reason: '' });
@@ -347,6 +350,7 @@
     translatedTextHashes.clear();
     translatedTextCache.clear();
     translationStats.queued = 0; translationStats.succeeded = 0; translationStats.failed = 0;
+    translationStats.recovered = 0; translationStats.lastError = '';
     totalObserved = 0;
     totalProcessed = 0;
     translationTask.setState(translationTask.states.SCANNING || 'scanning', { runId: translationRunId, reason: '' });
@@ -498,6 +502,7 @@
           targetLang: settings.targetLang
         });
         if (res && res.translated && !res.error) {
+          translationStats.recovered = (translationStats.recovered || 0) + 1;
           _safeLog('warn', 'Content', 'Recovered failed batch item with single retry', {
             textLength: group.text.length,
             firstReason: raw || 'Unknown'
@@ -518,6 +523,7 @@
       if (isTranslationErrorResult(raw)) {
         failedCount++;
         translationStats.failed++;
+        translationStats.lastError = String(raw || 'Unknown error').replace(/^\[Translation Error:\s*|\]$/g, '').slice(0, 240);
         _safeLog('error', 'Content', 'Element translation failed', { reason: raw || 'Unknown', textLength: group.text.length, textPreview: group.text.slice(0, 180) });
         showRetry(group, raw || 'Unknown error');
       } else {
@@ -531,6 +537,7 @@
         } else {
           failedCount++;
           translationStats.failed++;
+          translationStats.lastError = 'Empty result after cleaning';
           _safeLog('error', 'Content', 'Element translation cleaned to empty', { textLength: group.text.length, textPreview: group.text.slice(0, 180) });
           showRetry(group, 'Empty result after cleaning');
         }
@@ -559,6 +566,7 @@
         failedCount++;
         translationStats.failed++;
         totalProcessed++;
+        translationStats.lastError = err.message || 'Stream item failed';
         translationTask.setState(translationTask.states.FAILED || 'failed', { runId: translationRunId, reason: err.message });
         _safeLog('error', 'Content', 'Stream item failed: ' + err.message, { textLength: group.text.length });
         showRetry(group, err.message);
@@ -574,6 +582,7 @@
             failedCount++;
             translationStats.failed++;
             totalProcessed++;
+            translationStats.lastError = err.message || 'Viewport item failed';
             translationTask.setState(translationTask.states.FAILED || 'failed', { runId: translationRunId, reason: err.message });
             _safeLog('error', 'Content', 'Viewport item failed: ' + err.message, { textLength: group.text.length });
             showRetry(group, err.message);
@@ -591,6 +600,7 @@
         totalProcessed += groups.length;
         doneCount = 0;
         failedCount = groups.length;
+        translationStats.lastError = err.message || 'Viewport batch failed';
         translationTask.setState(translationTask.states.FAILED || 'failed', { runId: translationRunId, reason: err.message });
         _safeLog('error', 'Content', 'Viewport batch failed: ' + err.message, { count: groups.length, runId: translationRunId });
         publishTranslationProgress();
@@ -646,6 +656,8 @@
       queued: translationStats.queued,
       succeeded: translationStats.succeeded,
       failed: translationStats.failed,
+      recovered: translationStats.recovered || 0,
+      lastError: translationStats.lastError || '',
       totalObserved,
       totalProcessed,
       remaining: candidates.length

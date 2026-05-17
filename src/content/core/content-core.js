@@ -172,6 +172,8 @@
           pageTranslated: !!state.pageTranslated,
           succeeded: state.translationStats?.succeeded || 0,
           failed: state.translationStats?.failed || 0,
+          recovered: state.translationStats?.recovered || 0,
+          lastError: state.translationStats?.lastError || '',
           queued: state.translationStats?.queued || 0,
           totalObserved: state.totalObserved || 0,
           totalProcessed: state.totalProcessed || 0,
@@ -195,6 +197,8 @@
           progress: {
             succeeded: state.translationStats?.succeeded || 0,
             failed: state.translationStats?.failed || 0,
+            recovered: state.translationStats?.recovered || 0,
+            lastError: state.translationStats?.lastError || '',
             queued: state.translationStats?.queued || 0,
             totalObserved: state.totalObserved || 0,
             totalProcessed: state.totalProcessed || 0,

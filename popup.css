@@ -159,6 +159,18 @@
 .pop-progress-card.is-done .pop-progress-bar {
   background: linear-gradient(90deg, var(--s-success), rgba(var(--s-success-rgb), 0.7));
 }
+.pop-progress-card.is-recovered {
+  border-color: rgba(var(--s-warning-rgb), 0.28);
+}
+.pop-progress-card.is-recovered .pop-progress-bar {
+  background: linear-gradient(90deg, var(--s-warning), rgba(var(--s-warning-rgb), 0.7));
+}
+.pop-progress-card.is-error {
+  border-color: rgba(var(--s-error-rgb), 0.32);
+}
+.pop-progress-card.is-error .pop-progress-bar {
+  background: linear-gradient(90deg, var(--s-error), rgba(var(--s-error-rgb), 0.72));
+}
 .pop-progress-detail {
   margin-top: 6px;
   color: var(--text-muted);

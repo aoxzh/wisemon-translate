@@ -391,6 +391,8 @@ async function handleMessage(request, sender) {
       tabProgress.set(tabId, {
         succeeded: request.translatedCount || 0,
         failed: request.failedCount || 0,
+        recovered: request.recoveredCount || 0,
+        lastError: request.lastError || '',
         queued: request.queuedCount || 0,
         totalObserved: request.totalVisibleCount || 0,
         totalProcessed: request.processedCount || 0,
@@ -413,7 +415,7 @@ async function handleMessage(request, sender) {
     if (tabId && tabProgress.has(tabId)) {
       return { success: true, ...tabProgress.get(tabId) };
     }
-    return { success: true, succeeded: 0, failed: 0, queued: 0, totalObserved: 0, totalProcessed: 0, pending: 0, taskState: 'idle', taskReason: '' };
+    return { success: true, succeeded: 0, failed: 0, recovered: 0, lastError: '', queued: 0, totalObserved: 0, totalProcessed: 0, pending: 0, taskState: 'idle', taskReason: '' };
   }
 
   _safeLog('debug', 'Background', `Action: ${request.action}`);

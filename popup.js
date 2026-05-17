@@ -439,6 +439,8 @@
     }
     const succeeded = progress.succeeded || 0;
     const failed = progress.failed || 0;
+    const recovered = progress.recovered || 0;
+    const lastError = progress.lastError || '';
     const queued = progress.queued || 0;
     const totalObserved = progress.totalObserved || 0;
     const totalProcessed = progress.totalProcessed || 0;
@@ -469,7 +471,9 @@
       const detail = [
         formatTaskState(taskState),
         pending > 0 ? pending + ' pending' : '',
+        recovered > 0 ? recovered + ' recovered' : '',
         failed > 0 ? failed + ' failed' : '',
+        failed > 0 && lastError ? lastError : '',
         taskReason
       ].filter(Boolean).join(' · ');
       progressDetail.textContent = detail || formatTaskState(taskState);
@@ -480,15 +484,21 @@
     if (['scanning', 'queued', 'translating', 'settling'].includes(taskState) || pending > 0) {
       progressLabel.textContent = taskState === 'scanning' ? 'Scanning' : (I18N.t('status_translating') || 'Translating');
       progressCard.classList.remove('is-done');
+      progressCard.classList.remove('is-error', 'is-recovered');
     } else if (taskState === 'completed' || queued > 0 || (totalProcessed >= totalObserved && totalObserved > 0)) {
-      progressLabel.textContent = I18N.t('status_translated') || 'Translated';
+      progressLabel.textContent = failed > 0 ? 'Translated with issues' : (I18N.t('status_translated') || 'Translated');
       progressCard.classList.add('is-done');
+      progressCard.classList.toggle('is-error', failed > 0);
+      progressCard.classList.toggle('is-recovered', failed === 0 && recovered > 0);
     } else if (taskState === 'failed') {
       progressLabel.textContent = I18N.t('status_error') || 'Error';
       progressCard.classList.remove('is-done');
+      progressCard.classList.add('is-error');
+      progressCard.classList.remove('is-recovered');
     } else {
       progressLabel.textContent = I18N.t('status_translating') || 'Translating';
       progressCard.classList.remove('is-done');
+      progressCard.classList.remove('is-error', 'is-recovered');
     }
   }
 

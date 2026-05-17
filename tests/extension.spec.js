@@ -549,12 +549,14 @@ test.describe('extension smoke', () => {
     const fixture = await startFixtureServer(LARGE_DYNAMIC_FIXTURE_FILE);
     const context = await launchExtensionContext();
     let requestCount = 0;
+    let firstCommentFailures = 0;
     try {
       await context.route('https://translate.googleapis.com/translate_a/single**', async route => {
         requestCount++;
         const url = new URL(route.request().url());
         const source = url.searchParams.get('q') || '';
-        if (requestCount === 1) {
+        if (source.includes('First detailed comment') && firstCommentFailures < 3) {
+          firstCommentFailures++;
           await route.fulfill({
             status: 500,
             contentType: 'text/plain',
@@ -587,6 +589,15 @@ test.describe('extension smoke', () => {
       expect(result.error || '').toBe('');
       await expect(page.locator('.llm-translate-inner').first()).toContainText('TRANSLATED:', { timeout: 15000 });
       await expect(page.locator('.llm-translate-retry')).toHaveCount(0);
+      const progress = await sendToFixtureTab(context, extensionId, fixture.url, { action: 'get-translation-progress' });
+      expect(progress.recovered).toBeGreaterThan(0);
+      expect(progress.lastError || '').toBe('');
+
+      const popup = await context.newPage();
+      await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+      await expect(popup.locator('#progress-detail')).toContainText('recovered', { timeout: 10000 });
+      await expect(popup.locator('#progress-card')).toHaveClass(/is-recovered/, { timeout: 10000 });
+      await popup.close();
       expect(requestCount).toBeGreaterThan(1);
     } finally {
       await context.close();
