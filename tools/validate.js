@@ -37,6 +37,7 @@ const MESSAGE_FILES = [
   'popup.js',
   'options.js',
   'sidepanel.js',
+  'src/content/core/content-constants.js',
   'src/content/core/content-main.js',
   'src/content/core/content-core.js',
   'src/content/core/content-observers.js',
@@ -46,6 +47,8 @@ const MESSAGE_FILES = [
   'src/content/features/content-shortcuts.js',
   'src/content/features/content-selection.js',
   'src/content/features/content-fab.js',
+  'src/content/translation/content-progress.js',
+  'src/content/translation/content-text-utils.js',
   'src/content/translation/content-glossary.js',
   'src/content/translation/content-adaptive-scanner.js',
   'src/content/ui/content-ui.js'

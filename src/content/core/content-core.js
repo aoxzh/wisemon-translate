@@ -174,7 +174,10 @@
           failed: state.translationStats?.failed || 0,
           queued: state.translationStats?.queued || 0,
           totalObserved: state.totalObserved || 0,
-          totalProcessed: state.totalProcessed || 0
+          totalProcessed: state.totalProcessed || 0,
+          pending: state.translationTask?.pending || 0,
+          taskState: state.translationTask?.state || 'idle',
+          taskReason: state.translationTask?.reason || ''
         };
       case 'get-site-diagnostics':
         if (typeof fn.syncSharedTrackingState === 'function') fn.syncSharedTrackingState();
@@ -194,7 +197,10 @@
             failed: state.translationStats?.failed || 0,
             queued: state.translationStats?.queued || 0,
             totalObserved: state.totalObserved || 0,
-            totalProcessed: state.totalProcessed || 0
+            totalProcessed: state.totalProcessed || 0,
+            pending: state.translationTask?.pending || 0,
+            taskState: state.translationTask?.state || 'idle',
+            taskReason: state.translationTask?.reason || ''
           },
           page: {
             tone: document.documentElement.getAttribute('llm-page-tone') || '',

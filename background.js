@@ -94,11 +94,14 @@ const CONTENT_MAIN_FILES = [
     'src/lib/providers/baidu.js',
     'src/lib/providers/microsoft.js'
   ]),
+  'src/content/core/content-constants.js',
   'src/content/core/content-core.js',
   'src/content/core/content-observers.js',
   'src/content/features/content-input.js',
   'src/content/features/content-subtitle.js',
   'src/content/translation/content-glossary.js',
+  'src/content/translation/content-progress.js',
+  'src/content/translation/content-text-utils.js',
   'src/content/features/content-shortcuts.js',
   'src/content/ui/content-ui.js',
   'src/content/translation/content-adaptive-scanner.js',
@@ -390,6 +393,10 @@ async function handleMessage(request, sender) {
         queued: request.queuedCount || 0,
         totalObserved: request.totalVisibleCount || 0,
         totalProcessed: request.processedCount || 0,
+        pending: request.pendingCount || 0,
+        taskState: request.taskState || 'idle',
+        taskReason: request.taskReason || '',
+        taskRunId: request.taskRunId || 0,
         updatedAt: Date.now()
       });
     }
@@ -405,7 +412,7 @@ async function handleMessage(request, sender) {
     if (tabId && tabProgress.has(tabId)) {
       return { success: true, ...tabProgress.get(tabId) };
     }
-    return { success: true, succeeded: 0, failed: 0, queued: 0, totalObserved: 0, totalProcessed: 0 };
+    return { success: true, succeeded: 0, failed: 0, queued: 0, totalObserved: 0, totalProcessed: 0, pending: 0, taskState: 'idle', taskReason: '' };
   }
 
   _safeLog('debug', 'Background', `Action: ${request.action}`);

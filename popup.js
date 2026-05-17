@@ -32,6 +32,7 @@
   const progressBar = $('progress-bar');
   const progressCount = $('progress-count');
   const progressLabel = $('progress-label');
+  const progressDetail = $('progress-detail');
   const providerPresetSelect = $('provider-preset-select');
   const modelInput = $('model-input');
   const subtitleEnable = $('subtitle-enable');
@@ -240,7 +241,7 @@
       diagRule.textContent = ids.length ? ids.slice(0, 3).join(', ') : 'default';
       diagRule.title = ids.join(', ');
       diagRoot.textContent = page.mainRoot || 'body';
-      diagProgress.textContent = `${progress.totalProcessed || 0}/${Math.max(progress.totalObserved || 0, progress.queued || 0, progress.totalProcessed || 0)}`;
+      diagProgress.textContent = `${progress.totalProcessed || 0}/${Math.max(progress.totalObserved || 0, progress.queued || 0, progress.totalProcessed || 0)} ${formatTaskState(progress.taskState || '')}`.trim();
       diagPage.textContent = [
         page.state || 'idle',
         page.tone || 'tone?',
@@ -441,6 +442,8 @@
     const queued = progress.queued || 0;
     const totalObserved = progress.totalObserved || 0;
     const totalProcessed = progress.totalProcessed || 0;
+    const taskState = progress.taskState || 'idle';
+    const taskReason = progress.taskReason || '';
 
     const hasWork = queued > 0 || totalObserved > 0;
     if (!hasWork) {
@@ -462,18 +465,45 @@
 
     // Show counts
     progressCount.textContent = totalProcessed + ' / ' + denominator;
+    if (progressDetail) {
+      const detail = [
+        formatTaskState(taskState),
+        pending > 0 ? pending + ' pending' : '',
+        failed > 0 ? failed + ' failed' : '',
+        taskReason
+      ].filter(Boolean).join(' · ');
+      progressDetail.textContent = detail || formatTaskState(taskState);
+      progressDetail.title = detail;
+    }
 
     // Label: active if there are pending items, done otherwise
-    if (pending > 0) {
-      progressLabel.textContent = I18N.t('status_translating') || 'Translating';
+    if (['scanning', 'queued', 'translating', 'settling'].includes(taskState) || pending > 0) {
+      progressLabel.textContent = taskState === 'scanning' ? 'Scanning' : (I18N.t('status_translating') || 'Translating');
       progressCard.classList.remove('is-done');
-    } else if (queued > 0 || (totalProcessed >= totalObserved && totalObserved > 0)) {
+    } else if (taskState === 'completed' || queued > 0 || (totalProcessed >= totalObserved && totalObserved > 0)) {
       progressLabel.textContent = I18N.t('status_translated') || 'Translated';
       progressCard.classList.add('is-done');
+    } else if (taskState === 'failed') {
+      progressLabel.textContent = I18N.t('status_error') || 'Error';
+      progressCard.classList.remove('is-done');
     } else {
       progressLabel.textContent = I18N.t('status_translating') || 'Translating';
       progressCard.classList.remove('is-done');
     }
+  }
+
+  function formatTaskState(state) {
+    const labels = {
+      idle: 'Idle',
+      scanning: 'Scanning',
+      queued: 'Queued',
+      translating: 'Translating',
+      settling: 'Settling',
+      completed: 'Completed',
+      failed: 'Failed',
+      canceled: 'Canceled'
+    };
+    return labels[state] || '';
   }
 
   function startProgressPolling() {

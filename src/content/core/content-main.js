@@ -13,68 +13,34 @@
   if (window.__LLM_TRANSLATE_MAIN_STATUS__ === 'ready' || window.__LLM_TRANSLATE_MAIN_STATUS__ === 'loading') return;
   window.__LLM_TRANSLATE_MAIN_STATUS__ = 'loading';
 
-  // ---- Constants ----
-  const TAG_NAME = 'llm-translate';
-  const ATTR_PROCESSED = 'data-llm-done';
-  const ATTR_ID = 'data-llm-id';
-  const ATTR_OBSERVED = 'data-llm-observed';
   if (!window.__LLM_CTX__) window.__LLM_CTX__ = { state: {}, fn: {}, features: {} };
-  window.__LLM_CTX__.state.tagName = TAG_NAME;
-  window.__LLM_CTX__.state.attrProcessed = ATTR_PROCESSED;
-  window.__LLM_CTX__.state.attrObserved = ATTR_OBSERVED;
+  const ctx = window.__LLM_CTX__;
 
-  // Block elements: treated as translatable containers
-  const BLOCK_TAGS = new Set([
-    'ADDRESS','ARTICLE','ASIDE','BLOCKQUOTE','DD','DIV','DL','DT',
-    'FIELDSET','FIGCAPTION','FIGURE','FOOTER','FORM','H1','H2','H3','H4','H5','H6',
-    'HEADER','LI','MAIN','NAV','OL','P','PRE','SECTION','TABLE','TD','TFOOT','TH','UL'
-  ]);
+  // ---- Constants ----
+  const constants = ctx.constants || {};
+  const TAG_NAME = constants.TAG_NAME || 'llm-translate';
+  const ATTR_PROCESSED = constants.ATTR_PROCESSED || 'data-llm-done';
+  const ATTR_ID = constants.ATTR_ID || 'data-llm-id';
+  const ATTR_OBSERVED = constants.ATTR_OBSERVED || 'data-llm-observed';
 
-  // Inline formatting elements preserved during translation (WARP)
-  const WARP_TAGS = new Set([
-    'A','ABBR','B','BDI','BDO','BIG','CITE','CODE','DEL','DFN','EM',
-    'FONT','I','INS','KBD','LABEL','MARK','Q','RP','RT','RUBY','S',
-    'SAMP','SMALL','SPAN','STRONG','SUB','SUP','TIME','TT','U','VAR'
-  ]);
+  const BLOCK_TAGS = constants.BLOCK_TAGS || new Set();
+  const WARP_TAGS = constants.WARP_TAGS || new Set();
+  const REPLACE_TAGS = constants.REPLACE_TAGS || new Set();
+  const IGNORE_TAGS = constants.IGNORE_TAGS || new Set();
+  const IGNORE_SELECTOR = constants.IGNORE_SELECTOR || '';
+  const STRICT_PARENT_TAGS = constants.STRICT_PARENT_TAGS || new Set();
 
-  // Elements whose HTML content is replaced as-is (not translated)
-  const REPLACE_TAGS = new Set(['IMG','SVG','CANVAS','VIDEO','AUDIO','IFRAME','OBJECT','EMBED']);
-
-  // Elements completely ignored
-  const IGNORE_TAGS = new Set(['SCRIPT','STYLE','NOSCRIPT','TEXTAREA','INPUT','SELECT','OPTION','TEMPLATE','AREA','MAP','WBR','BR','HR','PRE','CODE','KBD','SAMP']);
-
-  // Additional ignore selectors
-  const IGNORE_SELECTOR = `pre, code, kbd, samp, [contenteditable='true'], [translate='no'], .notranslate, [class*="${TAG_NAME}-block-wrapper"], [class*="${TAG_NAME}-inline-wrapper"], #llm-translate-inline-styles, .llm-translate-hover-btn, .llm-translate-popup`;
-
-  // Built-in skip patterns (text that should NOT be translated)
-  // Built-in skip patterns (text that should NOT be translated)
-  const SKIP_PATTERNS = [
-    /^(?:https?:\/\/|www\.)[^\s]*$/i,
-    /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-    /^[\d.,\s%pxemremptvwvhdegs]+$/,
-    /^[^\p{L}\p{N}\s]{1,5}$/u,
-    /^&[a-z]+;$/i,
-    /^\[\d+\]$/,
-    /^\d{1,2}:\d{2}(:\d{2})?$/,
-    /^#[A-Fa-f0-9]{3,8}$/,
-    // JSON/script patterns — critical for avoiding garbage translation
-    /^\s*[\{\[]/,           // starts with { or [
-    /^\s*<\/?[a-zA-Z]+/,   // starts with HTML tag
-    /[a-zA-Z0-9+/]{50,}={0,2}/, // base64-like
-    /\$\{[^}]+\}/,          // template literal ${...}
-    /\{\{[^}]+\}\}/,       // placeholder {{...}}
-  ];
-
-  // Elements that contain non-translatable content
-  const NON_CONTENT_PATTERNS = [
-    /^\s*function\s*\(/,     // JS function
-    /^\s*\{[^}]*"[^"]+"\s*:/, // JSON-like
-    /^\s*\/\//,              // JS comment
-    /ue\.count|ue_csm|\.execute\(/, // JS framework calls
-    /^[A-Z0-9]{10,}$/,       // all-caps IDs/tokens
-    /^\s*P\.when\(/,         // Amazon JS pattern
-    /^\s*\[.*\{.*\}.*\]/,    // Array of objects pattern
-  ];
+  const SKIP_PATTERNS = constants.SKIP_PATTERNS || [];
+  const NON_CONTENT_PATTERNS = constants.NON_CONTENT_PATTERNS || [];
+  const textUtils = ctx.fn.textUtils || {};
+  const cleanTextForTranslation = textUtils.cleanTextForTranslation || function(text) { return String(text || '').replace(/\s+/g, ' ').trim(); };
+  const cleanTranslatedText = textUtils.cleanTranslatedText || cleanTextForTranslation;
+  const getDirectText = textUtils.getDirectText || function() { return ''; };
+  const getVisibleText = textUtils.getVisibleText || function(el) { return (el?.innerText || el?.textContent || '').trim(); };
+  const hasDirectTextNode = textUtils.hasDirectTextNode || function(el) { return !!el?.textContent?.trim(); };
+  const isInvalidText = textUtils.createInvalidTextChecker
+    ? textUtils.createInvalidTextChecker({ SKIP_PATTERNS, NON_CONTENT_PATTERNS })
+    : function(text) { return !text || String(text).trim().length < 2; };
 
   // ---- Safe logging guard ----
   function _safeLog(level, tag, msg, data) {
@@ -100,9 +66,11 @@
   let translationStats = { queued: 0, succeeded: 0, failed: 0 };
   let totalObserved = 0;      // total elements observed by IO (counter because WeakSet has no size)
   let totalProcessed = 0;     // total elements processed (success or fail)
+  const translationTask = typeof ctx.fn.createTranslationTask === 'function'
+    ? ctx.fn.createTranslationTask()
+    : { states: {}, setState() {}, getSnapshot() { return {}; } };
   let currentScanStats = null;
   let initialVisibleElements = null;
-  const ctx = window.__LLM_CTX__;
 
   // DOM tracking
   let mutationObserver = null;
@@ -127,17 +95,23 @@
     ctx.state.translationStats = translationStats;
     ctx.state.totalObserved = totalObserved;
     ctx.state.totalProcessed = totalProcessed;
+    ctx.state.translationTask = translationTask.getSnapshot(translationStats, { totalObserved, totalProcessed });
   }
 
   function publishTranslationProgress() {
     syncSharedTrackingState();
+    const task = ctx.state.translationTask || {};
     chrome.runtime.sendMessage({
       action: 'translation-progress',
       translatedCount: translationStats.succeeded,
       totalVisibleCount: totalObserved,
       processedCount: totalProcessed,
       failedCount: translationStats.failed,
-      queuedCount: translationStats.queued
+      queuedCount: translationStats.queued,
+      taskState: task.state || 'idle',
+      taskReason: task.reason || '',
+      taskRunId: task.runId || translationRunId,
+      pendingCount: task.pending || 0
     }).catch(function(){});
   }
 
@@ -285,8 +259,10 @@
 
   async function togglePageTranslation() {
     translationRunId++;
+    translationTask.setState(translationTask.states.SCANNING || 'scanning', { runId: translationRunId, reason: '' });
     if (translateQueue) translateQueue.clear('Translation run changed');
     if (pageTranslated) {
+      translationTask.setState(translationTask.states.CANCELED || 'canceled', { runId: translationRunId, reason: 'Restored original page' });
       restoreOriginal();
       ctx.fn.stopObservers();
       pageTranslated = false;
@@ -297,6 +273,7 @@
       pageTranslated = result.succeeded > 0;
       ctx.state.pageTranslated = pageTranslated;
       if (!pageTranslated) {
+        translationTask.setState(translationTask.states.FAILED || 'failed', { runId: translationRunId, reason: result.reason || 'No visible text was translated.' });
         ctx.fn.stopObservers();
         _safeLog('warn', 'Content', 'Translation did not produce visible translated text', result);
         return {
@@ -306,6 +283,8 @@
           translatedCount: result.succeeded || 0
         };
       }
+      translationTask.setState(translationTask.states.COMPLETED || 'completed', { runId: translationRunId, reason: '' });
+      publishTranslationProgress();
       return { success: true, pageTranslated: true, translatedCount: result.succeeded };
     }
   }
@@ -348,6 +327,7 @@
     translationStats.queued = 0; translationStats.succeeded = 0; translationStats.failed = 0;
     totalObserved = 0;
     totalProcessed = 0;
+    translationTask.setState(translationTask.states.IDLE || 'idle', { runId: translationRunId, reason: '' });
     publishTranslationProgress();
   }
 
@@ -369,6 +349,7 @@
     translationStats.queued = 0; translationStats.succeeded = 0; translationStats.failed = 0;
     totalObserved = 0;
     totalProcessed = 0;
+    translationTask.setState(translationTask.states.SCANNING || 'scanning', { runId: translationRunId, reason: '' });
     syncSharedTrackingState();
     currentScanStats = { observed: 0, skippedByRule: 0, skippedIgnored: 0, skippedInvalid: 0, skippedSameLanguage: 0 };
     initialVisibleElements = new Set();
@@ -396,6 +377,7 @@
 
     LOG.info('Content', 'DOM scan complete. Waiting for first visible translation.', currentScanStats);
     publishTranslationProgress();
+    translationTask.setState(translationTask.states.SETTLING || 'settling', { runId: translationRunId, reason: 'Waiting for initial visible translations' });
     const result = await waitForInitialTranslation();
     currentScanStats = null;
     initialVisibleElements = null;
@@ -487,6 +469,7 @@
     }
     if (groups.length === 0) return { attempted: 0, succeeded: 0, failed: 0 };
     translationStats.queued += groups.length;
+    translationTask.setState(translationTask.states.QUEUED || 'queued', { runId: translationRunId, reason: '' });
     publishTranslationProgress();
 
     // Update FAB progress
@@ -500,6 +483,7 @@
 
     function injectOne(group, raw) {
       if (group.runId !== translationRunId) return;
+      translationTask.setState(translationTask.states.TRANSLATING || 'translating', { runId: translationRunId, reason: '' });
       totalProcessed++;
       if (!raw || raw.indexOf('[Translation Error:') === 0) {
         failedCount++;
@@ -523,6 +507,9 @@
       }
       const batchCompleted = doneCount + failedCount;
       ctx.fn.updateFabProgress(totalVisible2 - (groups.length - batchCompleted), totalVisible2);
+      if (translationStats.queued > 0 && translationStats.succeeded + translationStats.failed >= translationStats.queued) {
+        translationTask.setState(translationTask.states.COMPLETED || 'completed', { runId: translationRunId, reason: '' });
+      }
       publishTranslationProgress();
     }
 
@@ -542,6 +529,7 @@
         failedCount++;
         translationStats.failed++;
         totalProcessed++;
+        translationTask.setState(translationTask.states.FAILED || 'failed', { runId: translationRunId, reason: err.message });
         _safeLog('error', 'Content', 'Stream item failed: ' + err.message, { textLength: group.text.length });
         showRetry(group, err.message);
         publishTranslationProgress();
@@ -556,6 +544,7 @@
             failedCount++;
             translationStats.failed++;
             totalProcessed++;
+            translationTask.setState(translationTask.states.FAILED || 'failed', { runId: translationRunId, reason: err.message });
             _safeLog('error', 'Content', 'Viewport item failed: ' + err.message, { textLength: group.text.length });
             showRetry(group, err.message);
             publishTranslationProgress();
@@ -572,6 +561,7 @@
         totalProcessed += groups.length;
         doneCount = 0;
         failedCount = groups.length;
+        translationTask.setState(translationTask.states.FAILED || 'failed', { runId: translationRunId, reason: err.message });
         _safeLog('error', 'Content', 'Viewport batch failed: ' + err.message, { count: groups.length, runId: translationRunId });
         publishTranslationProgress();
       }
@@ -590,9 +580,11 @@
       ctx.state.pageTranslated = true;
       translationRunId++;
       ctx.state.translationRunId = translationRunId;
+      translationTask.setState(translationTask.states.SCANNING || 'scanning', { runId: translationRunId, reason: 'Translate to bottom' });
       await startTranslation();
     }
 
+    translationTask.setState(translationTask.states.SCANNING || 'scanning', { runId: translationRunId, reason: 'Collecting remaining page content' });
     const root = ctx.fn.getMainContentRoot ? ctx.fn.getMainContentRoot() : document.body;
     scanRuleIncludedElements(root);
     scanAdaptiveTextElements(root);
@@ -611,6 +603,7 @@
       publishTranslationProgress();
       await processViewBatch(candidates);
     } else {
+      translationTask.setState(translationTask.states.COMPLETED || 'completed', { runId: translationRunId, reason: 'No remaining content' });
       publishTranslationProgress();
     }
 
@@ -909,16 +902,6 @@
     };
   }
 
-  function getDirectText(el) {
-    if (!(el instanceof Element)) return '';
-    let text = '';
-    for (const child of el.childNodes) {
-      if (child.nodeType === Node.TEXT_NODE) {
-        text += ' ' + (child.nodeValue || '');
-      }
-    }
-    return text.replace(/\s+/g, ' ').trim();
-  }
 
   function startObserveElement(el) {
     if (!(el instanceof Element)) return;
@@ -983,44 +966,8 @@
     return true;
   }
 
-  function hasDirectTextNode(el) {
-    if (!(el instanceof Element)) return false;
-    for (const child of el.childNodes) {
-      if (child.nodeType === Node.TEXT_NODE && /\S/.test(child.nodeValue)) return true;
-    }
-    return false;
-  }
 
-  function getVisibleText(el) {
-    if (!el) return '';
-    // Use innerText (respects CSS visibility) but fallback to textContent
-    return (el.innerText || el.textContent || '').trim();
-  }
 
-  function isInvalidText(text) {
-    if (!text || text.length < 2) return true;
-    if (ctx.fn.adaptiveScanner?.isLowValueText(text)) return true;
-    const normalized = String(text).replace(/\s+/g, '').trim();
-    const hasLetterOrNumber = /[\p{L}\p{N}]/u.test(normalized);
-    const hasTranslatableScript = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}A-Za-z]/u.test(normalized);
-    if (!hasLetterOrNumber || !hasTranslatableScript) return true;
-    // Skip pure symbols/numbers
-    if (/^[\d\s\p{P}\p{S}_]+$/u.test(text) && text.length < 30) return true;
-    // Skip built-in patterns
-    for (const re of SKIP_PATTERNS) {
-      if (re.test(text)) return true;
-    }
-    // Skip non-content patterns (JSON, JS code, tokens)
-    for (const re of NON_CONTENT_PATTERNS) {
-      if (re.test(text)) return true;
-    }
-    // Skip if text has too many non-letter chars (likely code/JSON)
-    const letters = (text.match(/[a-zA-Z一-鿿぀-ゟ゠-ヿ가-힯]/g) || []).length;
-    if (letters < text.length * 0.15 && text.length > 20) return true;
-    // Skip if text contains long unbroken token strings
-    if (/[A-Za-z0-9+\/=]{60,}/.test(text)) return true;
-    return false;
-  }
 
   function isIgnored(el) {
     if (!(el instanceof Element)) return false;
@@ -1115,58 +1062,6 @@
     return { element: hostEl, text: plainText, nodes, placeholderMap };
   }
 
-  // Pre-processing: clean text before sending to LLM
-  function cleanTextForTranslation(text) {
-    if (!text) return '';
-    // Remove any remaining JSON-like fragments
-    text = text.replace(/\{[^{}]*"[^"]+"\s*:\s*[^,{}]+\}/g, '');
-    // Remove any remaining placeholder syntax
-    text = text.replace(/\{\{[0-9]+\}\}/g, '');
-    // Remove base64-like strings
-    text = text.replace(/[A-Za-z0-9+\/=]{40,}/g, '');
-    // Collapse whitespace
-    text = text.replace(/\s+/g, ' ').trim();
-    return text;
-  }
-
-  // Post-processing: clean LLM response of artifacts
-  function cleanTranslatedText(text) {
-    if (!text) return '';
-    text = extractJsonTextArtifact(text) || text;
-    // Remove placeholder echoes
-    text = text.replace(/<llm-tag n="\d+"\/>/g, '');
-    text = text.replace(/\{\{[0-9]+\}\}/g, '');
-    // Remove JSON fragments that leaked through
-    text = text.replace(/\{[^{}]*"[^"]+"\s*:\s*[0-9.]+\}/g, '');
-    text = text.replace(/\["[A-Z0-9]+"\]/g, '');
-    // Remove common framework code artifacts
-    text = text.replace(/ue\.count\([^)]*\)/g, '');
-    text = text.replace(/P\.when\([^)]*\)/g, '');
-    text = text.replace(/\.execute\([^)]*\)/g, '');
-    // Clean up whitespace
-    text = text.replace(/^\s*[\{\[][\s\S]*[\}\]]\s*$/g, ''); // Remove if entire response is JSON
-    text = text.replace(/\s+/g, ' ').trim();
-    return text;
-  }
-
-  function extractJsonTextArtifact(text) {
-    var raw = String(text || '').trim();
-    if (!/^[[{]/.test(raw) || !/"?(?:id|text|translations)"?\s*:/.test(raw)) return '';
-    var candidates = [raw, raw.replace(/,\s*$/, ''), '[' + raw.replace(/,\s*$/, '') + ']'];
-    for (var i = 0; i < candidates.length; i++) {
-      try {
-        var parsed = JSON.parse(candidates[i]);
-        var items = Array.isArray(parsed?.translations) ? parsed.translations : (Array.isArray(parsed) ? parsed : [parsed]);
-        var parts = [];
-        for (var j = 0; j < items.length; j++) {
-          if (items[j] && typeof items[j].text === 'string') parts.push(items[j].text);
-        }
-        if (parts.length) return parts.join('\n');
-      } catch (e) { /* try next candidate */ }
-    }
-    return '';
-  }
-
   function isBlockNode(el) {
     if (!(el instanceof Element)) return false;
     if (BLOCK_TAGS.has(el.tagName)) return true;
@@ -1216,8 +1111,6 @@
     return parts.slice(0, 3);
   }
 
-  // Strict-child tags: parents that only allow specific child elements
-  const STRICT_PARENT_TAGS = new Set(['TR', 'UL', 'OL', 'TABLE', 'THEAD', 'TBODY', 'TFOOT', 'SELECT']);
 
   function injectTranslationResult(group, translatedText) {
     const { element, nodes } = group;
@@ -1343,7 +1236,7 @@
     wrapper.setAttribute(ATTR_ID, group.element.getAttribute(ATTR_ID));
     const retry = document.createElement('span');
     retry.className = `${TAG_NAME}-retry`;
-    retry.textContent = '↻ Retry';
+    retry.textContent = 'Retry';
     retry.title = errorMsg;
     retry.onclick = () => {
       wrapper.remove();
@@ -1502,7 +1395,7 @@
       });
       if (res.translated && !res.error) {
         document.title = res.translated;
-        LOG.info('Content', 'Title translated: ' + title.slice(0, 40) + ' → ' + res.translated.slice(0, 40));
+        LOG.info('Content', 'Title translated: ' + title.slice(0, 40) + ' -> ' + res.translated.slice(0, 40));
       }
     } catch(e) {
       _safeLog('warn', 'Content', 'Title translation failed: ' + e.message);
