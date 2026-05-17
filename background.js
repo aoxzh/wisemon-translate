@@ -105,6 +105,7 @@ const CONTENT_MAIN_FILES = [
   'src/content/features/content-shortcuts.js',
   'src/content/ui/content-ui.js',
   'src/content/translation/content-adaptive-scanner.js',
+  'src/content/translation/content-candidate-pruner.js',
   'src/content/core/content-language.js',
   'src/content/features/content-selection.js',
   'src/content/features/content-fab.js',

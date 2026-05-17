@@ -21,6 +21,7 @@ const NESTED_SHADOW_FIXTURE_FILE = path.resolve(__dirname, 'fixtures', 'nested-s
 const LONG_TABLE_FIXTURE_FILE = path.resolve(__dirname, 'fixtures', 'long-table.html');
 const DARK_PAGE_FIXTURE_FILE = path.resolve(__dirname, 'fixtures', 'dark-page.html');
 const NYAA_FIXTURE_FILE = path.resolve(__dirname, 'fixtures', 'nyaa.html');
+const LARGE_DYNAMIC_FIXTURE_FILE = path.resolve(__dirname, 'fixtures', 'large-dynamic-page.html');
 
 async function launchExtensionContext() {
   const context = await chromium.launchPersistentContext('', {
@@ -506,6 +507,38 @@ test.describe('extension smoke', () => {
       expect(progress.totalObserved).toBeGreaterThan(0);
       expect(progress.queued).toBeGreaterThan(0);
       expect(progress.totalProcessed).toBeGreaterThan(0);
+    } finally {
+      await context.close();
+      await fixture.close();
+    }
+  });
+
+  test('translate to bottom prunes large parent containers in dynamic pages', async () => {
+    const fixture = await startFixtureServer(LARGE_DYNAMIC_FIXTURE_FILE);
+    const context = await launchExtensionContext();
+    try {
+      await mockGoogleTranslate(context);
+      const extensionId = await getExtensionId(context);
+      await setExtensionSettings(context, extensionId, {
+        provider: 'google',
+        model: 'google-free',
+        targetLang: 'zh-CN',
+        sourceLang: 'auto',
+        displayMode: 'bilingual',
+        translateMainOnly: false,
+        maxConcurrency: 1
+      });
+
+      const page = await context.newPage();
+      await page.goto(fixture.url);
+      await page.waitForTimeout(1200);
+      const result = await translateFixturePage(context, extensionId, fixture.url, 'translate-to-bottom');
+      expect(result.error || '').toBe('');
+      expect(result.success).toBe(true);
+      expect(result.queued).toBeGreaterThanOrEqual(4);
+      expect(result.queued).toBeLessThanOrEqual(10);
+      await expect(page.locator('#comments > .llm-translate-block-wrapper')).toHaveCount(0);
+      await expect(page.locator('.comment p + .llm-translate-block-wrapper')).toHaveCount(4, { timeout: 15000 });
     } finally {
       await context.close();
       await fixture.close();

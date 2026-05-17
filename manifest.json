@@ -108,6 +108,7 @@
         "src/content/translation/content-progress.js",
         "src/content/translation/content-text-utils.js",
         "src/content/translation/content-adaptive-scanner.js",
+        "src/content/translation/content-candidate-pruner.js",
         "src/content/core/content-language.js",
         "src/content/core/content-main.js",
         "src/injectors/shadowroot-patcher.js",

@@ -424,9 +424,9 @@
   }
 
   async function processViewBatch(elements) {
-    const toProcess = elements.filter(el =>
+    const toProcess = pruneTranslationCandidates(elements.filter(el =>
       observedElements.has(el) && !processedElements.has(el)
-    );
+    ));
     if (toProcess.length === 0) return { attempted: 0, succeeded: 0, failed: 0 };
 
     LOG.info('Content', `Viewport batch: ${toProcess.length} elements`, {
@@ -648,7 +648,7 @@
       }
     }
     root.querySelectorAll?.(`[${ATTR_OBSERVED}="true"]`).forEach(add);
-    return out;
+    return pruneTranslationCandidates(out);
   }
 
   function collectUnprocessedCandidates(root) {
@@ -679,7 +679,7 @@
       LOG.debug('Content', `Bottom text scan skipped: ${err.message}`);
     }
 
-    return out;
+    return pruneTranslationCandidates(out);
   }
 
   function isBottomScanCandidate(el) {
@@ -690,6 +690,24 @@
     if (isInvalidText(text)) return false;
     if (shouldSkipTranslation(text, settings.targetLang)) return false;
     return true;
+  }
+
+  function pruneTranslationCandidates(candidates) {
+    if (!ctx.fn.candidatePruner?.pruneCandidates) return Array.from(candidates || []);
+    return ctx.fn.candidatePruner.pruneCandidates(candidates, getCandidatePrunerDeps());
+  }
+
+  function getCandidatePrunerDeps() {
+    return {
+      settings,
+      siteRule,
+      processedElements,
+      isIgnored,
+      matchesSiteRuleSelector,
+      getVisibleText,
+      isInvalidText,
+      shouldSkipTranslation
+    };
   }
 
   async function sendTranslateBatch(texts, args = {}) {
@@ -956,6 +974,10 @@
     // Language skip: don't translate if target language matches detected language
     if (shouldSkipTranslation(text, settings.targetLang)) {
       if (currentScanStats) currentScanStats.skippedSameLanguage++;
+      return;
+    }
+    if (pruneTranslationCandidates([el]).length === 0) {
+      if (currentScanStats) currentScanStats.skippedInvalid++;
       return;
     }
 
