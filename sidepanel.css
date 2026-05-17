@@ -10,6 +10,26 @@
   color-scheme: dark;
 }
 
+.side-root.is-embedded {
+  min-height: 100%;
+  padding: 18px;
+  background:
+    radial-gradient(circle at 96% 2%, rgba(var(--p-main-rgb), 0.10), transparent 240px),
+    var(--s-2);
+}
+
+.side-root.is-embedded .side-header {
+  display: none;
+}
+
+.side-root.is-embedded .side-card textarea {
+  min-height: 260px;
+}
+
+.side-root.is-embedded .side-reader-result {
+  max-height: none;
+}
+
 :root:not(.t-light) .side-root {
   background:
     radial-gradient(circle at 28px 0, rgba(var(--p-main-rgb), 0.12), transparent 150px),

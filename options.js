@@ -79,9 +79,13 @@ async function setupOnboarding() {
 }
 
 function applyUiTheme(theme) {
-  document.documentElement.classList.remove('t-light', 't-dark');
+  document.documentElement.classList.remove('t-light', 't-dark', 't-ocean', 't-violet', 't-amber', 't-slate');
   if (theme === 'light') document.documentElement.classList.add('t-light');
   if (theme === 'dark') document.documentElement.classList.add('t-dark');
+  if (theme === 'ocean') document.documentElement.classList.add('t-ocean');
+  if (theme === 'violet') document.documentElement.classList.add('t-violet');
+  if (theme === 'amber') document.documentElement.classList.add('t-amber');
+  if (theme === 'slate') document.documentElement.classList.add('t-slate');
 }
 
 function determinePreset(s) {
@@ -617,6 +621,7 @@ function setupNavigation() {
     let panel = document.getElementById(sectionId);
     if (link) link.classList.add('active');
     if (panel) panel.classList.add('active');
+    document.querySelector('.opt-main')?.classList.toggle('is-reader-wide', sectionId === 'reader');
     if (sectionId === 'logs') refreshLogPanel();
   }
 

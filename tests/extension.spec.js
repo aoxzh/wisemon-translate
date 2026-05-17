@@ -141,7 +141,27 @@ test.describe('extension smoke', () => {
       await page.goto(`chrome-extension://${extensionId}/options.html`);
       await expect(page.locator('#save-settings')).toBeVisible();
       await expect(page.locator('#provider-grid')).toBeVisible();
+      await expect(page.locator('#uiTheme option[value="ocean"]')).toBeAttached();
+      await expect(page.locator('#uiTheme option[value="violet"]')).toBeAttached();
+      await expect(page.locator('#uiTheme option[value="amber"]')).toBeAttached();
+      await expect(page.locator('#uiTheme option[value="slate"]')).toBeAttached();
       await expect(page.locator('#logs')).toBeAttached();
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('options reader workspace embeds long text panel', async () => {
+    const context = await launchExtensionContext();
+    try {
+      const extensionId = await getExtensionId(context);
+      const page = await context.newPage();
+      await page.goto(`chrome-extension://${extensionId}/options.html#reader`);
+      await expect(page.locator('#reader.opt-panel.active')).toBeVisible();
+      const frame = page.frameLocator('#reader-frame');
+      await expect(frame.locator('#source-text')).toBeVisible();
+      await expect(frame.locator('#translate-text')).toBeVisible();
+      await expect(frame.locator('.side-root.is-embedded')).toBeVisible();
     } finally {
       await context.close();
     }

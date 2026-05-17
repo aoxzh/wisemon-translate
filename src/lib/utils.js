@@ -59,7 +59,7 @@ const DEFAULT_SETTINGS = {
   terms: [],                       // structured term replacements: [{ pattern, replacement, regex }]
   siteTerms: [],                   // site-bound replacements: [{ domains, pattern, replacement, regex }]
   aiTerms: [],                     // AI context terms: [{ term, definition, context }]
-  uiTheme: 'auto',                  // 'auto' | 'light' | 'dark'
+  uiTheme: 'auto',                  // 'auto' | 'light' | 'dark' | 'ocean' | 'violet' | 'amber' | 'slate'
   privacyMasking: true,             // mask sensitive data before sending text to translation APIs
   maskEmail: true,
   maskPhone: true,

@@ -43,6 +43,10 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         <span data-i18n="nav_glossary">Glossary</span>
       </a>
+      <a href="#reader" data-section="reader">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h10"/><path d="M18 16l3 3-3 3"/></svg>
+        <span>Reader</span>
+      </a>
       <div class="opt-nav-group">Control</div>
       <a href="#sites" data-section="sites">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
@@ -382,6 +386,10 @@
           <option value="auto" data-i18n="ui_theme_auto">Follow System</option>
           <option value="light" data-i18n="ui_theme_light">Light</option>
           <option value="dark" data-i18n="ui_theme_dark">Dark</option>
+          <option value="ocean">Ocean</option>
+          <option value="violet">Violet</option>
+          <option value="amber">Amber</option>
+          <option value="slate">Slate</option>
         </select>
       </div>
       <div class="opt-field">
@@ -587,6 +595,17 @@ JWT: JSON Web Token, used for securely transmitting information (Authentication)
           <p class="opt-hint" data-i18n="legacy_glossary_hint">Original format: source,translation per line. Used as fallback when structured terms are empty.</p>
         </div>
       </details>
+    </section>
+
+    <!-- ===== READER WORKSPACE ===== -->
+    <section id="reader" class="opt-panel opt-reader-panel">
+      <div class="opt-panel-header">
+        <h2>Reader Workspace</h2>
+        <p>Translate long text, imported files, page text, and segmented chapters with more room to work.</p>
+      </div>
+      <div class="opt-reader-shell">
+        <iframe id="reader-frame" title="Reader workspace" src="sidepanel.html?embed=options"></iframe>
+      </div>
     </section>
 
     <!-- ===== SITES (merged, no duplicate) ===== -->

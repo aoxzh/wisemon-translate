@@ -306,9 +306,13 @@
   }
 
   function applyUiTheme(theme) {
-    document.documentElement.classList.remove('t-light', 't-dark');
+    document.documentElement.classList.remove('t-light', 't-dark', 't-ocean', 't-violet', 't-amber', 't-slate');
     if (theme === 'light') document.documentElement.classList.add('t-light');
     if (theme === 'dark') document.documentElement.classList.add('t-dark');
+    if (theme === 'ocean') document.documentElement.classList.add('t-ocean');
+    if (theme === 'violet') document.documentElement.classList.add('t-violet');
+    if (theme === 'amber') document.documentElement.classList.add('t-amber');
+    if (theme === 'slate') document.documentElement.classList.add('t-slate');
   }
 
   function formatKbd(str) {
@@ -728,16 +732,7 @@
 
   if (btnSidePanel) {
     btnSidePanel.addEventListener('click', async () => {
-      try {
-        const tab = await getCurrentTab();
-        if (chrome.sidePanel && chrome.sidePanel.open && tab?.windowId) {
-          await chrome.sidePanel.open({ windowId: tab.windowId });
-        } else {
-          await chrome.tabs.create({ url: chrome.runtime.getURL('sidepanel.html') });
-        }
-      } catch (e) {
-        chrome.tabs.create({ url: chrome.runtime.getURL('sidepanel.html') });
-      }
+      await openOptionsSection('reader');
     });
   }
 

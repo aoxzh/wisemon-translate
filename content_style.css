@@ -192,6 +192,127 @@
   --shadow-primary-hover: 0 10px 28px rgba(0, 210, 110, 0.24);
 }
 
+.t-ocean {
+  --s-1: #07151A;
+  --s-2: #041013;
+  --s-3: #0D2228;
+  --text-primary: #F4FBFC;
+  --text-secondary: #B8D5DD;
+  --text-muted: #6F8F98;
+  --text-inverse: #021014;
+  --border-default: rgba(183, 235, 245, 0.12);
+  --border-subtle: rgba(183, 235, 245, 0.08);
+  --border-strong: rgba(183, 235, 245, 0.22);
+  --p-main: #22D3EE;
+  --p-main-rgb: 34, 211, 238;
+  --p-hover: #67E8F9;
+  --p-active: #06B6D4;
+  --p-light: rgba(34, 211, 238, 0.14);
+  --p-weak: rgba(34, 211, 238, 0.07);
+  --p-glow: 0 0 0 3px rgba(34, 211, 238, 0.24);
+  --p-gradient: linear-gradient(135deg, #22D3EE 0%, #34D399 100%);
+  --p-gradient-hover: linear-gradient(135deg, #67E8F9 0%, #6EE7B7 100%);
+  --s-success: #34D399;
+  --s-success-rgb: 52, 211, 153;
+  --s-info: #22D3EE;
+  --s-info-rgb: 34, 211, 238;
+  --shadow-primary: 0 8px 22px rgba(34, 211, 238, 0.20);
+  --shadow-primary-hover: 0 10px 28px rgba(34, 211, 238, 0.28);
+  color-scheme: dark;
+}
+
+.t-violet {
+  --s-1: #13111C;
+  --s-2: #0B0A12;
+  --s-3: #1F1A2D;
+  --text-primary: #FAF7FF;
+  --text-secondary: #D3C7EA;
+  --text-muted: #8D7DAA;
+  --text-inverse: #0B0A12;
+  --border-default: rgba(221, 214, 254, 0.12);
+  --border-subtle: rgba(221, 214, 254, 0.08);
+  --border-strong: rgba(221, 214, 254, 0.22);
+  --p-main: #A78BFA;
+  --p-main-rgb: 167, 139, 250;
+  --p-hover: #C4B5FD;
+  --p-active: #8B5CF6;
+  --p-light: rgba(167, 139, 250, 0.15);
+  --p-weak: rgba(167, 139, 250, 0.07);
+  --p-glow: 0 0 0 3px rgba(167, 139, 250, 0.24);
+  --p-gradient: linear-gradient(135deg, #A78BFA 0%, #F472B6 100%);
+  --p-gradient-hover: linear-gradient(135deg, #C4B5FD 0%, #FDA4AF 100%);
+  --s-success: #34D399;
+  --s-success-rgb: 52, 211, 153;
+  --s-info: #A78BFA;
+  --s-info-rgb: 167, 139, 250;
+  --shadow-primary: 0 8px 22px rgba(167, 139, 250, 0.22);
+  --shadow-primary-hover: 0 10px 28px rgba(167, 139, 250, 0.30);
+  color-scheme: dark;
+}
+
+.t-amber {
+  --s-1: #17130C;
+  --s-2: #0E0B06;
+  --s-3: #251D10;
+  --text-primary: #FFF9ED;
+  --text-secondary: #E6CC9C;
+  --text-muted: #A4814D;
+  --text-inverse: #120C03;
+  --border-default: rgba(253, 230, 138, 0.13);
+  --border-subtle: rgba(253, 230, 138, 0.08);
+  --border-strong: rgba(253, 230, 138, 0.23);
+  --p-main: #F59E0B;
+  --p-main-rgb: 245, 158, 11;
+  --p-hover: #FBBF24;
+  --p-active: #D97706;
+  --p-light: rgba(245, 158, 11, 0.15);
+  --p-weak: rgba(245, 158, 11, 0.07);
+  --p-glow: 0 0 0 3px rgba(245, 158, 11, 0.24);
+  --p-gradient: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
+  --p-gradient-hover: linear-gradient(135deg, #FBBF24 0%, #F97316 100%);
+  --s-success: #22C55E;
+  --s-success-rgb: 34, 197, 94;
+  --s-warning: #F59E0B;
+  --s-warning-rgb: 245, 158, 11;
+  --shadow-primary: 0 8px 22px rgba(245, 158, 11, 0.22);
+  --shadow-primary-hover: 0 10px 28px rgba(245, 158, 11, 0.30);
+  color-scheme: dark;
+}
+
+.t-slate {
+  --s-1: #F8FAFC;
+  --s-2: #EEF2F7;
+  --s-3: #E2E8F0;
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #64748B;
+  --text-inverse: #F8FAFC;
+  --border-default: #CBD5E1;
+  --border-subtle: #E2E8F0;
+  --border-strong: #94A3B8;
+  --p-main: #2563EB;
+  --p-main-rgb: 37, 99, 235;
+  --p-hover: #3B82F6;
+  --p-active: #1D4ED8;
+  --p-light: rgba(37, 99, 235, 0.12);
+  --p-weak: rgba(37, 99, 235, 0.06);
+  --p-glow: 0 0 0 3px rgba(37, 99, 235, 0.20);
+  --p-gradient: linear-gradient(135deg, #2563EB 0%, #14B8A6 100%);
+  --p-gradient-hover: linear-gradient(135deg, #3B82F6 0%, #2DD4BF 100%);
+  --s-success: #16A34A;
+  --s-success-rgb: 22, 163, 74;
+  --s-info: #2563EB;
+  --s-info-rgb: 37, 99, 235;
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 4px 14px rgba(15, 23, 42, 0.07);
+  --shadow-md: 0 10px 28px rgba(15, 23, 42, 0.10);
+  --shadow-lg: 0 18px 52px rgba(15, 23, 42, 0.14);
+  --shadow-xl: 0 28px 76px rgba(15, 23, 42, 0.18);
+  --shadow-primary: 0 8px 20px rgba(37, 99, 235, 0.18);
+  --shadow-primary-hover: 0 10px 28px rgba(37, 99, 235, 0.24);
+  color-scheme: light;
+}
+
 @media (prefers-color-scheme: light) {
   :root:not(.t-dark) {
     --s-1: var(--t-00);

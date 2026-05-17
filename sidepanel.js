@@ -30,6 +30,7 @@
   const buildChapters = $('build-chapters');
   const resumeTranslate = $('resume-translate');
   const HISTORY_KEY = 'llm-translate-sidepanel-history';
+  const embedded = new URLSearchParams(location.search).has('embed');
 
   let settings = typeof DEFAULT_SETTINGS !== 'undefined' ? { ...DEFAULT_SETTINGS } : {};
   let history = [];
@@ -39,6 +40,7 @@
   let readerMode = 'text';
   let readerSourceSignature = '';
   I18N.localizeContainer(document);
+  document.querySelector('.side-root')?.classList.toggle('is-embedded', embedded);
   try {
     const res = await chrome.runtime.sendMessage({ action: 'get-settings' });
     settings = { ...DEFAULT_SETTINGS, ...(res.settings || {}) };
@@ -49,9 +51,13 @@
   await loadDraft();
 
   function applyUiTheme(theme) {
-    document.documentElement.classList.remove('t-light', 't-dark');
+    document.documentElement.classList.remove('t-light', 't-dark', 't-ocean', 't-violet', 't-amber', 't-slate');
     if (theme === 'light') document.documentElement.classList.add('t-light');
     if (theme === 'dark') document.documentElement.classList.add('t-dark');
+    if (theme === 'ocean') document.documentElement.classList.add('t-ocean');
+    if (theme === 'violet') document.documentElement.classList.add('t-violet');
+    if (theme === 'amber') document.documentElement.classList.add('t-amber');
+    if (theme === 'slate') document.documentElement.classList.add('t-slate');
   }
 
   translateBtn.addEventListener('click', async () => {
