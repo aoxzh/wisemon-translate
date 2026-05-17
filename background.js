@@ -94,22 +94,22 @@ const CONTENT_MAIN_FILES = [
     'src/lib/providers/baidu.js',
     'src/lib/providers/microsoft.js'
   ]),
-  'src/content/content-core.js',
-  'src/content/content-observers.js',
-  'src/content/content-input.js',
-  'src/content/content-subtitle.js',
-  'src/content/content-glossary.js',
-  'src/content/content-shortcuts.js',
-  'src/content/content-ui.js',
-  'src/content/content-adaptive-scanner.js',
-  'src/content/content-language.js',
-  'src/content/content-selection.js',
-  'src/content/content-fab.js',
-  'src/content/content-main.js'
+  'src/content/core/content-core.js',
+  'src/content/core/content-observers.js',
+  'src/content/features/content-input.js',
+  'src/content/features/content-subtitle.js',
+  'src/content/translation/content-glossary.js',
+  'src/content/features/content-shortcuts.js',
+  'src/content/ui/content-ui.js',
+  'src/content/translation/content-adaptive-scanner.js',
+  'src/content/core/content-language.js',
+  'src/content/features/content-selection.js',
+  'src/content/features/content-fab.js',
+  'src/content/core/content-main.js'
 ];
 
 const CONTENT_CSS_FILES = [
-  'src/content/inline-styles.css'
+  'src/content/ui/inline-styles.css'
 ];
 
 // ---- Init ----

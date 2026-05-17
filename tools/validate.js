@@ -16,22 +16,39 @@ const UI_PAIRS = [
   ['options.js', 'options.html'],
   ['sidepanel.js', 'sidepanel.html']
 ];
+const IGNORED_SCAN_DIRS = new Set([
+  '.git',
+  '.claude',
+  '.cache',
+  '.idea',
+  '.vscode',
+  'build',
+  'coverage',
+  'dist',
+  'node_modules',
+  'playwright-report',
+  'release',
+  'test-results',
+  'tmp'
+]);
 const MESSAGE_FILES = [
   'background.js',
   'content_guard.js',
   'popup.js',
   'options.js',
   'sidepanel.js',
-  'src/content/content-main.js',
-  'src/content/content-core.js',
-  'src/content/content-observers.js',
-  'src/content/content-input.js',
-  'src/content/content-subtitle.js',
-  'src/content/content-glossary.js',
-  'src/content/content-shortcuts.js',
-  'src/content/content-selection.js',
-  'src/content/content-fab.js',
-  'src/content/content-ui.js'
+  'src/content/core/content-main.js',
+  'src/content/core/content-core.js',
+  'src/content/core/content-observers.js',
+  'src/content/core/content-language.js',
+  'src/content/features/content-input.js',
+  'src/content/features/content-subtitle.js',
+  'src/content/features/content-shortcuts.js',
+  'src/content/features/content-selection.js',
+  'src/content/features/content-fab.js',
+  'src/content/translation/content-glossary.js',
+  'src/content/translation/content-adaptive-scanner.js',
+  'src/content/ui/content-ui.js'
 ];
 
 let failed = false;
@@ -69,7 +86,7 @@ function listFiles(dir, predicate, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (entry.name === '.git' || entry.name === 'node_modules' || entry.name === 'dist' || entry.name === 'test-results') continue;
+      if (IGNORED_SCAN_DIRS.has(entry.name)) continue;
       listFiles(full, predicate, out);
     } else if (predicate(full)) {
       out.push(full);
@@ -255,7 +272,7 @@ async function checkSmokeTests() {
     }
 
     global.window = { __LLM_CTX__: { state: {}, fn: {}, features: {} } };
-    require(rootPath('src/content/content-input.js'));
+    require(rootPath('src/content/features/content-input.js'));
     const parseInputTrigger = global.window.__LLM_CTX__.fn.getExplicitInputTrigger;
     if (parseInputTrigger('/tr Hello world') !== 'Hello world') {
       throw new Error('input /tr prefix trigger failed');
@@ -306,11 +323,11 @@ async function checkSmokeTests() {
 }
 
 function checkSizeWarnings() {
-  const contentMain = rootPath('src/content/content-main.js');
+  const contentMain = rootPath('src/content/core/content-main.js');
   const llmApi = rootPath('src/lib/llm-api.js');
   const contentKb = Math.round(fs.statSync(contentMain).size / 1024);
   const apiKb = Math.round(fs.statSync(llmApi).size / 1024);
-  if (contentKb > 75) warn(`src/content/content-main.js is ${contentKb}KB; keep module split as next architecture work`);
+  if (contentKb > 75) warn(`src/content/core/content-main.js is ${contentKb}KB; keep module split as next architecture work`);
   if (apiKb > 45) warn(`src/lib/llm-api.js is ${apiKb}KB; keep OpenAI-compatible core focused and move provider-specific code out`);
 }
 

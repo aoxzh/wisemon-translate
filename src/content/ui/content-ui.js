@@ -12,7 +12,7 @@
     const link = document.createElement('link');
     link.id = 'llm-translate-inline-styles';
     link.rel = 'stylesheet';
-    link.href = chrome.runtime.getURL('src/content/inline-styles.css');
+    link.href = chrome.runtime.getURL('src/content/ui/inline-styles.css');
     document.head.appendChild(link);
   }
 
