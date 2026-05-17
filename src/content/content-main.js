@@ -76,35 +76,6 @@
     /^\s*\[.*\{.*\}.*\]/,    // Array of objects pattern
   ];
 
-  const ADAPTIVE_TEXT_SELECTORS = [
-    '[markdown-text]',
-    '[data-testid*="text" i]',
-    '[data-testid*="content" i]',
-    '[class*="content" i]',
-    '[class*="description" i]',
-    '[class*="summary" i]',
-    '[class*="comment" i]',
-    '[class*="message" i]',
-    '[class*="article" i]',
-    '[class*="post" i]',
-    '[class*="body" i]',
-    '[class*="title" i]',
-    'article p',
-    'main p',
-    'section p',
-    'td',
-    'th'
-  ];
-
-  const LOW_VALUE_TEXT_PATTERNS = [
-    /^[a-f0-9]{16,}$/i,
-    /^(?:[A-Z0-9]{8,}[-_]){1,}[A-Z0-9]{4,}$/i,
-    /^\d+(?:[.,]\d+)?\s*(?:b|kb|kib|mb|mib|gb|gib|tb|tib)$/i,
-    /^\d{4}-\d{2}-\d{2}(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?(?:\s*(?:utc|gmt|jst|est|pst))?$/i,
-    /^(?:seeders|leechers|completed|date|size|file size|info hash|submitter|category):?$/i,
-    /^magnet:\?xt=/i
-  ];
-
   // ---- Safe logging guard ----
   function _safeLog(level, tag, msg, data) {
     try {
@@ -798,17 +769,7 @@
   }
 
   function scanAdaptiveTextElements(root) {
-    if (!root || !(root instanceof Element || root instanceof DocumentFragment)) return;
-    for (const selector of ADAPTIVE_TEXT_SELECTORS) {
-      try {
-        if (root instanceof Element && root.matches(selector)) startObserveElement(root);
-        root.querySelectorAll?.(selector).forEach(function(el) {
-          if (isAdaptiveTextCandidate(el)) startObserveElement(el);
-        });
-      } catch (e) {
-        _safeLog('debug', 'Content', 'Adaptive selector skipped: ' + selector, { error: e.message });
-      }
-    }
+    ctx.fn.adaptiveScanner?.scanAdaptiveTextElements(root, getAdaptiveScannerDeps());
   }
 
   function scanNode(root, includeTextNodePass = true) {
@@ -829,7 +790,7 @@
     if (root.nodeType === Node.ELEMENT_NODE) {
       const hasBlockChild = [...root.children].some(c => BLOCK_TAGS.has(c.tagName));
       const hasDirectText = hasDirectTextNode(root);
-      const hasSemanticContent = hasSemanticContentSignal(root);
+      const hasSemanticContent = ctx.fn.adaptiveScanner?.hasSemanticContentSignal(root);
 
       if (hasDirectText || hasSemanticContent || !hasBlockChild) {
         if (isTranslatableElement(root)) {
@@ -902,7 +863,7 @@
       const directText = getDirectText(el);
       const childBlockCount = Array.from(el.children || []).filter(child => isBlockNode(child)).length;
       const visibleText = getVisibleText(el);
-      const semanticHost = hasSemanticContentSignal(el) && visibleText.length <= Math.max(1200, settings.maxCharsPerRequest || 4000);
+      const semanticHost = ctx.fn.adaptiveScanner?.hasSemanticContentSignal(el) && visibleText.length <= Math.max(1200, settings.maxCharsPerRequest || 4000);
 
       if (['A','BUTTON','LABEL','SUMMARY','FIGCAPTION','CAPTION','TH','TD','LI','P','H1','H2','H3','H4','H5','H6'].includes(tag)) {
         candidate = el;
@@ -931,39 +892,21 @@
     return candidate;
   }
 
-  function hasSemanticContentSignal(el) {
-    if (!(el instanceof Element)) return false;
-    if (el.hasAttribute('markdown-text')) return true;
-    const idClass = ((el.id || '') + ' ' + (el.className || '') + ' ' + Array.from(el.attributes || []).map(attr => attr.name + ' ' + attr.value).join(' ')).toLowerCase();
-    return /\b(article|body|comment|content|description|message|post|summary|text|title)\b/.test(idClass);
-  }
-
-  function isAdaptiveTextCandidate(el) {
-    if (!(el instanceof Element)) return false;
-    if (isIgnored(el) || observedElements.has(el) || processedElements.has(el)) return false;
-    if (matchesSiteRuleSelector(el, siteRule?.excludeSelectors)) return false;
-    if (hasHighControlDensity(el) || hasHighLinkDensity(el)) return false;
-    const text = getVisibleText(el);
-    if (isInvalidText(text) || isLowValueText(text)) return false;
-    if (text.length > Math.max(1800, settings.maxCharsPerRequest || 4000)) return false;
-    const childBlockCount = Array.from(el.children || []).filter(child => isBlockNode(child)).length;
-    const directText = getDirectText(el);
-    return !!directText || childBlockCount <= 2 || hasSemanticContentSignal(el);
-  }
-
-  function hasHighLinkDensity(el) {
-    const text = getVisibleText(el);
-    if (!text || text.length < 40) return false;
-    const linkText = Array.from(el.querySelectorAll('a')).map(a => getVisibleText(a)).join(' ');
-    return linkText.length > 0 && linkText.length / text.length > 0.82;
-  }
-
-  function hasHighControlDensity(el) {
-    const text = getVisibleText(el);
-    if (!text || text.length < 20) return false;
-    const controls = el.querySelectorAll('button,input,select,textarea,[role="button"],[role="menuitem"]').length;
-    const textNodes = Math.max(1, Array.from(el.querySelectorAll('p,li,td,th,dd,dt,blockquote,figcaption,[markdown-text]')).length);
-    return controls >= 3 && controls > textNodes;
+  function getAdaptiveScannerDeps() {
+    return {
+      settings,
+      siteRule,
+      observedElements,
+      processedElements,
+      startObserveElement,
+      isIgnored,
+      matchesSiteRuleSelector,
+      getVisibleText,
+      getDirectText,
+      isInvalidText,
+      isBlockNode,
+      safeLog: _safeLog
+    };
   }
 
   function getDirectText(el) {
@@ -1056,7 +999,7 @@
 
   function isInvalidText(text) {
     if (!text || text.length < 2) return true;
-    if (isLowValueText(text)) return true;
+    if (ctx.fn.adaptiveScanner?.isLowValueText(text)) return true;
     const normalized = String(text).replace(/\s+/g, '').trim();
     const hasLetterOrNumber = /[\p{L}\p{N}]/u.test(normalized);
     const hasTranslatableScript = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}A-Za-z]/u.test(normalized);
@@ -1076,18 +1019,6 @@
     if (letters < text.length * 0.15 && text.length > 20) return true;
     // Skip if text contains long unbroken token strings
     if (/[A-Za-z0-9+\/=]{60,}/.test(text)) return true;
-    return false;
-  }
-
-  function isLowValueText(text) {
-    const raw = String(text || '').trim();
-    if (!raw) return true;
-    const normalized = raw.replace(/\s+/g, ' ');
-    for (const re of LOW_VALUE_TEXT_PATTERNS) {
-      if (re.test(normalized)) return true;
-    }
-    if (/^[A-Fa-f0-9]{32,}$/.test(normalized.replace(/\s+/g, ''))) return true;
-    if (/^[\w.-]+\.(?:mkv|mp4|avi|mov|zip|rar|7z|torrent|ass|srt|png|jpg|jpeg|webp)$/i.test(normalized)) return true;
     return false;
   }
 

@@ -120,6 +120,7 @@
         "vendor/pdfjs/pdf.min.mjs",
         "vendor/pdfjs/pdf.worker.min.mjs",
         "src/content/inline-styles.css",
+        "src/content/content-adaptive-scanner.js",
         "src/content/content-main.js",
         "src/injectors/shadowroot-patcher.js",
         "src/injectors/youtube-subtitle-injector.js"
