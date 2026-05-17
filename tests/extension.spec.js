@@ -1445,4 +1445,34 @@ test.describe('extension smoke', () => {
       await fixture.close();
     }
   });
+
+  test('adaptive scanner discovers semantic content without a site rule', async () => {
+    const fixture = await startFixtureServer(NYAA_FIXTURE_FILE);
+    const context = await launchExtensionContext();
+    try {
+      const extensionId = await getExtensionId(context);
+      await mockGoogleTranslate(context);
+      await setExtensionSettings(context, extensionId, {
+        provider: 'google',
+        model: 'google-free',
+        targetLang: 'zh-CN',
+        sourceLang: 'auto',
+        siteRules: '',
+        maxConcurrency: 1
+      });
+
+      const page = await context.newPage();
+      await page.goto(fixture.url);
+      await page.waitForTimeout(1200);
+      const result = await translateFixturePage(context, extensionId, fixture.url, 'translate-page');
+
+      expect(result.error || '').toBe('');
+      await expect(page.locator('#torrent-description + .llm-translate-block-wrapper .llm-translate-inner').first()).toContainText('TRANSLATED:', { timeout: 15000 });
+      await expect(page.locator('.comment-content + .llm-translate-block-wrapper .llm-translate-inner').first()).toContainText('TRANSLATED:', { timeout: 15000 });
+      await expect(page.locator('kbd .llm-translate-inner')).toHaveCount(0);
+    } finally {
+      await context.close();
+      await fixture.close();
+    }
+  });
 });

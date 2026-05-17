@@ -6,7 +6,9 @@
   const MAIN_CONTENT_SELECTORS = [
     'main', 'article', '[role="main"]', '.post-content', '.entry-content',
     '.article-content', '.content', '.main-content', '#content', '#main',
-    '.markdown-body', '.repository-content', '.topic-content'
+    '.markdown-body', '.repository-content', '.topic-content',
+    '[markdown-text]', '[class*="article"]', '[class*="post"]',
+    '[class*="content"]', '[class*="comment"]', '[class*="description"]'
   ];
 
   function setupMutationObserver() {
@@ -154,7 +156,41 @@
         if (el) return el;
       } catch (e) {}
     }
-    return document.body;
+    return findBestContentRoot() || document.body;
+  }
+
+  function findBestContentRoot() {
+    const candidates = Array.from(document.querySelectorAll('main, article, [role="main"], .container, #content, #main, section, [class*="content"], [class*="article"], [class*="post"], [class*="comment"], [markdown-text]'));
+    let best = null;
+    let bestScore = 0;
+    for (const el of candidates) {
+      if (!(el instanceof Element) || isIgnored(el)) continue;
+      const text = (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (text.length < 120) continue;
+      const links = Array.from(el.querySelectorAll('a')).map(a => (a.innerText || a.textContent || '').trim()).join(' ');
+      const controls = el.querySelectorAll('button,input,select,textarea,[role="button"]').length;
+      const paragraphs = el.querySelectorAll('p,li,td,th,dd,dt,blockquote,figcaption,[markdown-text],.comment,.comment-content').length;
+      const linkPenalty = text.length ? (links.length / text.length) * 220 : 0;
+      const controlPenalty = controls * 24;
+      const depthPenalty = Math.min(80, getDepth(el) * 4);
+      const semanticBonus = /article|content|post|comment|description|main/i.test((el.id || '') + ' ' + (el.className || '')) ? 160 : 0;
+      const score = Math.min(text.length, 5000) + paragraphs * 35 + semanticBonus - linkPenalty - controlPenalty - depthPenalty;
+      if (score > bestScore) {
+        best = el;
+        bestScore = score;
+      }
+    }
+    return bestScore > 180 ? best : null;
+  }
+
+  function getDepth(el) {
+    let depth = 0;
+    let curr = el;
+    while (curr && curr !== document.body) {
+      depth++;
+      curr = curr.parentElement;
+    }
+    return depth;
   }
 
   function describeMainContentRoot() {
