@@ -364,10 +364,13 @@
 
     // Initial scan (main document or main content only)
     const scanRoot = ctx.fn.getMainContentRoot();
+    const ruleScoped = hasRuleIncludeSelectors();
     applyPageState(settings.displayMode === 'replace' ? 'translation' : 'dual');
     scanRuleIncludedElements(scanRoot);
-    scanAdaptiveTextElements(scanRoot);
-    scanNode(scanRoot);
+    if (!ruleScoped) {
+      scanAdaptiveTextElements(scanRoot);
+      scanNode(scanRoot);
+    }
     if (initialVisibleElements.size > 0) {
       scheduleProcessViewBatch(Array.from(initialVisibleElements));
     }
@@ -586,12 +589,15 @@
 
     translationTask.setState(translationTask.states.SCANNING || 'scanning', { runId: translationRunId, reason: 'Collecting remaining page content' });
     const root = ctx.fn.getMainContentRoot ? ctx.fn.getMainContentRoot() : document.body;
+    const ruleScoped = hasRuleIncludeSelectors();
     scanRuleIncludedElements(root);
-    scanAdaptiveTextElements(root);
-    scanNode(root);
-    scanTextNodes(root);
+    if (!ruleScoped) {
+      scanAdaptiveTextElements(root);
+      scanNode(root);
+      scanTextNodes(root);
+    }
 
-    const candidates = collectUnprocessedCandidates(root);
+    const candidates = ruleScoped ? collectRuleIncludedCandidates(root) : collectUnprocessedCandidates(root);
     if (candidates.length > 0) {
       candidates.forEach(el => {
         if (!observedElements.has(el)) {
@@ -617,6 +623,32 @@
       totalProcessed,
       remaining: candidates.length
     };
+  }
+
+  function hasRuleIncludeSelectors() {
+    return Array.isArray(siteRule?.includeSelectors) && siteRule.includeSelectors.length > 0 && (siteRule.matchedIds || []).some(id => id && id !== 'default');
+  }
+
+  function collectRuleIncludedCandidates(root) {
+    const out = [];
+    const seen = new WeakSet();
+    const selectors = siteRule?.includeSelectors || [];
+    function add(el) {
+      if (!(el instanceof Element) || seen.has(el) || processedElements.has(el)) return;
+      if (!isBottomScanCandidate(el)) return;
+      seen.add(el);
+      out.push(el);
+    }
+    for (const selector of selectors) {
+      try {
+        if (root instanceof Element && root.matches(selector)) add(root);
+        root.querySelectorAll?.(selector).forEach(add);
+      } catch (err) {
+        _safeLog('warn', 'Rules', 'Invalid translate-to-bottom include selector skipped: ' + selector, { error: err.message });
+      }
+    }
+    root.querySelectorAll?.(`[${ATTR_OBSERVED}="true"]`).forEach(add);
+    return out;
   }
 
   function collectUnprocessedCandidates(root) {

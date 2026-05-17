@@ -1446,6 +1446,55 @@ test.describe('extension smoke', () => {
     }
   });
 
+  test('nyaa translate to bottom stays scoped to rule includes', async () => {
+    const fixture = await startFixtureServer(NYAA_FIXTURE_FILE);
+    const context = await launchExtensionContext();
+    try {
+      await mockGoogleTranslate(context);
+      const extensionId = await getExtensionId(context);
+      await setExtensionSettings(context, extensionId, {
+        provider: 'google',
+        model: 'google-free',
+        targetLang: 'zh-CN',
+        sourceLang: 'auto',
+        siteRules: JSON.stringify([{
+          id: 'fixture-nyaa',
+          matches: ['127.0.0.1'],
+          mainSelectors: ['.container', '#torrent-description', '.comment-panel', '.torrent-list'],
+          includeSelectors: [
+            '.panel-title',
+            '#torrent-description',
+            '.comment-content',
+            '.torrent-list td:nth-child(2) a:not(.comments)',
+            '.torrent-list .comments'
+          ],
+          excludeSelectors: [
+            'nav', 'footer', 'form', 'input', 'button',
+            '.panel-footer', '.torrent-file-list', '.file-size', 'kbd',
+            'a[href^="magnet:"]', 'a[href*="/download/"]', '[data-timestamp]'
+          ]
+        }]),
+        maxConcurrency: 1
+      });
+
+      const page = await context.newPage();
+      await page.goto(fixture.url);
+      await page.waitForTimeout(1200);
+      const result = await translateFixturePage(context, extensionId, fixture.url, 'translate-to-bottom');
+      expect(result.error || '').toBe('');
+      expect(result.success).toBe(true);
+      expect(result.totalObserved).toBeGreaterThan(0);
+      expect(result.totalObserved).toBeLessThanOrEqual(12);
+      expect(result.queued).toBeLessThanOrEqual(12);
+      await expect(page.locator('#torrent-description + .llm-translate-block-wrapper .llm-translate-inner').first()).toContainText('TRANSLATED:', { timeout: 15000 });
+      await expect(page.locator('.comment-content + .llm-translate-block-wrapper .llm-translate-inner').first()).toContainText('TRANSLATED:', { timeout: 15000 });
+      await expect(page.locator('.torrent-file-list .llm-translate-inner')).toHaveCount(0);
+    } finally {
+      await context.close();
+      await fixture.close();
+    }
+  });
+
   test('adaptive scanner discovers semantic content without a site rule', async () => {
     const fixture = await startFixtureServer(NYAA_FIXTURE_FILE);
     const context = await launchExtensionContext();
