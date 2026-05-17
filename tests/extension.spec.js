@@ -161,6 +161,25 @@ test.describe('extension smoke', () => {
     }
   });
 
+  test('popup advanced controls open in drawer', async () => {
+    const context = await launchExtensionContext();
+    try {
+      const extensionId = await getExtensionId(context);
+      const page = await context.newPage();
+      await page.goto(`chrome-extension://${extensionId}/popup.html`);
+      await expect(page.locator('#open-advanced-drawer')).toBeVisible();
+      await page.click('#open-advanced-drawer');
+      await expect(page.locator('#advanced-drawer')).toHaveClass(/is-open/);
+      await expect(page.locator('.wm-select[data-select-id="provider-preset-select"]')).toBeVisible();
+      await expect(page.locator('#model-input')).toBeVisible();
+      await expect(page.locator('.wm-select[data-select-id="subtitle-mode-select"]')).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(page.locator('#advanced-drawer')).not.toHaveClass(/is-open/);
+    } finally {
+      await context.close();
+    }
+  });
+
   test('options custom selects keep subtitle layout compact', async () => {
     const context = await launchExtensionContext();
     try {

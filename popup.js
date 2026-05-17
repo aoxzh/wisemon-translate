@@ -56,6 +56,11 @@
   const diagPage = $('diag-page');
   const diagMode = $('diag-mode');
   const advancedSummary = $('advanced-summary');
+  const advancedDrawerSummary = $('advanced-drawer-summary');
+  const advancedDrawer = $('advanced-drawer');
+  const openAdvancedDrawer = $('open-advanced-drawer');
+  const closeAdvancedDrawer = $('advanced-drawer-close');
+  const advancedDrawerBackdrop = $('advanced-drawer-backdrop');
 
   /* ---- State ---- */
   let settings = null;
@@ -66,10 +71,31 @@
   let progressMaxDenominator = 1;
   let progressMaxPercent = 0;
 
+  function setAdvancedDrawerOpen(open) {
+    if (!advancedDrawer) return;
+    if (open && advancedDrawerSummary && advancedSummary) {
+      advancedDrawerSummary.textContent = advancedSummary.textContent;
+    }
+    if (open) {
+      advancedDrawer.hidden = false;
+      requestAnimationFrame(() => advancedDrawer.classList.add('is-open'));
+      openAdvancedDrawer?.setAttribute('aria-expanded', 'true');
+      setTimeout(() => closeAdvancedDrawer?.focus(), 120);
+    } else {
+      advancedDrawer.classList.remove('is-open');
+      openAdvancedDrawer?.setAttribute('aria-expanded', 'false');
+      setTimeout(() => {
+        if (!advancedDrawer.classList.contains('is-open')) advancedDrawer.hidden = true;
+      }, 180);
+      openAdvancedDrawer?.focus();
+    }
+  }
+
   /* ---- Init ---- */
   I18N.localizeContainer(document.querySelector('.popup-root'));
   if (globalThis.CustomSelect) CustomSelect.initAll(document);
   langSwitchText.textContent = I18N.lang === 'zh-CN' ? 'EN' : '\u4e2d';
+  bindAdvancedDrawer();
 
   // Read version from manifest
   try {
@@ -81,6 +107,21 @@
   applyUiTheme(settings?.uiTheme || 'auto');
   await loadCurrentSite();
   await checkPageStatus();
+
+  function bindAdvancedDrawer() {
+    if (openAdvancedDrawer) {
+      openAdvancedDrawer.setAttribute('aria-expanded', 'false');
+      openAdvancedDrawer.addEventListener('click', () => setAdvancedDrawerOpen(true));
+    }
+    if (closeAdvancedDrawer) closeAdvancedDrawer.addEventListener('click', () => setAdvancedDrawerOpen(false));
+    if (advancedDrawerBackdrop) advancedDrawerBackdrop.addEventListener('click', () => setAdvancedDrawerOpen(false));
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && advancedDrawer?.classList.contains('is-open')) {
+        event.preventDefault();
+        setAdvancedDrawerOpen(false);
+      }
+    });
+  }
 
   /* ---- Load settings ---- */
   async function loadSettings() {
@@ -138,6 +179,7 @@
       ? I18N.t('popup_sub_off')
       : ((settings.subtitleMode || 'bilingual') === 'translation' ? I18N.t('popup_sub_translation') : I18N.t('popup_sub_bilingual'));
     advancedSummary.textContent = provider + ' · ' + subtitle;
+    if (advancedDrawerSummary) advancedDrawerSummary.textContent = advancedSummary.textContent;
   }
 
   async function saveSettingsAndNotify() {
