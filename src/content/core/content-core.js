@@ -166,6 +166,8 @@
       }
       case 'translate-to-bottom':
         return await fn.translateToBottom();
+      case 'retry-failed-translations':
+        return await fn.retryFailedTranslations();
       case 'get-translation-progress':
         if (typeof fn.syncSharedTrackingState === 'function') fn.syncSharedTrackingState();
         return {

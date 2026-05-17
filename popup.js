@@ -33,6 +33,7 @@
   const progressCount = $('progress-count');
   const progressLabel = $('progress-label');
   const progressDetail = $('progress-detail');
+  const retryFailedBtn = $('retry-failed');
   const providerPresetSelect = $('provider-preset-select');
   const modelInput = $('model-input');
   const subtitleEnable = $('subtitle-enable');
@@ -450,6 +451,7 @@
     const hasWork = queued > 0 || totalObserved > 0;
     if (!hasWork) {
       progressCard.classList.add('hidden');
+      if (retryFailedBtn) retryFailedBtn.classList.add('hidden');
       return;
     }
 
@@ -478,6 +480,10 @@
       ].filter(Boolean).join(' · ');
       progressDetail.textContent = detail || formatTaskState(taskState);
       progressDetail.title = detail;
+    }
+    if (retryFailedBtn) {
+      retryFailedBtn.classList.toggle('hidden', failed <= 0);
+      retryFailedBtn.disabled = failed <= 0 || pending > 0;
     }
 
     // Label: active if there are pending items, done otherwise
@@ -689,6 +695,29 @@
         }
       } catch (e) {
         chrome.tabs.create({ url: chrome.runtime.getURL('sidepanel.html') });
+      }
+    });
+  }
+
+  if (retryFailedBtn) {
+    retryFailedBtn.addEventListener('click', async () => {
+      retryFailedBtn.disabled = true;
+      resetProgressMemory();
+      startProgressPolling();
+      setStatus('is-translating');
+      try {
+        const res = await sendTabMessage({ action: 'retry-failed-translations' });
+        if (!res || res.error) throw new Error(res?.error || 'Retry failed');
+        pageTranslated = true;
+        updatePageStatusUI();
+        const progress = await fetchTranslationProgress();
+        updateProgressUI(progress);
+      } catch (e) {
+        statusText.textContent = I18N.t('cannot_translate') + ': ' + (e.message || '');
+        setStatus('is-error');
+        setTimeout(updatePageStatusUI, 3000);
+      } finally {
+        retryFailedBtn.disabled = false;
       }
     });
   }

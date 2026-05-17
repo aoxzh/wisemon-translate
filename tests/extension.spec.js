@@ -605,6 +605,62 @@ test.describe('extension smoke', () => {
     }
   });
 
+  test('popup can retry failed page translation items', async () => {
+    const fixture = await startFixtureServer(LARGE_DYNAMIC_FIXTURE_FILE);
+    const context = await launchExtensionContext();
+    let firstCommentFailures = 0;
+    try {
+      await context.route('https://translate.googleapis.com/translate_a/single**', async route => {
+        const url = new URL(route.request().url());
+        const source = url.searchParams.get('q') || '';
+        if (source.includes('First detailed comment') && firstCommentFailures < 6) {
+          firstCommentFailures++;
+          await route.fulfill({
+            status: 500,
+            contentType: 'text/plain',
+            body: 'temporary fixture failure before manual retry'
+          });
+          return;
+        }
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([[[`TRANSLATED:${source.slice(0, 60)}`, source, null, null]]])
+        });
+      });
+
+      const extensionId = await getExtensionId(context);
+      await setExtensionSettings(context, extensionId, {
+        provider: 'google',
+        model: 'google-free',
+        targetLang: 'zh-CN',
+        sourceLang: 'auto',
+        displayMode: 'bilingual',
+        translateMainOnly: false,
+        maxConcurrency: 1
+      });
+
+      const page = await context.newPage();
+      await page.goto(fixture.url);
+      await page.waitForTimeout(1200);
+      const result = await translateFixturePage(context, extensionId, fixture.url, 'translate-to-bottom');
+      expect(result.error || '').toBe('');
+      await expect(page.locator('.llm-translate-retry')).toHaveCount(1, { timeout: 15000 });
+
+      const popup = await context.newPage();
+      await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+      await expect(popup.locator('#retry-failed')).toBeVisible({ timeout: 10000 });
+      await popup.locator('#retry-failed').click();
+      await expect(page.locator('.llm-translate-retry')).toHaveCount(0, { timeout: 15000 });
+      await expect(page.locator('.comment p + .llm-translate-block-wrapper').first()).toContainText('TRANSLATED:', { timeout: 15000 });
+      await expect(popup.locator('#progress-detail')).toContainText('recovered', { timeout: 10000 });
+      await popup.close();
+    } finally {
+      await context.close();
+      await fixture.close();
+    }
+  });
+
   test('style shortcut cycles through the full translation theme set', async () => {
     const fixture = await startFixtureServer();
     const context = await launchExtensionContext();

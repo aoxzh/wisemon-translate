@@ -80,6 +80,7 @@
   const viewElements = new Set();            // elements currently in viewport
   const dirtyQueue = new Set();
   let dirtyProcessing = false;
+  const retryingElements = new WeakSet();
 
   // Hover state
   let activeHoverParagraphs = new Set();
@@ -207,6 +208,7 @@
       togglePageTranslation,
       restoreOriginal,
       removeTranslationFrom,
+      retryFailedTranslations,
       applyPageState,
       syncSharedTrackingState,
       publishTranslationProgress,
@@ -503,6 +505,7 @@
         });
         if (res && res.translated && !res.error) {
           translationStats.recovered = (translationStats.recovered || 0) + 1;
+          group.recoveredBySingleRetry = true;
           _safeLog('warn', 'Content', 'Recovered failed batch item with single retry', {
             textLength: group.text.length,
             firstReason: raw || 'Unknown'
@@ -532,6 +535,10 @@
           injectTranslationResult(group, cleaned);
           translatedTextHashes.add(group.textHash);
           translatedTextCache.set(group.textHash, cleaned);
+          if (retryingElements.has(group.element) && !group.recoveredBySingleRetry) {
+            translationStats.recovered = (translationStats.recovered || 0) + 1;
+          }
+          retryingElements.delete(group.element);
           doneCount++;
           translationStats.succeeded++;
         } else {
@@ -662,6 +669,56 @@
       totalProcessed,
       remaining: candidates.length
     };
+  }
+
+  async function retryFailedTranslations() {
+    const wrappers = Array.from(document.querySelectorAll(`.${TAG_NAME}-retry`))
+      .map(retry => retry.closest(`[class*="${TAG_NAME}-block-wrapper"], [class*="${TAG_NAME}-inline-wrapper"]`))
+      .filter(Boolean);
+    const candidates = [];
+    const seen = new WeakSet();
+
+    wrappers.forEach(function(wrapper) {
+      const host = findRetryHost(wrapper);
+      if (!host || seen.has(host)) return;
+      seen.add(host);
+      wrapper.remove();
+      host.classList.remove('llm-original-hidden');
+      host.removeAttribute(ATTR_PROCESSED);
+      processedElements.delete(host);
+      observedElements.add(host);
+      retryingElements.add(host);
+      host.setAttribute(ATTR_OBSERVED, 'true');
+      candidates.push(host);
+    });
+
+    if (candidates.length === 0) {
+      publishTranslationProgress();
+      return { success: true, retried: 0, queued: translationStats.queued, failed: translationStats.failed };
+    }
+
+    translationTask.setState(translationTask.states.QUEUED || 'queued', { runId: translationRunId, reason: 'Retry failed translations' });
+    translationStats.failed = Math.max(0, (translationStats.failed || 0) - candidates.length);
+    translationStats.lastError = '';
+    publishTranslationProgress();
+    await processViewBatch(candidates);
+    return {
+      success: true,
+      retried: candidates.length,
+      queued: translationStats.queued,
+      succeeded: translationStats.succeeded,
+      failed: translationStats.failed,
+      recovered: translationStats.recovered || 0
+    };
+  }
+
+  function findRetryHost(wrapper) {
+    if (!(wrapper instanceof Element)) return null;
+    const wrapperId = wrapper.getAttribute(ATTR_ID);
+    const candidates = [wrapper.previousElementSibling, wrapper.nextElementSibling, wrapper.parentElement];
+    return candidates.find(function(el) {
+      return el && el.hasAttribute?.(ATTR_PROCESSED) && (!wrapperId || el.getAttribute(ATTR_ID) === wrapperId);
+    }) || null;
   }
 
   function hasRuleIncludeSelectors() {
@@ -1335,7 +1392,10 @@
       wrapper.remove();
       processedElements.delete(group.element);
       group.element.removeAttribute(ATTR_PROCESSED);
+      group.element.removeAttribute(ATTR_OBSERVED);
+      observedElements.delete?.(group.element);
       startObserveElement(group.element);
+      scheduleProcessViewBatch([group.element]);
     };
     wrapper.appendChild(retry);
     if (hasStrictParent) {
