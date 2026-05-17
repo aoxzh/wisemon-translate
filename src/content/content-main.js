@@ -1518,163 +1518,27 @@
 
   // ---- Language Detection (heuristic skip) ----
   function getPageLanguageHint() {
-    const lang = (document.documentElement.lang || document.querySelector('meta[http-equiv="content-language"]')?.content || '').toLowerCase();
-    if (lang.startsWith('ja')) return 'ja';
-    if (lang.startsWith('zh')) return 'zh';
-    if (lang.startsWith('ko')) return 'ko';
-    if (lang.startsWith('en')) return 'en';
-    if (lang.startsWith('fr')) return 'fr';
-    if (lang.startsWith('de')) return 'de';
-    if (lang.startsWith('es')) return 'es';
-    // Domain-based hint
-    if (location.hostname.endsWith('.jp')) return 'ja';
-    if (location.hostname.endsWith('.cn') || location.hostname.endsWith('.tw')) return 'zh';
-    if (location.hostname.endsWith('.kr')) return 'ko';
-    // Sample body text for language detection
-    const bodyText = (document.body?.innerText || '').slice(0, 8000);
-    if (!bodyText) return '';
-    // Japanese: hiragana + katakana
-    const kana = (bodyText.match(/[\u3040-\u309f\u30a0-\u30ff]/g) || []).length;
-    if (kana > 25) return 'ja';
-    // Korean: hangul characters
-    const hangul = (bodyText.match(/[\uac00-\ud7af]/g) || []).length;
-    if (hangul > 50) return 'ko';
-    // Chinese: CJK unified ideographs
-    const cjk = (bodyText.match(/[\u4e00-\u9fff]/g) || []).length;
-    const latinChars = (bodyText.match(/[a-zA-Z]/g) || []).length;
-    // If CJK dominates, it's Chinese (unless it has significant kana/hangul which we already checked)
-    if (cjk > latinChars && cjk > 80) return 'zh';
-    // If Latin dominates, it's English (or another Latin-script language)
-    if (latinChars > cjk && latinChars > 100) return 'en';
-    return '';
+    return ctx.fn.language?.getPageLanguageHint?.() || '';
   }
 
   function heuristicDetectLang(text) {
-    if (!text || text.length < 3) return '';
-    const pageLang = getPageLanguageHint();
-
-    // Quick checks with high confidence
-    const hasKana = /[\u3040-\u309f\u30a0-\u30ff]/.test(text);
-    const hasHangul = /[\uac00-\ud7af]/.test(text);
-    const hasCJK = /[\u4e00-\u9fff]/.test(text);
-    const hasLatin = /[a-zA-Z]{3,}/.test(text);
-
-    // Japanese: hiragana/katakana presence is definitive
-    if (hasKana) return 'ja';
-    // Korean: hangul is definitive
-    if (hasHangul) return 'ko';
-
-    // Count characters for weighted decision
-    const cjkCount = (text.match(/[\u4e00-\u9fff]/g) || []).length;
-    const latinCount = (text.match(/[a-zA-Z]/g) || []).length;
-    const totalChars = text.replace(/\s/g, '').length;
-
-    // Pure CJK: Chinese
-    if (hasCJK && cjkCount > totalChars * 0.4) return 'zh';
-
-    // Pure Latin: English/European
-    if (hasLatin && latinCount > totalChars * 0.6) return 'en';
-
-    // Mixed but CJK-dominant with page hint
-    if (hasCJK && cjkCount > totalChars * 0.2) {
-      if (pageLang === 'zh') return 'zh';
-      return 'zh'; // default CJK to Chinese
-    }
-
-    // Mixed Latin-dominant with page hint
-    if (hasLatin && latinCount > totalChars * 0.2) {
-      if (pageLang === 'en' || pageLang === 'fr' || pageLang === 'de' || pageLang === 'es') return pageLang;
-      return 'en';
-    }
-
-    // Short text: trust page language hint
-    if (text.length < 30 && pageLang) return pageLang;
-
-    return '';
+    return ctx.fn.language?.heuristicDetectLang?.(text) || '';
   }
 
   function getLanguageProfile(text) {
-    const value = String(text || '');
-    const compact = value.replace(/\s/g, '');
-    const total = compact.length || 1;
-    const kana = (value.match(/[\u3040-\u309f\u30a0-\u30ff]/g) || []).length;
-    const hangul = (value.match(/[\uac00-\ud7af]/g) || []).length;
-    const han = (value.match(/[\u4e00-\u9fff]/g) || []).length;
-    const latin = (value.match(/[a-zA-Z]/g) || []).length;
-    return {
-      total,
-      kana,
-      hangul,
-      han,
-      latin,
-      cjk: kana + hangul + han,
-      latinRatio: latin / total,
-      cjkRatio: (kana + hangul + han) / total
-    };
+    return ctx.fn.language?.getLanguageProfile?.(text) || { total: 1, kana: 0, hangul: 0, han: 0, latin: 0, cjk: 0, latinRatio: 0, cjkRatio: 0 };
   }
 
   function normalizeTargetLang(targetLang) {
-    const lang = String(targetLang || '').toLowerCase();
-    if (lang.startsWith('zh')) return 'zh';
-    if (lang.startsWith('ja')) return 'ja';
-    if (lang.startsWith('ko')) return 'ko';
-    if (lang.startsWith('en')) return 'en';
-    if (lang.startsWith('fr')) return 'fr';
-    if (lang.startsWith('de')) return 'de';
-    if (lang.startsWith('es')) return 'es';
-    return lang.split('-')[0] || '';
+    return ctx.fn.language?.normalizeTargetLang?.(targetLang) || '';
   }
 
   function hasMeaningfulMixedLanguage(text, targetLang) {
-    const target = normalizeTargetLang(targetLang);
-    const p = getLanguageProfile(text);
-    const minForeign = Math.max(4, Math.floor(p.total * 0.12));
-
-    if (target === 'ja') {
-      return p.latin >= minForeign || p.hangul >= minForeign;
-    }
-    if (target === 'zh') {
-      return p.latin >= minForeign || p.kana >= 2 || p.hangul >= minForeign;
-    }
-    if (target === 'ko') {
-      return p.latin >= minForeign || p.kana >= 2 || p.han >= minForeign;
-    }
-    if (target === 'en') {
-      return p.cjk >= minForeign;
-    }
-    return p.cjk >= minForeign && p.latin >= minForeign;
+    return !!ctx.fn.language?.hasMeaningfulMixedLanguage?.(text, targetLang);
   }
 
   function shouldSkipTranslation(text, targetLang) {
-    const detected = heuristicDetectLang(text);
-    if (!detected || !targetLang) return false;
-    const target = normalizeTargetLang(targetLang);
-
-    // Mixed-language blocks are common on Japanese/English technical pages.
-    // If any meaningful foreign script is present, translate instead of
-    // skipping the whole element just because the dominant language matches.
-    if (hasMeaningfulMixedLanguage(text, targetLang)) return false;
-
-    // Build target language group
-    const isCJKTarget = target === 'zh' || target === 'ja' || target === 'ko';
-    const isLatinTarget = target === 'en' || target === 'fr' || target === 'de' || target === 'es' || target === 'pt' || target === 'ru' || target === 'ar';
-    const isCJKSource = detected === 'zh' || detected === 'ja' || detected === 'ko';
-    const isLatinSource = detected === 'en' || detected === 'fr' || detected === 'de' || detected === 'es';
-
-    // Skip if detected language IS the target language
-    if (target === 'zh' && detected === 'zh') return true;
-    if (target === 'ja' && detected === 'ja') return true;
-    if (target === 'ko' && detected === 'ko') return true;
-    if (target === detected) return true;
-
-    // Cross-script: always translate (e.g., en->zh, zh->en)
-    if ((isCJKTarget && isLatinSource) || (isLatinTarget && isCJKSource)) return false;
-
-    // Same script family, short text: skip if page hint suggests same language
-    const pageLang = getPageLanguageHint();
-    if (text.length < 40 && pageLang && pageLang === target) return true;
-
-    return false;
+    return !!ctx.fn.language?.shouldSkipTranslation?.(text, targetLang);
   }
 
   // ---- Hover Feature ----
