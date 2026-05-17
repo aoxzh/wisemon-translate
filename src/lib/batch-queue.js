@@ -51,7 +51,7 @@
         batch.forEach((item, index) => {
           const result = Array.isArray(results) ? results[index] : undefined;
           if (result !== undefined && result !== null) item.resolve(result);
-          else item.reject(new Error(`No result for queued item ${index}`));
+          else item.resolve('[Translation Error: Missing batch result]');
         });
         if (typeof LOG !== 'undefined') {
           LOG.debug(tag, `Completed ${batch.length} queued items`, { totalLength });

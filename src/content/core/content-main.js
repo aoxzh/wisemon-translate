@@ -484,11 +484,38 @@
     var failedCount = 0;
     var totalVisible2 = translationStats.queued;
 
-    function injectOne(group, raw) {
+    function isTranslationErrorResult(raw) {
+      return !raw || (typeof raw === 'string' && raw.indexOf('[Translation Error:') === 0);
+    }
+
+    async function retrySingleTranslation(group, raw) {
+      if (!isTranslationErrorResult(raw)) return raw;
+      try {
+        const res = await chrome.runtime.sendMessage({
+          action: 'translate',
+          text: group.text,
+          sourceLang: settings.sourceLang,
+          targetLang: settings.targetLang
+        });
+        if (res && res.translated && !res.error) {
+          _safeLog('warn', 'Content', 'Recovered failed batch item with single retry', {
+            textLength: group.text.length,
+            firstReason: raw || 'Unknown'
+          });
+          return res.translated;
+        }
+        return raw || `[Translation Error: ${res?.error || 'Single retry returned no translation'}]`;
+      } catch (err) {
+        return raw || `[Translation Error: ${err.message || 'Single retry failed'}]`;
+      }
+    }
+
+    async function injectOne(group, raw) {
       if (group.runId !== translationRunId) return;
       translationTask.setState(translationTask.states.TRANSLATING || 'translating', { runId: translationRunId, reason: '' });
+      raw = await retrySingleTranslation(group, raw);
       totalProcessed++;
-      if (!raw || raw.indexOf('[Translation Error:') === 0) {
+      if (isTranslationErrorResult(raw)) {
         failedCount++;
         translationStats.failed++;
         _safeLog('error', 'Content', 'Element translation failed', { reason: raw || 'Unknown', textLength: group.text.length, textPreview: group.text.slice(0, 180) });
@@ -526,7 +553,7 @@
       try {
         const raw = await sendTranslateStream(group);
         if (live?.wrapper) live.wrapper.remove();
-        injectOne(group, raw);
+        await injectOne(group, raw);
       } catch (err) {
         if (live?.wrapper) live.wrapper.remove();
         failedCount++;
@@ -541,7 +568,7 @@
       groups.forEach(function(group) {
         if (group.runId !== translationRunId) return;
         translateQueue.add(group.text, { runId: translationRunId }).then(function(raw) {
-          injectOne(group, raw);
+          return injectOne(group, raw);
         }).catch(function(err) {
           if (group.runId === translationRunId) {
             failedCount++;
@@ -558,7 +585,7 @@
       try {
         var texts = groups.map(function(g) { return g.text; });
         var results = await sendTranslateBatch(texts, { runId: translationRunId });
-        groups.forEach(function(group, i) { injectOne(group, results[i]); });
+        await Promise.all(groups.map(function(group, i) { return injectOne(group, results[i]); }));
       } catch (err) {
         translationStats.failed += groups.length;
         totalProcessed += groups.length;
