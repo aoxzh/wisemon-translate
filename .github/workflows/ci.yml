@@ -9,8 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -24,7 +24,7 @@ jobs:
         run: |
           firefox_dir="$(find dist -maxdepth 1 -type d -name '*-firefox' | head -n 1)"
           npx --yes web-ext@latest lint --source-dir "$firefox_dir"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: extension-packages
           path: dist/*.zip
