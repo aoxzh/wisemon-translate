@@ -1,0 +1,11 @@
+[
+  {
+    "id": "example-docs",
+    "matches": ["docs.example.com"],
+    "includeSelectors": ["main article", ".documentation-content"],
+    "excludeSelectors": ["pre", "code", "nav", ".api-token"],
+    "mainSelectors": ["main"],
+    "contextHint": "Technical documentation. Preserve commands, product names, and API identifiers.",
+    "privacyMode": "strict"
+  }
+]

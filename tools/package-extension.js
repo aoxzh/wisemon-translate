@@ -34,6 +34,7 @@ const INCLUDE = [
   'sidepanel.html',
   'sidepanel.js',
   'README.md',
+  'examples',
   'icons',
   'vendor',
   'src/content',

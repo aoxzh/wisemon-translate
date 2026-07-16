@@ -10,7 +10,7 @@ const childProcess = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 const MANIFESTS = ['manifest.json', 'manifest-firefox.json'];
-const JSON_FILES = ['src/lib/site-rules.json', 'src/lib/site-rule-schema.json', 'docs/site-rule-subscription.example.json'];
+const JSON_FILES = ['src/lib/site-rules.json', 'src/lib/site-rule-schema.json', 'examples/site-rule-subscription.json'];
 const HTML_FILES = ['popup.html', 'options.html', 'sidepanel.html', 'privacy.html'];
 const UI_PAIRS = [
   ['popup.js', 'popup.html'],
