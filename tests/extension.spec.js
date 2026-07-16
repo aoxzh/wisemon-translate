@@ -25,7 +25,7 @@ const LARGE_DYNAMIC_FIXTURE_FILE = path.resolve(__dirname, 'fixtures', 'large-dy
 
 async function launchExtensionContext() {
   const context = await chromium.launchPersistentContext('', {
-    // Keep headed default for local extension debugging; set HEADLESS=true for CI.
+    // Chromium extensions require headed mode; CI provides a virtual display via Xvfb.
     headless: process.env.HEADLESS === 'true',
     args: [
       `--disable-extensions-except=${EXTENSION_PATH}`,
@@ -645,6 +645,43 @@ test.describe('extension smoke', () => {
     }
   });
 
+  test('toggling during an in-flight translation cancels the run without stale injection', async () => {
+    const fixture = await startFixtureServer(NEWS_FIXTURE_FILE);
+    const context = await launchExtensionContext();
+    try {
+      await context.route('https://translate.googleapis.com/translate_a/single**', async route => {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        const url = new URL(route.request().url());
+        const source = url.searchParams.get('q') || '';
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([[[`TRANSLATED:${source}`, source, null, null]]]) }).catch(() => {});
+      });
+      const extensionId = await getExtensionId(context);
+      await setExtensionSettings(context, extensionId, { provider: 'google', model: 'google-free', targetLang: 'zh-CN', sourceLang: 'auto' });
+      const page = await context.newPage();
+      await page.goto(fixture.url);
+      await page.waitForTimeout(800);
+      const controllerPage = await context.newPage();
+      await controllerPage.goto(`chrome-extension://${extensionId}/options.html`);
+      const pending = controllerPage.evaluate(async targetUrl => {
+        const [tab] = await chrome.tabs.query({ url: targetUrl });
+        await chrome.runtime.sendMessage({ action: 'inject-content-main', tabId: tab.id });
+        return await chrome.tabs.sendMessage(tab.id, { action: 'translate-page' });
+      }, fixture.url);
+      await page.waitForTimeout(250);
+      const startedAt = Date.now();
+      const canceled = await sendToFixtureTab(context, extensionId, fixture.url, { action: 'toggle-translation' });
+      expect(canceled.canceled).toBe(true);
+      expect(Date.now() - startedAt).toBeLessThan(1200);
+      const firstResult = await pending;
+      expect(firstResult.canceled).toBe(true);
+      await page.waitForTimeout(3200);
+      await expect(page.locator('.llm-translate-inner')).toHaveCount(0);
+    } finally {
+      await context.close();
+      await fixture.close();
+    }
+  });
+
   test('popup can retry failed page translation items', async () => {
     const fixture = await startFixtureServer(LARGE_DYNAMIC_FIXTURE_FILE);
     const context = await launchExtensionContext();
@@ -871,6 +908,37 @@ test.describe('extension smoke', () => {
     }
   });
 
+  test('selection AI action replace mode replaces the selected page text', async () => {
+    const fixture = await startFixtureServer(SELECTION_FIXTURE_FILE);
+    const context = await launchExtensionContext();
+    try {
+      await mockGoogleTranslate(context);
+      const extensionId = await getExtensionId(context);
+      await setExtensionSettings(context, extensionId, {
+        provider: 'google', model: 'google-free', targetLang: 'zh-CN', sourceLang: 'auto', enableSelection: true,
+        aiActions: [{ id: 'replace', name: 'Replace', icon: 'R', prompt: '{{text}}', outputMode: 'replace', temperature: 0 }]
+      });
+      const page = await context.newPage();
+      await page.goto(fixture.url);
+      await page.waitForTimeout(1000);
+      await sendToFixtureTab(context, extensionId, fixture.url, { action: 'get-status' });
+      await page.locator('#selection-source').evaluate(element => {
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        element.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: 80, clientY: 120 }));
+      });
+      await expect(page.locator('.llm-popup-ai-action-btn')).toBeVisible({ timeout: 10000 });
+      await page.locator('.llm-popup-ai-action-btn').click();
+      await expect(page.locator('#selection-source')).toContainText('TRANSLATED:', { timeout: 10000 });
+    } finally {
+      await context.close();
+      await fixture.close();
+    }
+  });
+
   test('input translation replaces contenteditable text via triple-space trigger', async () => {
     const fixture = await startFixtureServer(RICH_EDITOR_FIXTURE_FILE);
     const context = await launchExtensionContext();
@@ -1073,11 +1141,155 @@ test.describe('extension smoke', () => {
       await expect(page.locator('#app .llm-translate-inner').first()).toContainText('TRANSLATED:', { timeout: 15000 });
       await page.locator('#route-thread').click();
       await expect(page.locator('#spa-dynamic')).toContainText('discussion route', { timeout: 5000 });
-      await translateFixturePage(context, extensionId, fixture.url, 'translate-to-bottom');
       await expect(page.locator('#app .llm-translate-inner').first()).toContainText('TRANSLATED:', { timeout: 15000 });
     } finally {
       await context.close();
       await fixture.close();
+    }
+  });
+
+  test('spa translation activates after leaving an initially disabled route', async () => {
+    const fixture = await startFixtureServer(SPA_FIXTURE_FILE);
+    const context = await launchExtensionContext();
+    try {
+      await mockGoogleTranslate(context);
+      const extensionId = await getExtensionId(context);
+      await setExtensionSettings(context, extensionId, {
+        provider: 'google',
+        model: 'google-free',
+        targetLang: 'zh-CN',
+        sourceLang: 'auto',
+        autoTranslate: true,
+        translateMainOnly: false,
+        maxConcurrency: 1,
+        siteRules: JSON.stringify([{ id: 'blocked-route', matches: ['127.0.0.1/blocked'], disabled: true }])
+      });
+
+      const blockedUrl = fixture.url.replace('/article.html', '/blocked');
+      const page = await context.newPage();
+      await page.goto(blockedUrl);
+      await page.waitForTimeout(1200);
+      await expect(page.locator('.llm-translate-inner')).toHaveCount(0);
+
+      await page.evaluate(() => {
+        history.pushState({}, '', '/allowed');
+        document.getElementById('app').innerHTML = '<section class="panel"><h1>Allowed route</h1><p id="spa-allowed">Translation should activate after leaving the disabled route.</p></section>';
+        window.dispatchEvent(new Event('popstate'));
+      });
+      await expect(page.locator('#spa-allowed')).toBeVisible();
+      await expect(page.locator('#app .llm-translate-inner').first()).toContainText('TRANSLATED:', { timeout: 15000 });
+    } finally {
+      await context.close();
+      await fixture.close();
+    }
+  });
+
+  test('loaded pages apply subscription rule changes from another extension context', async () => {
+    const fixture = await startFixtureServer();
+    const context = await launchExtensionContext();
+    try {
+      await mockGoogleTranslate(context);
+      const extensionId = await getExtensionId(context);
+      await setExtensionSettings(context, extensionId, {
+        provider: 'google', model: 'google-free', targetLang: 'zh-CN', autoTranslate: true, translateMainOnly: false
+      });
+      const page = await context.newPage();
+      await page.goto(fixture.url);
+      await expect(page.locator('.llm-translate-inner').first()).toContainText('TRANSLATED:', { timeout: 15000 });
+
+      const optionsPage = await context.newPage();
+      await optionsPage.goto(`chrome-extension://${extensionId}/options.html`);
+      await optionsPage.evaluate(async () => {
+        await chrome.storage.local.set({
+          'llm-site-rule-subscriptions-v1': [{
+            url: 'https://rules.test/live.json',
+            rules: [{ id: 'exclude-live-page', matches: ['127.0.0.1'], excludeSelectors: ['body *'] }]
+          }]
+        });
+      });
+      await expect(page.locator('.llm-translate-inner')).toHaveCount(0, { timeout: 10000 });
+
+      await optionsPage.evaluate(async () => {
+        await chrome.storage.local.set({ 'llm-site-rule-subscriptions-v1': [] });
+      });
+      await expect(page.locator('.llm-translate-inner').first()).toContainText('TRANSLATED:', { timeout: 15000 });
+      await optionsPage.close();
+    } finally {
+      await context.close();
+      await fixture.close();
+    }
+  });
+
+  test('netflix subtitle adapter renders translated timed text', async () => {
+    const context = await launchExtensionContext();
+    try {
+      await mockGoogleTranslate(context);
+      await context.route('https://www.netflix.com/watch/12345', route => route.fulfill({
+        status: 200,
+        contentType: 'text/html',
+        body: '<!doctype html><html><body><div id="player"><video></video></div></body></html>'
+      }));
+      await context.route('https://subtitle.test/netflix.vtt', route => route.fulfill({
+        status: 200,
+        contentType: 'text/vtt',
+        body: 'WEBVTT\n\n00:00:00.000 --> 00:00:05.000\nHello from Netflix\n'
+      }));
+      const extensionId = await getExtensionId(context);
+      await setExtensionSettings(context, extensionId, { provider: 'google', model: 'google-free', enableSubtitle: true, targetLang: 'zh-CN' });
+      const page = await context.newPage();
+      await page.goto('https://www.netflix.com/watch/12345');
+      await page.waitForTimeout(800);
+      await sendToFixtureTab(context, extensionId, 'https://www.netflix.com/watch/12345', { action: 'get-status' });
+      await page.evaluate(() => {
+        window.dispatchEvent(new CustomEvent('llm-netflix-subtitle-data', { detail: { type: 'tracks', data: {
+          movieId: 12345,
+          timedtexttracks: [{ trackId: 1, language: 'en', ttDownloadables: { 'webvtt-lssdh-ios8': { downloadUrls: { main: 'https://subtitle.test/netflix.vtt' } } } }]
+        } } }));
+      });
+      await page.waitForTimeout(300);
+      await page.locator('video').evaluate(video => {
+        Object.defineProperty(video, 'currentTime', { configurable: true, value: 1 });
+        video.dispatchEvent(new Event('timeupdate'));
+      });
+      await expect(page.locator('.llm-video-subtitle-overlay .llm-sub-translated')).toContainText('TRANSLATED:', { timeout: 10000 });
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('bilibili subtitle adapter renders translated timed text', async () => {
+    const context = await launchExtensionContext();
+    try {
+      await mockGoogleTranslate(context);
+      await context.route('https://www.bilibili.com/video/BV1TEST', route => route.fulfill({
+        status: 200,
+        contentType: 'text/html',
+        body: '<!doctype html><html><body><div id="player"><video></video></div></body></html>'
+      }));
+      await context.route('https://subtitle.test/bilibili.json', route => route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ body: [{ from: 0, to: 5, content: 'Hello from Bilibili' }] })
+      }));
+      const extensionId = await getExtensionId(context);
+      await setExtensionSettings(context, extensionId, { provider: 'google', model: 'google-free', enableSubtitle: true, targetLang: 'zh-CN' });
+      const page = await context.newPage();
+      await page.goto('https://www.bilibili.com/video/BV1TEST');
+      await page.waitForTimeout(800);
+      await sendToFixtureTab(context, extensionId, 'https://www.bilibili.com/video/BV1TEST', { action: 'get-status' });
+      await page.evaluate(() => {
+        window.dispatchEvent(new CustomEvent('llm-bilibili-subtitle-data', { detail: { tracks: [
+          { lan: 'en', subtitle_url: 'https://subtitle.test/bilibili.json' }
+        ] } }));
+      });
+      await page.waitForTimeout(300);
+      await page.locator('video').evaluate(video => {
+        Object.defineProperty(video, 'currentTime', { configurable: true, value: 1 });
+        video.dispatchEvent(new Event('timeupdate'));
+      });
+      await expect(page.locator('.llm-video-subtitle-overlay .llm-sub-translated')).toContainText('TRANSLATED:', { timeout: 10000 });
+    } finally {
+      await context.close();
     }
   });
 
@@ -1209,6 +1421,8 @@ test.describe('extension smoke', () => {
 
       const page = await context.newPage();
       await page.goto(fixture.url);
+      const ready = await sendToFixtureTab(context, extensionId, fixture.url, { action: 'get-status' });
+      expect(ready.error || '').toBe('');
       await page.locator('#plain-textarea').fill('Translate this textarea draft into the target language.   ');
       await page.locator('#plain-textarea').press('Space');
       await page.locator('#plain-textarea').press('Space');

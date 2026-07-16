@@ -64,6 +64,10 @@
     return voices.find(function(v) { return String(v.lang).toLowerCase().startsWith(prefix); }) || null;
   }
 
+  function getVoiceList() {
+    return loadVoices();
+  }
+
   function resolveLang(lang, settings) {
     if (lang && lang !== 'auto') return lang;
     const s = settings || ctx.state.settings || {};
@@ -79,15 +83,16 @@
       const settings = ctx.state.settings || {};
       const resolvedLang = resolveLang(lang, settings);
       const utter = new SpeechSynthesisUtterance(t);
-      const voice = pickVoice(voices, resolvedLang);
+      const preferred = String(settings.ttsVoice || '');
+      const voice = voices.find(v => v.voiceURI === preferred || v.name === preferred) || pickVoice(voices, resolvedLang);
       if (voice) {
         utter.voice = voice;
         utter.lang = voice.lang;
       } else {
         utter.lang = resolvedLang;
       }
-      utter.rate = 1;
-      utter.pitch = 1;
+      utter.rate = Math.max(0.5, Math.min(2, Number(settings.ttsRate) || 1));
+      utter.pitch = Math.max(0.5, Math.min(2, Number(settings.ttsPitch) || 1));
       utter.volume = 1;
       utter.onend = function() { currentUtterance = null; };
       utter.onerror = function() { currentUtterance = null; };
@@ -107,9 +112,10 @@
 
   Object.assign(ctx.fn, {
     speakTTS: speak,
-    stopTTS: stop
+    stopTTS: stop,
+    getTTSVoices: getVoiceList
   });
 
   // Global fallback for pages that load this script directly (e.g. sidepanel)
-  window.__LLM_TTS__ = { speak: speak, stop: stop };
+  window.__LLM_TTS__ = { speak: speak, stop: stop, getVoices: getVoiceList };
 })();

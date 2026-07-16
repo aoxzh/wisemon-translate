@@ -36,6 +36,64 @@
     try { return JSON.stringify(obj, null, 2); } catch (e) { return String(obj); }
   }
 
+  function _sanitizeString(value) {
+    const input = String(value || '');
+    if (typeof maskSensitiveData !== 'function') return input;
+    const masked = maskSensitiveData(input, {
+      privacyMasking: true,
+      maskEmail: true,
+      maskPhone: true,
+      maskCreditCard: true,
+      maskSecrets: true,
+      maskUrls: false,
+      maskVerificationCodes: true,
+      maskPrivateKeys: true
+    });
+    let result = masked.text;
+    for (const item of masked.map || []) {
+      const type = String(item.token || '').match(/_([A-Z_]+)__$/)?.[1] || 'VALUE';
+      result = result.split(item.token).join(`[REDACTED_${type}]`);
+    }
+    return result;
+  }
+
+  function _sanitizeUrl(value) {
+    try {
+      const url = new URL(String(value));
+      return url.origin;
+    } catch (e) {
+      return '[REDACTED_URL]';
+    }
+  }
+
+  function _sanitizeData(value, key = '') {
+    const name = String(key || '').toLowerCase();
+    if (/api.?key|authorization|password|passwd|secret|token|credential/.test(name)) return '[REDACTED]';
+    if (/text.?preview|raw.?preview|stream.?content|source.?text|translated.?text/.test(name)) return '[REDACTED]';
+    if (/^(page)?url$/.test(name)) return _sanitizeUrl(value);
+    if (Array.isArray(value)) return value.map(item => _sanitizeData(item));
+    if (value && typeof value === 'object') {
+      const output = {};
+      for (const [childKey, childValue] of Object.entries(value)) output[childKey] = _sanitizeData(childValue, childKey);
+      return output;
+    }
+    if (typeof value === 'string') return _sanitizeString(value);
+    return value;
+  }
+
+  function _sanitizeEntry(entry) {
+    if (!entry || typeof entry !== 'object') return entry;
+    let data = entry.data;
+    if (typeof data === 'string') {
+      try { data = JSON.parse(data); } catch (e) { data = _sanitizeString(data); }
+    }
+    return {
+      ...entry,
+      message: _sanitizeString(entry.message),
+      data: _safeStr(_sanitizeData(data))
+    };
+  }
+
   function _makeEntry(level, tag, message, data) {
     return {
       id: Date.now() + '_' + Math.random().toString(36).slice(2, 8),
@@ -44,7 +102,7 @@
       level,
       tag,
       message,
-      data: _safeStr(data)
+      data: _safeStr(_sanitizeData(data))
     };
   }
 
@@ -76,6 +134,7 @@
   async function _writeEntries(entries) {
     if (!entries || entries.length === 0) return;
     try {
+      entries = entries.map(_sanitizeEntry);
       const result = await chrome.storage.local.get(STORAGE_KEY);
       let logs = result[STORAGE_KEY] || [];
       logs = logs.concat(entries);
@@ -197,6 +256,6 @@
   if (typeof self !== 'undefined') self.LOGGER = { ...LOG, init: async () => {} };
 
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { LOG, LOGGER: LOG };
+    module.exports = { LOG, LOGGER: LOG, sanitizeLogData: _sanitizeData };
   }
 })();

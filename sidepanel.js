@@ -46,6 +46,8 @@
   try {
     const res = await chrome.runtime.sendMessage({ action: 'get-settings' });
     settings = { ...DEFAULT_SETTINGS, ...(res.settings || {}) };
+    window.__LLM_CTX__ = window.__LLM_CTX__ || { state: {}, fn: {}, features: {} };
+    window.__LLM_CTX__.state.settings = settings;
     targetLang.value = settings.targetLang || 'zh-CN';
     applyUiTheme(settings.uiTheme || 'auto');
   } catch(e) {}
@@ -286,7 +288,7 @@
   }
 
   async function readPdfFile(file) {
-    const pdfjs = await import(chrome.runtime.getURL('vendor/pdfjs/pdf.min.mjs'));
+    const pdfjs = await import('./vendor/pdfjs/pdf.min.mjs');
     pdfjs.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('vendor/pdfjs/pdf.worker.min.mjs');
     const data = new Uint8Array(await file.arrayBuffer());
     const pdf = await pdfjs.getDocument({ data }).promise;
@@ -472,11 +474,7 @@
     const row = document.createElement('section');
     row.className = 'side-segment';
     row.dataset.segmentId = segment.id;
-    row.innerHTML = [
-      '<div class="side-segment-head"><strong></strong><span></span></div>',
-      '<div class="side-segment-source"></div>',
-      '<div class="side-segment-translation"></div>'
-    ].join('');
+    row.innerHTML = '<div class="side-segment-head"><strong></strong><span></span></div><div class="side-segment-source"></div><div class="side-segment-translation"></div>';
     updateSegmentNode(segment, '', row);
     return row;
   }
@@ -705,7 +703,11 @@
   function renderHistory() {
     if (!historyList) return;
     if (!history.length) {
-      historyList.innerHTML = '<div class="side-result">' + I18N.t('sidepanel_no_history') + '</div>';
+      historyList.replaceChildren();
+      const empty = document.createElement('div');
+      empty.className = 'side-result';
+      empty.textContent = I18N.t('sidepanel_no_history');
+      historyList.appendChild(empty);
       return;
     }
     historyList.innerHTML = '';
@@ -713,9 +715,11 @@
       const row = document.createElement('button');
       row.type = 'button';
       row.className = 'side-history-item';
-      row.innerHTML = '<strong></strong><span></span>';
-      row.querySelector('strong').textContent = item.source.slice(0, 90);
-      row.querySelector('span').textContent = new Date(item.ts).toLocaleString() + ' · ' + item.targetLang;
+      const title = document.createElement('strong');
+      title.textContent = item.source.slice(0, 90);
+      const meta = document.createElement('span');
+      meta.textContent = new Date(item.ts).toLocaleString() + ' · ' + item.targetLang;
+      row.append(title, meta);
       row.addEventListener('click', () => {
         sourceText.value = item.source;
         resultText.textContent = item.translated;

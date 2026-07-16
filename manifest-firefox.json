@@ -1,18 +1,30 @@
 {
   "manifest_version": 3,
   "name": "wisemon-translate",
-  "version": "1.0.2",
+  "version": "1.0.6",
   "description": "AI-powered bilingual web page translation. DeepSeek, OpenAI, or any compatible LLM. Just bring your own API key.",
   "browser_specific_settings": {
     "gecko": {
-      "id": "wisemon@example.com"
+      "id": "wisemon@example.com",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": [
+          "authenticationInfo",
+          "browsingActivity",
+          "websiteContent"
+        ]
+      }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
     }
   },
   "permissions": [
     "storage",
     "activeTab",
     "scripting",
-    "contextMenus"
+    "contextMenus",
+    "alarms"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -33,6 +45,7 @@
       "src/lib/llm-api.js",
       "src/lib/llm-adapters/batch.js",
       "src/lib/provider-loader.js",
+      "src/lib/providers/anthropic.js",
       "src/lib/providers/google.js",
       "src/lib/providers/deepl.js",
       "src/lib/providers/baidu.js",
@@ -50,6 +63,10 @@
       "default_title": "wisemon-translate"
   },
   "options_page": "options.html",
+  "sidebar_action": {
+    "default_title": "wisemon-translate Reader",
+    "default_panel": "sidepanel.html"
+  },
   "content_scripts": [
     {
       "matches": [
@@ -103,45 +120,12 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "icons/*",
-        "src/lib/i18n.js",
-        "src/lib/i18n-locales/common.js",
-        "src/lib/i18n-locales/options-general.js",
-        "src/lib/i18n-locales/options-translation.js",
-        "src/lib/i18n-locales/options-features.js",
-        "src/lib/i18n-locales/themes.js",
-        "src/lib/utils.js",
-        "src/lib/providers.js",
-        "src/lib/logger.js",
-        "src/lib/batch-queue.js",
-        "src/lib/site-rules.js",
         "src/lib/site-rules.json",
-        "src/lib/llm-api.js",
-        "src/lib/llm-adapters/batch.js",
-        "src/lib/provider-loader.js",
-        "src/lib/providers/google.js",
-        "src/lib/providers/deepl.js",
-        "src/lib/providers/baidu.js",
-        "src/lib/providers/microsoft.js",
-        "vendor/pdfjs/pdf.min.mjs",
-        "vendor/pdfjs/pdf.worker.min.mjs",
         "src/content/ui/inline-styles.css",
-        "src/content/core/content-constants.js",
-        "src/content/translation/content-progress.js",
-        "src/content/translation/content-text-utils.js",
-        "src/content/translation/content-adaptive-scanner.js",
-        "src/content/translation/content-candidate-pruner.js",
-        "src/content/translation/content-scanner.js",
-        "src/content/translation/content-injection.js",
-        "src/content/translation/content-batch-processor.js",
-        "src/content/translation/content-shadow.js",
-        "src/content/translation/content-title.js",
-        "src/content/translation/content-language.js",
-        "src/content/translation/content-element-utils.js",
-        "src/content/features/content-hover.js",
-        "src/content/core/content-main.js",
         "src/injectors/shadowroot-patcher.js",
-        "src/injectors/youtube-subtitle-injector.js"
+        "src/injectors/youtube-subtitle-injector.js",
+        "src/injectors/netflix-subtitle-injector.js",
+        "src/injectors/bilibili-subtitle-injector.js"
       ],
       "matches": [
         "http://*/*",

@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install chromium
+      - run: npm run test:unit
+      - run: npm run validate
+      - run: xvfb-run -a npm run test:e2e
+      - run: npm run package
+      - name: Lint Firefox package
+        run: |
+          firefox_dir="$(find dist -maxdepth 1 -type d -name '*-firefox' | head -n 1)"
+          npx --yes web-ext@latest lint --source-dir "$firefox_dir"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: extension-packages
+          path: dist/*.zip

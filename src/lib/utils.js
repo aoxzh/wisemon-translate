@@ -76,6 +76,9 @@ const DEFAULT_SETTINGS = {
   maskUrls: false,
   maskVerificationCodes: true,
   maskPrivateKeys: true,
+  ttsRate: 1,
+  ttsPitch: 1,
+  ttsVoice: '',
   baiduAppId: '',                  // dedicated Baidu translate appid (falls back to model for compatibility)
   keyboardShortcuts: {             // customizable keyboard shortcuts
     translatePage: 'alt+t',
@@ -85,22 +88,39 @@ const DEFAULT_SETTINGS = {
 };
 
 async function getSettings() {
-  try {
-    const result = await chrome.storage.sync.get(STORAGE_KEYS.SETTINGS);
-    return { ...DEFAULT_SETTINGS, ...(result[STORAGE_KEYS.SETTINGS] || {}) };
-  } catch (e) {
-    console.warn('[wisemon-translate] storage.sync failed, falling back to local:', e);
-    const result = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
-    return { ...DEFAULT_SETTINGS, ...(result[STORAGE_KEYS.SETTINGS] || {}) };
+  const localResult = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
+  let stored = localResult[STORAGE_KEYS.SETTINGS] || null;
+
+  // Migrate legacy synced settings once. Settings contain API credentials,
+  // private site lists and prompts, so local storage is the authoritative home.
+  if (!stored && chrome.storage.sync) {
+    try {
+      const syncResult = await chrome.storage.sync.get(STORAGE_KEYS.SETTINGS);
+      const legacy = syncResult[STORAGE_KEYS.SETTINGS] || null;
+      if (legacy) {
+        stored = legacy;
+        await chrome.storage.local.set({ [STORAGE_KEYS.SETTINGS]: legacy });
+      }
+    } catch (e) {
+      console.warn('[wisemon-translate] legacy settings migration skipped:', e);
+    }
   }
+
+  if (chrome.storage.sync) {
+    try {
+      await chrome.storage.sync.remove(STORAGE_KEYS.SETTINGS);
+    } catch (e) { /* local settings remain authoritative */ }
+  }
+  return { ...DEFAULT_SETTINGS, ...(stored || {}) };
 }
 
 async function setSettings(settings) {
   const payload = { [STORAGE_KEYS.SETTINGS]: settings };
-  try {
-    await chrome.storage.sync.set(payload);
-  } catch (e) {
-    await chrome.storage.local.set(payload);
+  await chrome.storage.local.set(payload);
+  if (chrome.storage.sync) {
+    try {
+      await chrome.storage.sync.remove(STORAGE_KEYS.SETTINGS);
+    } catch (e) { /* do not fail a successful local save */ }
   }
 }
 
@@ -408,6 +428,14 @@ function normalizeSettings(settings) {
   return merged;
 }
 
+function sanitizeSettingsForExport(settings) {
+  const safe = JSON.parse(JSON.stringify(settings || {}));
+  safe.apiKey = '';
+  safe.apiKeys = {};
+  safe.baiduAppId = '';
+  return safe;
+}
+
 function isLikelyCreditCard(value) {
   const digits = String(value || '').replace(/\D/g, '');
   if (digits.length < 13 || digits.length > 19) return false;
@@ -481,11 +509,36 @@ function restoreSensitiveData(text, map) {
   return restored;
 }
 
-function makeCacheKey(text, sourceLang, targetLang, model) {
+function stableSerialize(value) {
+  if (value === null || value === undefined) return '';
+  if (Array.isArray(value)) return '[' + value.map(stableSerialize).join(',') + ']';
+  if (typeof value === 'object') {
+    return '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + stableSerialize(value[key])).join(',') + '}';
+  }
+  return JSON.stringify(value);
+}
+
+function getCacheVariant(settings = {}) {
+  return {
+    provider: settings.provider || '',
+    baseURL: settings.baseURL || '',
+    systemPrompt: settings.systemPrompt || '',
+    userPromptTemplate: settings.userPromptTemplate || '',
+    translationStylePreset: settings.translationStylePreset || '',
+    glossary: settings.glossary || '',
+    terms: settings.terms || [],
+    siteTerms: settings.siteTerms || [],
+    aiTerms: settings.aiTerms || [],
+    context: settings.context || ''
+  };
+}
+
+function makeCacheKey(text, sourceLang, targetLang, model, settings) {
   // FNV-1a 64-bit keeps cache keys compact while sharply reducing collisions.
   let hash = 0xcbf29ce484222325n;
   const prime = 0x100000001b3n;
-  const str = (text || '') + '|' + (sourceLang || '') + '|' + (targetLang || '') + '|' + (model || '');
+  const variant = settings ? stableSerialize(getCacheVariant(settings)) : '';
+  const str = (text || '') + '|' + (sourceLang || '') + '|' + (targetLang || '') + '|' + (model || '') + '|' + variant;
   for (let i = 0; i < str.length; i++) {
     hash ^= BigInt(str.charCodeAt(i));
     hash = (hash * prime) & 0xffffffffffffffffn;
@@ -522,9 +575,12 @@ if (typeof module !== 'undefined' && module.exports) {
     PROVIDER_LANGUAGE_MAPS,
     normalizeProviderLanguage,
     normalizeSettings,
+    sanitizeSettingsForExport,
     isLikelyCreditCard,
     maskSensitiveData,
     restoreSensitiveData,
+    stableSerialize,
+    getCacheVariant,
     makeCacheKey
   };
 }

@@ -17,7 +17,8 @@
   }
 
   function injectRuleCss(cssList) {
-    if (!Array.isArray(cssList) || cssList.length === 0 || document.getElementById('llm-translate-rule-styles')) return;
+    document.getElementById('llm-translate-rule-styles')?.remove();
+    if (!Array.isArray(cssList) || cssList.length === 0) return;
     const styleEl = document.createElement('style');
     styleEl.id = 'llm-translate-rule-styles';
     styleEl.textContent = cssList.join('\n');

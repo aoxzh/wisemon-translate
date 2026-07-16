@@ -37,6 +37,8 @@
         const res = await chrome.runtime.sendMessage({
           action: 'translate',
           text: group.text,
+          runId: group.runId,
+          requestId: `single_${group.runId}_${Date.now()}_${Math.random().toString(36).slice(2)}`,
           sourceLang: settings.sourceLang,
           targetLang: settings.targetLang
         });
@@ -88,7 +90,7 @@
             if (existingId) group.preservedId = existingId;
             deps.safeLog('warn', 'Content', 'Duplicate text hash had no cached translation; re-queued element', {
               hash,
-              textPreview: group.text.slice(0, 120)
+              textLength: group.text.length
             });
             group.textHash = hash;
             group.runId = runId;
@@ -123,8 +125,7 @@
           stats.lastError = String(raw || 'Unknown error').replace(/^\[Translation Error:\s*|\]$/g, '').slice(0, 240);
           deps.safeLog('error', 'Content', 'Element translation failed', {
             reason: raw || 'Unknown',
-            textLength: group.text.length,
-            textPreview: group.text.slice(0, 180)
+            textLength: group.text.length
           });
           deps.showRetry(group, raw || 'Unknown error');
         } else {
@@ -143,8 +144,7 @@
             stats.failed++;
             stats.lastError = 'Empty result after cleaning';
             deps.safeLog('error', 'Content', 'Element translation cleaned to empty', {
-              textLength: group.text.length,
-              textPreview: group.text.slice(0, 180)
+              textLength: group.text.length
             });
             deps.showRetry(group, 'Empty result after cleaning');
           }
@@ -223,7 +223,12 @@
       if (args.runId && args.runId !== deps.getTranslationRunId()) {
         return texts.map(() => '[Translation Error: Translation run was canceled]');
       }
-      const message = { action: 'translate-batch', texts };
+      const message = {
+        action: 'translate-batch',
+        texts,
+        runId: args.runId,
+        requestId: `batch_${args.runId || 0}_${Date.now()}_${Math.random().toString(36).slice(2)}`
+      };
       const pageContext = deps.getPageContext();
       if (pageContext) message.context = pageContext;
       const res = await chrome.runtime.sendMessage(message);
@@ -288,6 +293,7 @@
         port.postMessage({
           action: 'translate-stream',
           requestId,
+          runId: group.runId,
           text: group.text,
           pageUrl: location.href,
           sourceLang: settings.sourceLang,

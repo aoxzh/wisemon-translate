@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "wisemon-translate site rule subscription",
+  "type": "array",
+  "maxItems": 5000,
+  "items": {
+    "type": "object",
+    "required": ["id", "matches"],
+    "additionalProperties": false,
+    "properties": {
+      "id": { "type": "string", "minLength": 1, "maxLength": 100 },
+      "matches": {
+        "oneOf": [
+          { "type": "string", "minLength": 1, "maxLength": 500 },
+          { "type": "array", "maxItems": 50, "items": { "type": "string", "minLength": 1, "maxLength": 500 } }
+        ]
+      },
+      "excludeSelectors": { "$ref": "#/$defs/selectors" },
+      "includeSelectors": { "$ref": "#/$defs/selectors" },
+      "mainSelectors": { "$ref": "#/$defs/selectors" },
+      "injectedCss": { "type": "array", "maxItems": 20, "items": { "type": "string", "maxLength": 10000 } },
+      "contextHint": { "type": "string", "maxLength": 4000 },
+      "disableAutoTranslate": { "type": "boolean" },
+      "privacyMode": { "enum": ["strict"] },
+      "preferSubtitleOverlay": { "type": "boolean" }
+    }
+  },
+  "$defs": {
+    "selectors": { "type": "array", "maxItems": 100, "items": { "type": "string", "maxLength": 1000 } }
+  }
+}

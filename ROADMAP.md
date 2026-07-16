@@ -41,7 +41,7 @@
 
 ---
 
-## Phase 2 — 差异化能力（预计 3-5 周）
+## Phase 2 — 差异化能力（已完成）
 
 目标：做出闭源竞品收费或不做的高级功能，提升 BYOK 用户留存。
 
@@ -52,12 +52,14 @@
 - 在 `content-selection.js` popup 顶部增加 action 按钮行
 - 内置模板：解释、润色、简化中文、总结、提取术语
 - 新增消息类型 `run-action`，复用现有 LLM 请求逻辑
+- `panel` / `replace` 输出模式均已接通
 
 ### 2.2 文本朗读 TTS
 
 - 使用浏览器原生 `speechSynthesis`（零成本、无额外权限）
 - 在 selection popup 和 sidepanel 增加 🔊 按钮
 - 设置中可选语言/语速/音色（voice mapping）
+- 已支持音色、语速与音高设置
 
 ### 2.3 快速术语收藏（Vocabulary Bank 初版）
 
@@ -67,25 +69,27 @@
 
 ---
 
-## Phase 3 — 字幕与规则生态（预计 3-5 周）
+## Phase 3 — 字幕与规则生态（已完成核心闭环）
 
 ### 3.1 多平台字幕
 
 - 在 `src/injectors/` 增加 Netflix / Bilibili 注入器
 - 复用 `content-subtitle.js` 的 overlay 与缓存逻辑
-- 抽象平台无关的 subtitle adapter 接口
+- Bilibili 使用独立 subtitle adapter 模块，避免继续膨胀主字幕文件
 
 ### 3.2 规则订阅系统
 
 - 把 `src/lib/site-rules.js` 的 `BUILT_IN_SITE_RULES` 改为可合并远程订阅
 - 设置中增加 "规则订阅 URL"，定期拉取更新
 - 提供 JSON Schema 校验与社区规则仓库模板
+- 已增加 HTTPS/localhost 限制、超时、1 MB 上限、危险远程 CSS 过滤和每日自动刷新
 
 ### 3.3 敏感数据脱敏强化
 
 - 更精确的正则（IBAN、IPv4/IPv6、JWT、AWS key）
 - 提供“脱敏预览”开关
 - 对日志中的原文也做一致脱敏
+- 页面上下文、持久日志和安全设置导出均已纳入脱敏/凭证清理
 
 ---
 
@@ -116,9 +120,9 @@
 
 ### 4.4 测试与 CI
 
-- Vitest 替换/补充当前验证脚本
+- Node 单元测试已补充存储、隐私、缓存、Provider、规则订阅、取消、词库和 TTS 核心边界
 - Playwright 测试使用 Chrome 稳定通道 + headless=new
-- GitHub Actions 自动打包 Chrome / Firefox / Edge 三个商店 zip
+- GitHub Actions 自动执行单元测试、验证、Playwright，并打包 Chrome / Firefox zip
 - oxlint + Prettier 统一代码风格
 
 ---
@@ -137,6 +141,5 @@
 3. **先写回归测试**：在大型迁移前为关键路径（页面翻译、划词、hover、options 保存）补充 Playwright 用例。
 4. **分版本发布**：
    - v1.1：P0/P1 修复 + 安全/性能 + 上下文感知翻译 + Provider 健康检查
-   - v1.2：Custom AI Actions + TTS + Vocabulary Bank
-   - v1.3：多平台字幕 + 规则订阅 + 脱敏强化
-   - v1.4：WXT/TS 迁移 + IndexedDB + Tailwind（功能稳定后启动）
+   - v1.0.6：隐私与缓存修复、Anthropic 原生适配、可取消任务、SPA 生命周期、Firefox 对齐、多平台字幕与 CI
+   - 后续大版本：WXT/TS 迁移 + IndexedDB + UI 构建体系（仅在维护收益明确时启动）

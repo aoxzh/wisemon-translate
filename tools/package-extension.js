@@ -1,18 +1,21 @@
 #!/usr/bin/env node
 /*
- * Create a clean Chrome extension release folder and zip.
+ * Create clean Chrome and Firefox release folders and zip files.
  */
 
 const fs = require('fs');
 const path = require('path');
 const childProcess = require('child_process');
+const archiver = require('archiver');
 
 const ROOT = path.resolve(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 const releaseName = `wisemon-translate-v${pkg.version}`;
-const releaseDir = path.join(DIST, releaseName);
-const zipPath = path.join(DIST, `${releaseName}.zip`);
+const chromeDir = path.join(DIST, `${releaseName}-chrome`);
+const firefoxDir = path.join(DIST, `${releaseName}-firefox`);
+const chromeZip = `${chromeDir}.zip`;
+const firefoxZip = `${firefoxDir}.zip`;
 
 const INCLUDE = [
   'background.js',
@@ -42,7 +45,7 @@ function removeDir(dir) {
   if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
 }
 
-function copyItem(relPath) {
+function copyItem(relPath, releaseDir) {
   const source = path.join(ROOT, relPath);
   const target = path.join(releaseDir, relPath);
   if (!fs.existsSync(source)) throw new Error(`Missing release source: ${relPath}`);
@@ -61,27 +64,43 @@ function run(command, args) {
   }
 }
 
-function zipRelease() {
+function zipRelease(releaseDir, zipPath) {
   if (fs.existsSync(zipPath)) fs.rmSync(zipPath, { force: true });
-  const zipLiteral = zipPath.replace(/'/g, "''");
-  const sourceLiteral = path.join(releaseDir, '*').replace(/'/g, "''");
-  const ps = [
-    '$ErrorActionPreference = "Stop"',
-    `Compress-Archive -Path '${sourceLiteral}' -DestinationPath '${zipLiteral}' -Force`
-  ].join('; ');
-  run('powershell', ['-NoProfile', '-Command', ps]);
+  return new Promise((resolve, reject) => {
+    const output = fs.createWriteStream(zipPath);
+    const archive = archiver('zip', { zlib: { level: 9 } });
+    output.on('close', resolve);
+    output.on('error', reject);
+    archive.on('warning', warning => warning.code === 'ENOENT' ? console.warn(warning.message) : reject(warning));
+    archive.on('error', reject);
+    archive.pipe(output);
+    archive.directory(releaseDir, false);
+    archive.finalize();
+  });
 }
 
-function main() {
+async function main() {
   run(process.execPath, ['tools/validate.js']);
   fs.mkdirSync(DIST, { recursive: true });
-  removeDir(releaseDir);
-  fs.mkdirSync(releaseDir, { recursive: true });
-  for (const item of INCLUDE) copyItem(item);
-  zipRelease();
+  removeDir(chromeDir);
+  removeDir(firefoxDir);
+  fs.mkdirSync(chromeDir, { recursive: true });
+  fs.mkdirSync(firefoxDir, { recursive: true });
+  for (const item of INCLUDE) {
+    copyItem(item, chromeDir);
+    copyItem(item, firefoxDir);
+  }
+  fs.rmSync(path.join(chromeDir, 'manifest-firefox.json'), { force: true });
+  fs.copyFileSync(path.join(firefoxDir, 'manifest-firefox.json'), path.join(firefoxDir, 'manifest.json'));
+  fs.rmSync(path.join(firefoxDir, 'manifest-firefox.json'), { force: true });
+  await zipRelease(chromeDir, chromeZip);
+  await zipRelease(firefoxDir, firefoxZip);
   console.log(`\nPackaged ${releaseName}`);
-  console.log(`Folder: ${releaseDir}`);
-  console.log(`Zip:    ${zipPath}`);
+  console.log(`Chrome:  ${chromeZip}`);
+  console.log(`Firefox: ${firefoxZip}`);
 }
 
-main();
+main().catch(error => {
+  console.error(error.stack || error.message || String(error));
+  process.exitCode = 1;
+});

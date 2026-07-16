@@ -131,7 +131,7 @@
     const controller = new AbortController();
     hoverPendingRequest = controller;
 
-    const cacheKey = typeof makeCacheKey === 'function' ? makeCacheKey(text, settings.sourceLang, settings.targetLang, settings.model) : text;
+    const cacheKey = typeof makeCacheKey === 'function' ? makeCacheKey(text, settings.sourceLang, settings.targetLang, settings.model, settings) : text;
     if (typeof getCachedTranslation === 'function') {
       getCachedTranslation(cacheKey).then(async function(cached) {
         if (cached && hoverPendingRequest === controller) {

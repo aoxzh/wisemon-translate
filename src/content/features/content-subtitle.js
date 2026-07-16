@@ -18,6 +18,10 @@
       setupNetflixSubtitleRouteWatcher();
       return;
     }
+    if (/(^|\.)bilibili\.com$/.test(location.hostname) && typeof ctx.fn.setupBilibiliSubtitleTranslation === 'function') {
+      ctx.fn.setupBilibiliSubtitleTranslation();
+      return;
+    }
     setupTextTrackFallback();
   }
 
@@ -605,15 +609,7 @@
     const panel = document.createElement('aside');
     panel.className = 'llm-youtube-transcript-panel';
     panel.hidden = true;
-    panel.innerHTML = [
-      '<div class="llm-yt-panel-head"><strong>Bilingual transcript</strong><button type="button" class="llm-yt-panel-close" aria-label="Close">×</button></div>',
-      '<div class="llm-yt-panel-tools">',
-      '<select class="llm-yt-track-select" aria-label="Subtitle track"></select>',
-      '<input class="llm-yt-search" type="search" placeholder="Search subtitles">',
-      '</div>',
-      '<div class="llm-yt-panel-actions"><button type="button" data-action="copy">Copy</button><button type="button" data-action="export">Export VTT</button></div>',
-      '<div class="llm-yt-list"></div>'
-    ].join('');
+    panel.innerHTML = '<div class="llm-yt-panel-head"><strong>Bilingual transcript</strong><button type="button" class="llm-yt-panel-close" aria-label="Close">×</button></div><div class="llm-yt-panel-tools"><select class="llm-yt-track-select" aria-label="Subtitle track"></select><input class="llm-yt-search" type="search" placeholder="Search subtitles"></div><div class="llm-yt-panel-actions"><button type="button" data-action="copy">Copy</button><button type="button" data-action="export">Export VTT</button></div><div class="llm-yt-list"></div>';
     panel.querySelector('.llm-yt-panel-close').addEventListener('click', function() { panel.hidden = true; });
     panel.querySelector('.llm-yt-search').addEventListener('input', renderYouTubeTranscriptPanel);
     panel.querySelector('.llm-yt-track-select').addEventListener('change', function(event) {
@@ -1098,7 +1094,7 @@
     if (!state || state.lastText !== text) return;
     try {
       const settings = ctx.state.settings || {};
-      const cacheKey = typeof makeCacheKey === 'function' ? makeCacheKey(text, settings.sourceLang, settings.targetLang, settings.model || 'subtitle') : text;
+      const cacheKey = typeof makeCacheKey === 'function' ? makeCacheKey(text, settings.sourceLang, settings.targetLang, settings.model || 'subtitle', settings) : text;
       if (ctx.state.subtitleCache.has(cacheKey)) {
         state.lastTranslated = ctx.state.subtitleCache.get(cacheKey);
         renderNetflixSubtitle(text, state.lastTranslated);
@@ -1231,7 +1227,7 @@
     if (!state || state.lastText !== text) return;
     try {
       const settings = ctx.state.settings || {};
-      const cacheKey = typeof makeCacheKey === 'function' ? makeCacheKey(text, settings.sourceLang, settings.targetLang, settings.model || 'subtitle') : text;
+      const cacheKey = typeof makeCacheKey === 'function' ? makeCacheKey(text, settings.sourceLang, settings.targetLang, settings.model || 'subtitle', settings) : text;
       if (ctx.state.subtitleCache.has(cacheKey)) {
         state.translated = ctx.state.subtitleCache.get(cacheKey);
         renderVideoSubtitle(state, text, state.translated);
@@ -1260,7 +1256,7 @@
         if (cue.startTime > now && cue.startTime < now + 75) {
           const text = String(cue.text || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
           if (!text) continue;
-          const key = typeof makeCacheKey === 'function' ? makeCacheKey(text, settings.sourceLang, settings.targetLang, settings.model || 'subtitle') : text;
+          const key = typeof makeCacheKey === 'function' ? makeCacheKey(text, settings.sourceLang, settings.targetLang, settings.model || 'subtitle', settings) : text;
           if (!ctx.state.subtitleCache.has(key)) cues.push({ text, key });
           if (cues.length >= 8) break;
         }

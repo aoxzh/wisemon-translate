@@ -81,6 +81,9 @@
   // ---- State ----
   let settings = null;
   let pageTranslated = false;
+  let translationInProgress = false;
+  let translationAvailable = true;
+  let resumeTranslationAfterNavigation = false;
   let translationRunId = 0;
   let siteRule = null;
   let pageContext = null;       // page title + main content summary for context-aware translation
@@ -214,26 +217,28 @@
     return config?.provider === 'deepseek' && config?.model === 'deepseek-v4-flash';
   }
 
-  // ---- Initialization ----
-  async function init() {
-    LOG.info('Content', 'Content script v2 initializing...');
+  function cancelTranslationRun(runId) {
+    if (!runId) return;
+    chrome.runtime.sendMessage({ action: 'cancel-translation-run', runId }).catch(function() {});
+  }
+
+  function isCurrentSiteExcluded(config) {
+    const sites = config?.excludedSites || [];
+    const hostname = location.hostname;
+    return sites.some(site => {
+      const value = String(site || '').trim();
+      return value && (hostname === value || hostname.endsWith('.' + value));
+    });
+  }
+
+  async function refreshPageConfiguration(url) {
     try {
       const res = await chrome.runtime.sendMessage({ action: 'get-settings' });
       settings = { ...DEFAULT_SETTINGS, ...res.settings };
     } catch (e) {
       settings = { ...DEFAULT_SETTINGS };
     }
-
-    siteRule = typeof getSiteRule === 'function' ? await getSiteRule(location.href, settings) : null;
-    ctx.state.siteRule = siteRule;
-    if (siteRule?.matchedIds?.length) {
-      LOG.info('Rules', `Matched site rules: ${siteRule.matchedIds.join(', ')}`, siteRule);
-    }
-    if (siteRule?.disabled) {
-      LOG.info('Content', `Site rule disabled translation: ${siteRule.reason || siteRule.id}`);
-      ctx.fn.attachFrameMessageBridge();
-      return;
-    }
+    siteRule = typeof getSiteRule === 'function' ? await getSiteRule(url || location.href, settings) : null;
     if (siteRule?.disableAutoTranslate) settings.autoTranslate = false;
     if (siteRule?.privacyMode === 'strict') {
       settings.privacyMasking = true;
@@ -241,9 +246,84 @@
       settings.maskPhone = true;
       settings.maskCreditCard = true;
       settings.maskSecrets = true;
+      settings.maskVerificationCodes = true;
+      settings.maskPrivateKeys = true;
     }
-    if (siteRule?.injectedCss?.length) window.__LLM_CTX__.fn.injectRuleCss(siteRule.injectedCss);
-    window.__LLM_CTX__.fn.injectCustomTranslationCss();
+    ctx.state.settings = settings;
+    ctx.state.siteRule = siteRule;
+    ctx.fn.injectRuleCss(siteRule?.injectedCss || []);
+    ctx.fn.injectCustomTranslationCss();
+    const availability = { disabled: !!siteRule?.disabled, excluded: isCurrentSiteExcluded(settings) };
+    translationAvailable = !availability.disabled && !availability.excluded;
+    ctx.state.translationAvailable = translationAvailable;
+    return availability;
+  }
+
+  let navigationVersion = 0;
+  async function handlePageNavigation(nextUrl) {
+    const version = ++navigationVersion;
+    const wasTranslated = pageTranslated;
+    if (wasTranslated || translationInProgress) resumeTranslationAfterNavigation = true;
+    cancelTranslationRun(translationRunId);
+    translationRunId++;
+    ctx.state.translationRunId = translationRunId;
+    translationInProgress = false;
+    if (translateQueue) translateQueue.clear('Page navigation');
+    if (wasTranslated) restoreOriginal();
+    pageTranslated = false;
+    ctx.state.pageTranslated = false;
+    pageContext = null;
+
+    const availability = await refreshPageConfiguration(nextUrl);
+    if (version !== navigationVersion) return;
+    if (siteRule?.matchedIds?.length) LOG.info('Rules', `SPA route matched rules: ${siteRule.matchedIds.join(', ')}`);
+    if (availability.disabled || availability.excluded) {
+      ctx.fn.stopObservers();
+      if (typeof destroyHoverFeature === 'function') destroyHoverFeature();
+      return;
+    }
+    activateTranslationFeatures();
+    if (resumeTranslationAfterNavigation || settings.autoTranslate) {
+      await new Promise(resolve => setTimeout(resolve, 150));
+      if (version === navigationVersion && !pageTranslated) {
+        await togglePageTranslation();
+        if (version === navigationVersion && pageTranslated) resumeTranslationAfterNavigation = false;
+      }
+    }
+  }
+
+  function handleSiteRulesChanged() {
+    handlePageNavigation(location.href).catch(error => {
+      _safeLog('warn', 'Rules', 'Failed to apply updated site rules: ' + error.message);
+    });
+  }
+
+  function activateTranslationFeatures() {
+    if (!translationAvailable) return;
+    ctx.fn.injectStyles();
+    if (settings.enableHover && typeof initHoverFeature === 'function') initHoverFeature(settings);
+    try {
+      if (typeof ctx.fn.setupVideoSubtitleTranslation === 'function') ctx.fn.setupVideoSubtitleTranslation();
+    } catch (err) {
+      _safeLog('warn', 'Content', 'Subtitle setup skipped: ' + err.message);
+    }
+    try {
+      if (typeof ctx.fn.updateFabFromSettings === 'function') ctx.fn.updateFabFromSettings();
+    } catch (err) {
+      _safeLog('warn', 'Content', 'FAB setup skipped: ' + err.message);
+    }
+  }
+
+  // ---- Initialization ----
+  async function init() {
+    LOG.info('Content', 'Content script v2 initializing...');
+    const availability = await refreshPageConfiguration(location.href);
+    if (siteRule?.matchedIds?.length) {
+      LOG.info('Rules', `Matched site rules: ${siteRule.matchedIds.join(', ')}`, siteRule);
+    }
+    if (availability.disabled) {
+      LOG.info('Content', `Site rule disabled translation: ${siteRule.reason || siteRule.id}`);
+    }
 
     translateQueue = typeof createBatchQueue === 'function'
       ? createBatchQueue(sendTranslateBatch, {
@@ -256,18 +336,8 @@
       : null;
 
     // Check excluded sites
-    if (settings.excludedSites && settings.excludedSites.length > 0) {
-      try {
-        const hostname = location.hostname;
-        const excluded = settings.excludedSites.some(site => {
-          const s = site.trim();
-          return s && (hostname === s || hostname.endsWith('.' + s));
-        });
-        if (excluded) {
-          LOG.info('Content', `Site ${hostname} is excluded, skipping initialization`);
-          return;
-        }
-      } catch (e) { /* ignore */ }
+    if (availability.excluded) {
+      LOG.info('Content', `Site ${location.hostname} is excluded, skipping initialization`);
     }
 
     if (window.top !== window && !ctx.fn.shouldRunInFrame()) {
@@ -311,30 +381,18 @@
     });
     syncSharedTrackingState();
 
-    if (settings.enableHover && typeof initHoverFeature === 'function') {
-      initHoverFeature(settings);
-    }
-
     ctx.state.ready = true;
     ctx.fn.attachEventListeners();
+    ctx.fn.startNavigationObserver?.(handlePageNavigation);
+    window.addEventListener('llm-site-rules-changed', handleSiteRulesChanged);
     window.__LLM_TRANSLATE_INITIALIZED__ = true;
     window.__LLM_TRANSLATE_MAIN_STATUS__ = 'ready';
 
     LOG.info('Content', `Ready: model=${settings.model}, target=${settings.targetLang}, display=${settings.displayMode}`);
-    ctx.fn.injectStyles();
-    try {
-      if (typeof ctx.fn.setupVideoSubtitleTranslation === 'function') ctx.fn.setupVideoSubtitleTranslation();
-    } catch (err) {
-      _safeLog('warn', 'Content', 'Subtitle setup skipped after init: ' + err.message);
-    }
-    try {
-      if (typeof ctx.fn.updateFabFromSettings === 'function') ctx.fn.updateFabFromSettings();
-    } catch (err) {
-      _safeLog('warn', 'Content', 'FAB setup skipped after init: ' + err.message);
-    }
+    activateTranslationFeatures();
 
     // Auto-translate if enabled
-    if (settings.autoTranslate) {
+    if (translationAvailable && settings.autoTranslate) {
       LOG.info('Content', 'Auto-translate enabled, starting translation...');
       setTimeout(() => togglePageTranslation(), 800);
     }
@@ -347,7 +405,23 @@
   // ==================== PAGE TRANSLATION ENGINE ====================
 
   async function togglePageTranslation() {
+    if (!translationAvailable) {
+      return { success: false, disabled: true, pageTranslated: false, translatedCount: 0 };
+    }
+    if (translationInProgress && !pageTranslated) {
+      cancelTranslationRun(translationRunId);
+      translationRunId++;
+      ctx.state.translationRunId = translationRunId;
+      if (translateQueue) translateQueue.clear('Translation canceled by user');
+      translationInProgress = false;
+      restoreOriginal();
+      ctx.fn.stopObservers();
+      return { success: true, canceled: true, pageTranslated: false, translatedCount: 0 };
+    }
+    cancelTranslationRun(translationRunId);
     translationRunId++;
+    ctx.state.translationRunId = translationRunId;
+    const runId = translationRunId;
     translationTask.setState(translationTask.states.SCANNING || 'scanning', { runId: translationRunId, reason: '' });
     if (translateQueue) translateQueue.clear('Translation run changed');
     if (pageTranslated) {
@@ -358,7 +432,16 @@
       ctx.state.pageTranslated = pageTranslated;
       return { success: true, pageTranslated, translatedCount: 0 };
     } else {
-      const result = await startTranslation();
+      translationInProgress = true;
+      let result;
+      try {
+        result = await startTranslation(runId);
+      } catch (error) {
+        if (runId === translationRunId) translationInProgress = false;
+        throw error;
+      }
+      if (runId !== translationRunId) return { success: true, canceled: true, pageTranslated: false, translatedCount: 0 };
+      translationInProgress = false;
       pageTranslated = result.succeeded > 0;
       ctx.state.pageTranslated = pageTranslated;
       if (!pageTranslated) {
@@ -467,7 +550,7 @@
     }
   }
 
-  async function startTranslation() {
+  async function startTranslation(expectedRunId = translationRunId) {
     if (!settings) {
       const res = await chrome.runtime.sendMessage({ action: 'get-settings' });
       settings = { ...DEFAULT_SETTINGS, ...res.settings };
@@ -496,6 +579,9 @@
 
     // Translate page title
     await translatePageTitle();
+    if (expectedRunId !== translationRunId) {
+      return { succeeded: 0, failed: 0, queued: 0, reason: 'Translation run was canceled.' };
+    }
 
     // Setup observers
     ctx.fn.setupMutationObserver();
@@ -521,6 +607,9 @@
     publishTranslationProgress();
     translationTask.setState(translationTask.states.SETTLING || 'settling', { runId: translationRunId, reason: 'Waiting for initial visible translations' });
     const result = await waitForInitialTranslation();
+    if (expectedRunId !== translationRunId) {
+      return { succeeded: 0, failed: 0, queued: 0, reason: 'Translation run was canceled.' };
+    }
     currentScanStats = null;
     initialVisibleElements = null;
     return result;
@@ -563,6 +652,7 @@
 
   async function translateToBottom() {
     if (!pageTranslated) {
+      cancelTranslationRun(translationRunId);
       pageTranslated = true;
       ctx.state.pageTranslated = true;
       translationRunId++;
@@ -710,6 +800,9 @@
   // ==================== GLOSSARY / TERMINOLOGY ====================
   // ---- Cleanup on unload (SPA navigation / page close) ----
   window.addEventListener('beforeunload', () => {
+    cancelTranslationRun(translationRunId);
+    ctx.fn.stopNavigationObserver?.();
+    window.removeEventListener('llm-site-rules-changed', handleSiteRulesChanged);
     if (translateQueue) {
       try { translateQueue.clear('Page unload'); } catch (e) { /* ignore */ }
     }

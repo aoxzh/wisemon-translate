@@ -42,36 +42,22 @@
 
   function showSelectionPopup(text, x, y) {
     hideSelectionPopup();
-    const escapeHtml = ctx.fn.escapeHtml;
     const anchor = (typeof x === 'number' && typeof y === 'number')
       ? { x, y }
       : (getSelectionAnchor() || ctx.state.lastSelectionAnchor || { x: innerWidth / 2, y: 80 });
     const popup = document.createElement('div');
     popup.className = 'llm-translate-popup';
-    popup.innerHTML = '<div class="llm-popup-header">' +
-        '<div class="llm-popup-title">Selection Translation</div>' +
-        '<div class="llm-popup-window-actions">' +
-          '<button type="button" data-action="pin" aria-pressed="false" title="Keep open">Pin</button>' +
-          '<button type="button" data-action="close" title="Close">x</button>' +
-        '</div>' +
-      '</div>' +
-      '<div class="llm-popup-body">' +
-        '<div class="llm-popup-original">' + escapeHtml(text.slice(0, 600)) + (text.length > 600 ? '...' : '') + '</div>' +
-        '<div class="llm-popup-result llm-translate-loading">Translating...</div>' +
-      '</div>' +
-      '<div class="llm-popup-ai-actions"></div>' +
-      '<div class="llm-popup-actions">' +
-        '<button type="button" data-action="copy-source">Copy Source</button>' +
-        '<button type="button" data-action="copy-result">Copy Result</button>' +
-        '<button type="button" data-action="speak-source">🔊 Source</button>' +
-        '<button type="button" data-action="speak-result">🔊 Result</button>' +
-        '<button type="button" data-action="save-vocab">⭐ Save</button>' +
-        '<button type="button" data-action="open-side">Side Panel</button>' +
-      '</div>';
+    popup.innerHTML = '<div class="llm-popup-header"><div class="llm-popup-title">Selection Translation</div><div class="llm-popup-window-actions"><button type="button" data-action="pin" aria-pressed="false" title="Keep open">Pin</button><button type="button" data-action="close" title="Close">x</button></div></div><div class="llm-popup-body"><div class="llm-popup-original"></div><div class="llm-popup-result llm-translate-loading">Translating...</div></div><div class="llm-popup-ai-actions"></div><div class="llm-popup-actions"><button type="button" data-action="copy-source">Copy Source</button><button type="button" data-action="copy-result">Copy Result</button><button type="button" data-action="speak-source">🔊 Source</button><button type="button" data-action="speak-result">🔊 Result</button><button type="button" data-action="save-vocab">⭐ Save</button><button type="button" data-action="open-side">Side Panel</button></div>';
+    popup.querySelector('.llm-popup-original').textContent = text.slice(0, 600) + (text.length > 600 ? '...' : '');
     positionPopup(popup, anchor.x + 10, anchor.y + 10);
     document.body.appendChild(popup);
     ctx.state.currentSelectionPopup = popup;
     let translatedText = '';
+    let replacementRange = null;
+    try {
+      const selection = window.getSelection?.();
+      if (selection?.rangeCount) replacementRange = selection.getRangeAt(0).cloneRange();
+    } catch (e) {}
     let pinned = false;
     let autoHide = null;
     let clickOutside = null;
@@ -186,6 +172,18 @@
             } else {
               translatedText = res.result || '';
               resultEl.textContent = translatedText;
+              if (action.outputMode === 'replace' && replacementRange && translatedText) {
+                try {
+                  replacementRange.deleteContents();
+                  const node = document.createTextNode(translatedText);
+                  replacementRange.insertNode(node);
+                  replacementRange.setStartAfter(node);
+                  replacementRange.collapse(true);
+                  ctx.fn.showToast?.('Selection replaced', 1200);
+                } catch (replaceError) {
+                  ctx.fn.safeLog?.('warn', 'Selection', 'Could not replace selected content: ' + replaceError.message);
+                }
+              }
               if (typeof LOG !== 'undefined') LOG.info('Selection', 'AI action result', { action: action.id || action.name, textLength: text.length });
             }
           } catch (err) {

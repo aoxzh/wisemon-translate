@@ -493,6 +493,21 @@
           <label><input type="checkbox" id="maskPrivateKeys"> Private keys</label>
           <label><input type="checkbox" id="maskUrls"> URLs</label>
         </div>
+
+        <div class="opt-field-row" style="margin-top:18px">
+          <div class="opt-field">
+            <label for="ttsVoice">Text-to-Speech Voice</label>
+            <select id="ttsVoice"><option value="">Automatic voice</option></select>
+          </div>
+          <div class="opt-field">
+            <label for="ttsRate">Speech Rate</label>
+            <input type="number" id="ttsRate" min="0.5" max="2" step="0.1" value="1">
+          </div>
+          <div class="opt-field">
+            <label for="ttsPitch">Speech Pitch</label>
+            <input type="number" id="ttsPitch" min="0.5" max="2" step="0.1" value="1">
+          </div>
+        </div>
       </div>
 
       <h3 class="opt-section-title" style="margin-top:28px" data-i18n="layout_section">Layout &amp; Filtering</h3>
@@ -837,6 +852,7 @@ JWT: JSON Web Token, used for securely transmitting information (Authentication)
 <script src="src/lib/i18n-locales/options-features.js"></script>
 <script src="src/lib/i18n-locales/themes.js"></script>
 <script src="src/lib/utils.js"></script>
+<script src="src/lib/tts.js"></script>
 <script src="src/lib/providers.js"></script>
 <script src="src/lib/logger.js"></script>
 <script src="src/lib/batch-queue.js"></script>
@@ -845,6 +861,7 @@ JWT: JSON Web Token, used for securely transmitting information (Authentication)
 <script src="src/lib/llm-adapters/batch.js"></script>
 <script src="src/lib/provider-loader.js"></script>
 <script src="src/lib/custom-select.js"></script>
+<script src="src/lib/providers/anthropic.js"></script>
 <script src="src/lib/providers/google.js"></script>
 <script src="src/lib/providers/deepl.js"></script>
 <script src="src/lib/providers/baidu.js"></script>

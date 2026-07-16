@@ -43,6 +43,23 @@ class LLMAPI {
     }
   }
 
+  _createRequestScope(timeout, externalSignal) {
+    const controller = new AbortController();
+    const abortFromExternal = () => controller.abort(externalSignal?.reason);
+    if (externalSignal?.aborted) abortFromExternal();
+    else externalSignal?.addEventListener?.('abort', abortFromExternal, { once: true });
+    // Keep AbortError for fetch compatibility; external cancellation is
+    // distinguished by checking externalSignal.aborted in the catch path.
+    const timeoutId = setTimeout(() => controller.abort(new DOMException('Request timed out', 'AbortError')), timeout);
+    return {
+      controller,
+      cleanup() {
+        clearTimeout(timeoutId);
+        externalSignal?.removeEventListener?.('abort', abortFromExternal);
+      }
+    };
+  }
+
   _isDeepSeekFlash() {
     return this.settings.provider === 'deepseek' && this.settings.model === 'deepseek-v4-flash';
   }
@@ -88,7 +105,11 @@ class LLMAPI {
 
   _buildContextSection(context) {
     if (!context || String(context).trim().length === 0) return '';
-    return '\n\nUse the following page context to guide terminology, style, and disambiguation. Do not translate the context itself; only use it to improve the translation of the requested text.\n\n' + String(context).trim();
+    const masked = typeof maskSensitiveData === 'function'
+      ? maskSensitiveData(String(context), this.settings)
+      : { text: String(context) };
+    const safeContext = masked.text.replace(/__LLMT_MASK_/g, '__LLMT_CTX_MASK_');
+    return '\n\nUse the following page context to guide terminology, style, and disambiguation. Do not translate the context itself; only use it to improve the translation of the requested text.\n\n' + safeContext.trim();
   }
 
   /**
@@ -324,17 +345,13 @@ class LLMAPI {
     if (text && !options.noSplit && this._shouldSplitLongText(text)) {
       return this.translateLongText(text, sourceLang, targetLang, options);
     }
-    if (this.settings.provider === 'google') {
-      return this.translateWithGoogle(text, sourceLang, targetLang, options);
-    }
-    if (this.settings.provider === 'deepl') {
-      return this.translateWithDeepL(text, sourceLang, targetLang, options);
-    }
-    if (this.settings.provider === 'baidu') {
-      return this.translateWithBaidu(text, sourceLang, targetLang, options);
-    }
-    if (this.settings.provider === 'microsoft') {
-      return this.translateWithMicrosoft(text, sourceLang, targetLang, options);
+    const capabilities = typeof getProviderCapabilities === 'function'
+      ? getProviderCapabilities(this.settings.provider)
+      : { nativeMethod: '' };
+    if (capabilities.nativeMethod) {
+      const translateNative = this[capabilities.nativeMethod];
+      if (typeof translateNative !== 'function') throw new Error(`Provider adapter is not loaded: ${this.settings.provider}`);
+      return translateNative.call(this, text, sourceLang, targetLang, options);
     }
     const { baseURL, model, systemPrompt, userPromptTemplate, temperature } = this.settings;
     const apiKey = typeof getEffectiveApiKey === 'function' ? getEffectiveApiKey(this.settings) : this.settings.apiKey;
@@ -355,7 +372,9 @@ class LLMAPI {
     }
 
     // --- Cache check ---
-    const cacheKey = typeof makeCacheKey === 'function' ? makeCacheKey(text, sourceLang, targetLang, model) : null;
+    const cacheKey = typeof makeCacheKey === 'function'
+      ? makeCacheKey(text, sourceLang, targetLang, model, { ...this.settings, context: options.context || '', systemPrompt: options.systemPrompt || this.settings.systemPrompt, userPromptTemplate: options.userPromptTemplate || this.settings.userPromptTemplate })
+      : null;
     if (cacheKey && !options.noCache) {
       const cached = typeof getCachedTranslation === 'function' ? await getCachedTranslation(cacheKey) : null;
       if (cached) {
@@ -424,8 +443,7 @@ class LLMAPI {
           attempt > 0 ? `(retry ${attempt}/${maxRetries}) model=${model} text_len=${text.length} thinking=${thinkingMode}` : `model=${model} text_len=${text.length} thinking=${thinkingMode}`);
 
         // Create abort controller for timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        const requestScope = this._createRequestScope(timeout, options.signal);
 
         let response;
         try {
@@ -433,10 +451,10 @@ class LLMAPI {
             method: 'POST',
             headers,
             body: JSON.stringify(body),
-            signal: controller.signal
+            signal: requestScope.controller.signal
           });
         } finally {
-          clearTimeout(timeoutId);
+          requestScope.cleanup();
         }
 
         const duration = Date.now() - startTime;
@@ -480,7 +498,7 @@ class LLMAPI {
             if (attempt < maxRetries) {
               const delay = baseDelay * Math.pow(2, attempt);
               this._log('info', tag, `Cooling down ${delay}ms...`);
-              await this._sleep(delay);
+              await this._sleep(delay, options.signal);
               continue;
             }
             throw lastError;
@@ -491,7 +509,7 @@ class LLMAPI {
             if (attempt < maxRetries) {
               const delay = LLM_API_CONFIG.RETRY_DELAY_MS * Math.pow(2, attempt);
               this._log('info', tag, `Retrying in ${delay}ms...`);
-              await this._sleep(delay);
+              await this._sleep(delay, options.signal);
               continue;
             }
             throw lastError;
@@ -511,16 +529,14 @@ class LLMAPI {
             model,
             textLength: requestText.length
           });
-          const fallbackController = new AbortController();
-          const fallbackTimeoutId = setTimeout(() => fallbackController.abort(), timeout);
+          const fallbackScope = this._createRequestScope(timeout, options.signal);
           try {
             const fallbackResponse = await fetch(url, {
               method: 'POST',
               headers,
               body: JSON.stringify({ ...body, stream: false }),
-              signal: fallbackController.signal
+              signal: fallbackScope.controller.signal
             });
-            clearTimeout(fallbackTimeoutId);
             if (!fallbackResponse.ok) {
               const fallbackErrorText = await fallbackResponse.text().catch(() => 'Unable to read fallback error response');
               throw new Error(`Non-stream fallback failed ${fallbackResponse.status}: ${fallbackErrorText.slice(0, 200)}`);
@@ -529,8 +545,9 @@ class LLMAPI {
             translatedStream = responseResult.content || '';
             translated = translatedStream.trim();
           } catch (fallbackErr) {
-            clearTimeout(fallbackTimeoutId);
             throw fallbackErr;
+          } finally {
+            fallbackScope.cleanup();
           }
         }
         if (responseResult.finishReason === 'length' && !options.noSplit) {
@@ -556,7 +573,7 @@ class LLMAPI {
         }));
 
         if (!translated) {
-          this._log('error', tag, 'Empty translation response', { streamContent: translatedStream.slice(0, 300) });
+          this._log('error', tag, 'Empty translation response', { streamContentLength: translatedStream.length });
           throw new Error('Empty translation response from API — the model returned no content. Try disabling thinking mode in Settings.');
         }
         // Save to cache
@@ -574,6 +591,9 @@ class LLMAPI {
           throw err;
         }
 
+        // User/run cancellation is not a timeout and must never be retried.
+        if (options.signal?.aborted) throw err;
+
         // Timeout
         if (err.name === 'AbortError') {
           this._log('error', tag, `Request timeout after ${timeout}ms`, { url });
@@ -581,7 +601,7 @@ class LLMAPI {
           if (attempt < maxRetries) {
             const delay = LLM_API_CONFIG.RETRY_DELAY_MS * Math.pow(2, attempt);
             this._log('info', tag, `Retrying after timeout in ${delay}ms...`);
-            await this._sleep(delay);
+            await this._sleep(delay, options.signal);
             continue;
           }
           throw lastError;
@@ -594,7 +614,7 @@ class LLMAPI {
           if (attempt < maxRetries) {
             const delay = LLM_API_CONFIG.RETRY_DELAY_MS * Math.pow(2, attempt);
             this._log('info', tag, `Retrying after network error in ${delay}ms...`);
-            await this._sleep(delay);
+            await this._sleep(delay, options.signal);
             continue;
           }
           throw lastError;
@@ -604,7 +624,7 @@ class LLMAPI {
         this._log('error', tag, `Request failed (attempt ${attempt + 1}): ${err.message}`, { duration });
         if (attempt < maxRetries) {
           const delay = LLM_API_CONFIG.RETRY_DELAY_MS * Math.pow(2, attempt);
-          await this._sleep(delay);
+          await this._sleep(delay, options.signal);
           continue;
         }
         throw err;
@@ -628,8 +648,21 @@ class LLMAPI {
     return Math.min(120000, Math.max(LLM_API_CONFIG.REQUEST_TIMEOUT_MS, dynamic));
   }
 
-  _sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+  _sleep(ms, signal) {
+    if (signal?.aborted) return Promise.reject(signal.reason || new DOMException('Aborted', 'AbortError'));
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(finish, ms);
+      function finish() {
+        signal?.removeEventListener('abort', abort);
+        resolve();
+      }
+      function abort() {
+        clearTimeout(timer);
+        signal?.removeEventListener('abort', abort);
+        reject(signal.reason || new DOMException('Aborted', 'AbortError'));
+      }
+      signal?.addEventListener('abort', abort, { once: true });
+    });
   }
 }
 

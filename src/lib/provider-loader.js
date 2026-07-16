@@ -7,6 +7,7 @@
  */
 (function() {
   const LLM_PROVIDER_FILES = [
+    'src/lib/providers/anthropic.js',
     'src/lib/providers/google.js',
     'src/lib/providers/deepl.js',
     'src/lib/providers/baidu.js',

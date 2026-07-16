@@ -12,6 +12,9 @@ module.exports = defineConfig({
   reporter: [['list']],
   use: {
     actionTimeout: 10000,
-    trace: 'retain-on-failure'
+    // Windows can intermittently lose Playwright's temporary trace file while
+    // closing many persistent extension contexts. Keep traces in CI, where the
+    // Linux/Xvfb runner is stable, and avoid that local-only artifact failure.
+    trace: process.env.CI ? 'retain-on-failure' : 'off'
   }
 });

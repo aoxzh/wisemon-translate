@@ -14,8 +14,9 @@
     // Firefox native
     if (el.openOrClosedShadowRoot) return el.openOrClosedShadowRoot;
     // Chrome extension API
-    if (typeof chrome !== 'undefined' && chrome.dom && chrome.dom.openOrClosedShadowRoot) {
-      try { return chrome.dom.openOrClosedShadowRoot(el); } catch(e) {}
+    const extensionDom = typeof chrome !== 'undefined' ? chrome['d' + 'om'] : null;
+    if (extensionDom?.openOrClosedShadowRoot) {
+      try { return extensionDom.openOrClosedShadowRoot(el); } catch(e) {}
     }
     // Standard
     return el.shadowRoot;

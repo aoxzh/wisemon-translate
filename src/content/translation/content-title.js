@@ -22,7 +22,9 @@
 
       const res = await chrome.runtime.sendMessage({
         action: 'translate',
-        text: title
+        text: title,
+        runId: ctx.state.translationRunId,
+        requestId: `title_${ctx.state.translationRunId || 0}_${Date.now()}`
       });
       if (res.translated && !res.error) {
         document.title = res.translated;

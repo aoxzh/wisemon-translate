@@ -40,6 +40,7 @@ async function init() {
   determinePreset(currentSettings);
 
   populateFields(currentSettings);
+  populateTtsVoices(currentSettings.ttsVoice || '');
   setupNavigation();
   setupEventListeners();
   setupAiActionsEventListeners();
@@ -176,6 +177,9 @@ function populateFields(s) {
   setChecked('maskVerificationCodes', s.maskVerificationCodes !== false);
   setChecked('maskPrivateKeys', s.maskPrivateKeys !== false);
   setChecked('maskUrls', !!s.maskUrls);
+  setVal('ttsRate', s.ttsRate || 1);
+  setVal('ttsPitch', s.ttsPitch || 1);
+  setVal('ttsVoice', s.ttsVoice || '');
   setChecked('enableHover', s.enableHover);
   setVal('hoverMode', s.hoverMode || 'key');
   setVal('hoverKey', s.hoverKey || 'shift');
@@ -216,6 +220,22 @@ function populateFields(s) {
 
   // Display shortcuts (read-only from manifest)
   updateShortcutDisplay(s);
+}
+
+async function populateTtsVoices(selected) {
+  const select = $('ttsVoice');
+  if (!select || !window.__LLM_TTS__?.getVoices) return;
+  const voices = await window.__LLM_TTS__.getVoices();
+  const current = selected || select.value || '';
+  select.innerHTML = '<option value="">Automatic voice</option>';
+  voices.forEach(voice => {
+    const option = document.createElement('option');
+    option.value = voice.voiceURI || voice.name;
+    option.textContent = `${voice.name} (${voice.lang})`;
+    select.appendChild(option);
+  });
+  select.value = current;
+  if (globalThis.CustomSelect) CustomSelect.refreshAll(document);
 }
 
 // ---- Glossary: Structured Terms Helpers ----
@@ -875,9 +895,10 @@ function updateSubtitlePreview() {
 
 async function diagnoseProviderConnection(settings) {
   const provider = settings.provider || '';
-  // Providers that do not expose an OpenAI-compatible /v1/models endpoint
-  const nonOpenAiProviders = new Set(['google', 'deepl', 'baidu', 'microsoft']);
-  if (nonOpenAiProviders.has(provider)) return null;
+  const capabilities = typeof getProviderCapabilities === 'function'
+    ? getProviderCapabilities(provider)
+    : { openAiCompatible: true };
+  if (!capabilities.openAiCompatible) return null;
   const isLocal = isLocalBaseUrl(settings.baseURL);
   const modelsUrl = buildModelsUrl(settings.baseURL || '');
   const controller = new AbortController();
@@ -1020,6 +1041,9 @@ function readSettingsFromUI() {
     maskVerificationCodes: isChecked('maskVerificationCodes'),
     maskPrivateKeys: isChecked('maskPrivateKeys'),
     maskUrls: isChecked('maskUrls'),
+    ttsRate: (function(v) { const n = parseFloat(v); return isNaN(n) ? 1 : Math.max(0.5, Math.min(2, n)); })(getVal('ttsRate')),
+    ttsPitch: (function(v) { const n = parseFloat(v); return isNaN(n) ? 1 : Math.max(0.5, Math.min(2, n)); })(getVal('ttsPitch')),
+    ttsVoice: getVal('ttsVoice') || '',
     keyboardShortcuts: currentSettings.keyboardShortcuts || {
       translatePage: 'alt+t',
       toggleHover: 'alt+h',
@@ -1328,10 +1352,11 @@ function setupEventListeners() {
   // Export
   $('export-settings').addEventListener('click', async function() {
     let res = await chrome.runtime.sendMessage({ action: 'get-settings' });
-    let blob = new Blob([JSON.stringify(res.settings, null, 2)], { type: 'application/json' });
+    let exported = sanitizeSettingsForExport(res.settings);
+    let blob = new Blob([JSON.stringify(exported, null, 2)], { type: 'application/json' });
     let url = URL.createObjectURL(blob);
     let a = document.createElement('a');
-    a.href = url; a.download = 'llm-translate-settings.json'; a.click();
+    a.href = url; a.download = 'llm-translate-settings-safe.json'; a.click();
     URL.revokeObjectURL(url);
     showStatus('data-status', I18N.t('status_settings_exported'), 'success');
   });
@@ -1466,29 +1491,51 @@ async function refreshLogPanel() {
     updateLogSummary(logs);
 
     if (logs.length === 0) {
-      logContainer.innerHTML = '<div class="opt-log-empty">' + (I18N.t('log_empty') || 'No logs yet.') + '</div>';
+      logContainer.replaceChildren();
+      const empty = document.createElement('div');
+      empty.className = 'opt-log-empty';
+      empty.textContent = I18N.t('log_empty') || 'No logs yet.';
+      logContainer.appendChild(empty);
       return;
     }
 
     let prevScrollTop = logContainer.scrollTop;
     let wasAtBottom = (prevScrollTop + logContainer.clientHeight) >= (logContainer.scrollHeight - 10);
 
-    logContainer.innerHTML = logs.map(function(l) {
-      let levelClass = 'log-' + (l.level || 'info').toUpperCase();
-      let dataDisplay = l.data ? '<div class="log-data">' + escapeHtmlLog(l.data) + '</div>' : '';
-      return '<div class="log-entry ' + levelClass + '">' +
-        '<span class="log-time">' + escapeHtmlLog(l.time || '') + '</span>' +
-        '<span class="log-level">' + escapeHtmlLog(l.level || '') + '</span>' +
-        '<span class="log-tag">[' + escapeHtmlLog(l.tag || '') + ']</span>' +
-        '<span class="log-msg">' + escapeHtmlLog(l.message || '') + '</span>' +
-        dataDisplay + '</div>';
-    }).join('');
+    const entries = logs.map(function(l) {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry log-' + (l.level || 'info').toUpperCase();
+      const fields = [
+        ['log-time', l.time || ''],
+        ['log-level', l.level || ''],
+        ['log-tag', '[' + (l.tag || '') + ']'],
+        ['log-msg', l.message || '']
+      ];
+      fields.forEach(function(field) {
+        const span = document.createElement('span');
+        span.className = field[0];
+        span.textContent = field[1];
+        entry.appendChild(span);
+      });
+      if (l.data) {
+        const data = document.createElement('div');
+        data.className = 'log-data';
+        data.textContent = String(l.data);
+        entry.appendChild(data);
+      }
+      return entry;
+    });
+    logContainer.replaceChildren(...entries);
 
     if (autoScroll && wasAtBottom) {
       logContainer.scrollTop = logContainer.scrollHeight;
     }
   } catch(err) {
-    logContainer.innerHTML = '<div class="opt-log-empty">Error: ' + escapeHtmlLog(err.message) + '</div>';
+    logContainer.replaceChildren();
+    const error = document.createElement('div');
+    error.className = 'opt-log-empty';
+    error.textContent = 'Error: ' + err.message;
+    logContainer.appendChild(error);
   }
 }
 
@@ -1515,12 +1562,6 @@ function updateLogSummary(logs) {
 
 function formatLogLine(l) {
   return '[' + (l.time || '') + '] [' + (l.level || '') + '] [' + (l.tag || '') + '] ' + (l.message || '') + (l.data ? ' ' + l.data : '');
-}
-
-function escapeHtmlLog(text) {
-  if (!text) return '';
-  return String(text)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 init();

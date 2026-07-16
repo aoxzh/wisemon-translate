@@ -8,7 +8,7 @@
     const tag = 'Google';
     if (!text || !text.trim()) return '';
     const model = 'google-free';
-    const cacheKey = typeof makeCacheKey === 'function' ? makeCacheKey(text, sourceLang, targetLang, model) : null;
+    const cacheKey = typeof makeCacheKey === 'function' ? makeCacheKey(text, sourceLang, targetLang, model, this.settings) : null;
     if (cacheKey && !options.noCache) {
       const cached = typeof getCachedTranslation === 'function' ? await getCachedTranslation(cacheKey) : null;
       if (cached) return cached;
@@ -29,14 +29,12 @@
     }));
     let lastError = null;
     for (let attempt = 0; attempt <= 2; attempt++) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), options.timeout ?? LLM_API_CONFIG.REQUEST_TIMEOUT_MS);
+      const requestScope = this._createRequestScope(options.timeout ?? LLM_API_CONFIG.REQUEST_TIMEOUT_MS, options.signal);
       try {
-        const response = await fetch(url, { signal: controller.signal });
-        clearTimeout(timeoutId);
+        const response = await fetch(url, { signal: requestScope.controller.signal });
         if (response.status === 429 && attempt < 2) {
           this._log('warn', tag, `Google rate limited, retry ${attempt + 1}/2`);
-          await this._sleep(2000 * Math.pow(2, attempt));
+          await this._sleep(2000 * Math.pow(2, attempt), options.signal);
           continue;
         }
         if (!response.ok) throw new Error(`Google Translate HTTP ${response.status}`);
@@ -56,23 +54,24 @@
         if (cacheKey && typeof setCachedTranslation === 'function') await setCachedTranslation(cacheKey, translated);
         return translated;
       } catch (err) {
-        clearTimeout(timeoutId);
         lastError = err;
         if (err.name === 'AbortError') throw err;
         if (attempt < 2) {
           this._log('warn', tag, `Google request failed (attempt ${attempt + 1}/3): ${err.message}`);
-          await this._sleep(1500 * Math.pow(2, attempt));
+          await this._sleep(1500 * Math.pow(2, attempt), options.signal);
         }
+      } finally {
+        requestScope.cleanup();
       }
     }
     throw lastError || new Error('Google Translate failed after retries');
   };
 
-  LLMAPI.prototype.translateBatchWithGoogle = async function(texts, sourceLang, targetLang) {
+  LLMAPI.prototype.translateBatchWithGoogle = async function(texts, sourceLang, targetLang, options = {}) {
     const results = [];
     for (const text of texts) {
       try {
-        results.push(await this.translateWithGoogle(text, sourceLang, targetLang));
+        results.push(await this.translateWithGoogle(text, sourceLang, targetLang, options));
       } catch (err) {
         results.push(`[Translation Error: ${err.message}]`);
       }

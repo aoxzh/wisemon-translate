@@ -23,7 +23,10 @@
       onProgress = options.onProgress || null;
     }
     const context = options.context || '';
-    const translateOptions = context ? { context } : {};
+    const translateOptions = {
+      ...(context ? { context } : {}),
+      ...(options.signal ? { signal: options.signal } : {})
+    };
 
     if (!texts || texts.length === 0) return [];
     if (texts.length === 1) {
@@ -53,7 +56,11 @@
 
     // Try multi-text batching: combine multiple texts into a single API call
     // if total length is reasonable and API supports it
-    const useMultiTextBatch = this.settings.provider !== 'hunyuan' && this.settings.maxCharsPerRequest >= 2000 && total > 1;
+    const capabilities = typeof getProviderCapabilities === 'function'
+      ? getProviderCapabilities(this.settings.provider)
+      : { supportsMultiText: true };
+    const useMultiTextBatch = capabilities.supportsMultiText
+      && this.settings.maxCharsPerRequest >= 2000 && total > 1;
     const maxBatchSize = this._isDeepSeekFlash() ? Math.min(Math.max(this.concurrency || 8, 8), 24) : Math.min(Math.max(this.concurrency || 8, 6), 16);
 
     if (useMultiTextBatch) {
@@ -260,7 +267,9 @@
       }
     }
     const joined = results.filter(Boolean).join('\n\n').trim();
-    const cacheKey = typeof makeCacheKey === 'function' ? makeCacheKey(text, sourceLang, targetLang, this.settings.model) : null;
+    const cacheKey = typeof makeCacheKey === 'function'
+      ? makeCacheKey(text, sourceLang, targetLang, this.settings.model, { ...this.settings, context: options.context || '' })
+      : null;
     if (joined && cacheKey && !options.noCache && typeof setCachedTranslation === 'function') {
       await setCachedTranslation(cacheKey, joined);
     }
@@ -320,7 +329,9 @@
   };
 
   LLMAPI.prototype._supportsJsonResponseFormat = function() {
-    return !['anthropic', 'hunyuan', 'google', 'deepl', 'baidu', 'microsoft'].includes(this.settings.provider);
+    return typeof getProviderCapabilities === 'function'
+      ? getProviderCapabilities(this.settings.provider).supportsJsonResponse
+      : true;
   };
 
   /**
@@ -329,7 +340,7 @@
    */
   LLMAPI.prototype.translateMultiText = async function(texts, sourceLang, targetLang, options = {}) {
     if (this.settings.provider === 'google') {
-      return this.translateBatchWithGoogle(texts, sourceLang, targetLang);
+      return this.translateBatchWithGoogle(texts, sourceLang, targetLang, options);
     }
     const { baseURL, model, systemPrompt, userPromptTemplate, temperature } = this.settings;
     const apiKey = typeof getEffectiveApiKey === 'function' ? getEffectiveApiKey(this.settings) : this.settings.apiKey;
@@ -388,8 +399,7 @@
     if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
 
     const startTime = Date.now();
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this._getRequestTimeout(combinedText, texts.length));
+    const requestScope = this._createRequestScope(this._getRequestTimeout(combinedText, texts.length), options.signal);
 
     try {
       this._log('info', tag, 'Multi-text request queued', this._usagePayload(null, combinedText, {
@@ -402,9 +412,8 @@
         method: 'POST',
         headers,
         body: JSON.stringify(body),
-        signal: controller.signal
+        signal: requestScope.controller.signal
       });
-      clearTimeout(timeoutId);
       const duration = Date.now() - startTime;
 
       if (!response.ok) {
@@ -423,7 +432,7 @@
           method: 'POST',
           headers,
           body: JSON.stringify({ ...body, stream: false }),
-          signal: controller.signal
+          signal: requestScope.controller.signal
         });
         if (!fallbackResponse.ok) {
           const fallbackErrorText = await fallbackResponse.text().catch(() => 'Unable to read fallback error response');
@@ -485,11 +494,11 @@
       if (missing.length > 0) {
         this._log('warn', tag, `Multi-text parse missing ${missing.length}/${texts.length}; retrying missing items individually`, {
           missingIndexes: missing,
-          rawPreview: raw.slice(0, 500)
+          responseLength: raw.length
         });
         for (const idx of missing) {
           try {
-            results[idx] = await this.translate(texts[idx], sourceLang, targetLang, { noCache: true });
+            results[idx] = await this.translate(texts[idx], sourceLang, targetLang, { ...options, noCache: true });
           } catch (err) {
             results[idx] = `[Translation Error: ${err.message}]`;
           }
@@ -498,8 +507,9 @@
 
       return results;
     } catch (err) {
-      clearTimeout(timeoutId);
       throw err;
+    } finally {
+      requestScope.cleanup();
     }
   };
 

@@ -10,6 +10,7 @@ const childProcess = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 const MANIFESTS = ['manifest.json', 'manifest-firefox.json'];
+const JSON_FILES = ['src/lib/site-rules.json', 'src/lib/site-rule-schema.json', 'docs/site-rule-subscription.example.json'];
 const HTML_FILES = ['popup.html', 'options.html', 'sidepanel.html', 'privacy.html'];
 const UI_PAIRS = [
   ['popup.js', 'popup.html'],
@@ -40,9 +41,11 @@ const MESSAGE_FILES = [
   'src/content/core/content-constants.js',
   'src/content/core/content-main.js',
   'src/content/core/content-core.js',
+  'src/content/core/content-navigation.js',
   'src/content/core/content-observers.js',
   'src/content/features/content-input.js',
   'src/content/features/content-subtitle.js',
+  'src/content/features/content-subtitle-bilibili.js',
   'src/content/features/content-shortcuts.js',
   'src/content/features/content-selection.js',
   'src/content/features/content-fab.js',
@@ -128,12 +131,14 @@ function collectManifestRefs(manifest) {
   if (manifest.action?.default_popup) refs.push(manifest.action.default_popup);
   if (manifest.options_page) refs.push(manifest.options_page);
   if (manifest.side_panel?.default_path) refs.push(manifest.side_panel.default_path);
+  if (manifest.sidebar_action?.default_panel) refs.push(manifest.sidebar_action.default_panel);
   for (const icon of Object.values(manifest.icons || {})) refs.push(icon);
   for (const icon of Object.values(manifest.action?.default_icon || {})) refs.push(icon);
   return refs;
 }
 
 function checkManifestsAndResources() {
+  const packageVersion = JSON.parse(read('package.json')).version;
   for (const file of MANIFESTS) {
     let manifest;
     try {
@@ -141,6 +146,9 @@ function checkManifestsAndResources() {
     } catch (err) {
       fail(`${file} JSON parse: ${err.message}`);
       continue;
+    }
+    if (manifest.version !== packageVersion) {
+      fail(`${file} version ${manifest.version} does not match package.json ${packageVersion}`);
     }
     for (const ref of collectManifestRefs(manifest)) {
       if (!exists(ref)) fail(`${file} references missing file: ${ref}`);
@@ -153,6 +161,22 @@ function checkManifestsAndResources() {
       const ref = match[1];
       if (/^(https?:|#|chrome:|mailto:)/.test(ref)) continue;
       if (!exists(ref)) fail(`${file} references missing file: ${ref}`);
+    }
+  }
+
+  for (const file of JSON_FILES) {
+    try { JSON.parse(read(file)); } catch (err) { fail(`${file} JSON parse: ${err.message}`); }
+  }
+
+  const loaderPath = rootPath('src/lib/provider-loader.js');
+  delete require.cache[require.resolve(loaderPath)];
+  const providerFiles = require(loaderPath).LLM_PROVIDER_FILES;
+  const firefoxScripts = JSON.parse(read('manifest-firefox.json')).background?.scripts || [];
+  const optionsScripts = [...read('options.html').matchAll(/<script[^>]+src="([^"]+)"/g)].map(match => match[1]);
+  for (const [entryPoint, scripts] of [['manifest-firefox.json', firefoxScripts], ['options.html', optionsScripts]]) {
+    const actual = scripts.filter(script => providerFiles.includes(script));
+    if (JSON.stringify(actual) !== JSON.stringify(providerFiles)) {
+      fail(`${entryPoint} provider scripts do not match src/lib/provider-loader.js order`);
     }
   }
 
@@ -273,7 +297,7 @@ async function checkSmokeTests() {
     if (api._buildURL('https://api.openai.com/v1') !== 'https://api.openai.com/v1/chat/completions') {
       throw new Error('OpenAI-compatible URL mapping failed');
     }
-    for (const method of ['translateWithGoogle', 'translateWithDeepL', 'translateWithBaidu', 'translateWithMicrosoft']) {
+    for (const method of ['translateWithAnthropic', 'translateWithGoogle', 'translateWithDeepL', 'translateWithBaidu', 'translateWithMicrosoft']) {
       if (typeof api[method] !== 'function') throw new Error(`provider method not loaded: ${method}`);
     }
 

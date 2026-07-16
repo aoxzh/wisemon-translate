@@ -7,7 +7,7 @@
 // For Chrome MV3, use importScripts (classic worker, not module)
 // For Firefox, these are loaded via manifest background.scripts
 (function loadLibs() {
-  const LIBS = [
+  const CORE_LIBS = [
     'src/lib/i18n.js',
     'src/lib/i18n-locales/common.js',
     'src/lib/i18n-locales/options-general.js',
@@ -21,22 +21,24 @@
     'src/lib/site-rules.js',
     'src/lib/llm-api.js',
     'src/lib/llm-adapters/batch.js',
-    'src/lib/provider-loader.js',
-    'src/lib/providers/google.js',
-    'src/lib/providers/deepl.js',
-    'src/lib/providers/baidu.js',
-    'src/lib/providers/microsoft.js'
+    'src/lib/provider-loader.js'
   ];
   if (typeof importScripts === 'function') {
     try {
-      importScripts.apply(null, LIBS);
+      importScripts.apply(null, CORE_LIBS);
+      importScripts.apply(null, LLM_PROVIDER_FILES);
       console.log('[wisemon-translate] Libraries loaded via importScripts');
     } catch (e) {
       console.error('[wisemon-translate] importScripts FAILED:', e.message);
       // Try individual loads for debugging
-      LIBS.forEach(f => {
+      CORE_LIBS.forEach(f => {
         try { importScripts(f); } catch (e2) { console.error('  Failed:', f, e2.message); }
       });
+      if (typeof LLM_PROVIDER_FILES !== 'undefined') {
+        LLM_PROVIDER_FILES.forEach(f => {
+          try { importScripts(f); } catch (e2) { console.error('  Failed:', f, e2.message); }
+        });
+      }
     }
   } else {
     console.log('[wisemon-translate] importScripts not available — libraries must be preloaded');
@@ -79,6 +81,41 @@ function _safeApi(settings) {
 
 let currentSettings = null;
 const tabProgress = new Map(); // tabId -> { succeeded, failed, queued, totalObserved, totalProcessed, updatedAt }
+const activeTranslationRequests = new Map();
+const SITE_RULE_REFRESH_ALARM = 'wisemon-refresh-site-rules';
+
+function translationRequestKey(sender, request) {
+  const tabId = sender?.tab?.id ?? 'extension';
+  const frameId = sender?.frameId ?? 0;
+  const runId = request?.runId ?? 'standalone';
+  const requestId = request?.requestId || `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  return `${tabId}:${frameId}:${runId}:${requestId}`;
+}
+
+function registerTranslationRequest(sender, request) {
+  const key = translationRequestKey(sender, request);
+  const controller = new AbortController();
+  activeTranslationRequests.set(key, controller);
+  return {
+    controller,
+    signal: controller.signal,
+    cleanup() { activeTranslationRequests.delete(key); }
+  };
+}
+
+function cancelTranslationRun(sender, runId) {
+  const tabId = sender?.tab?.id ?? 'extension';
+  const frameId = sender?.frameId ?? 0;
+  const prefix = `${tabId}:${frameId}:${runId}:`;
+  let canceled = 0;
+  for (const [key, controller] of activeTranslationRequests) {
+    if (!key.startsWith(prefix)) continue;
+    controller.abort(new DOMException('Translation run canceled', 'AbortError'));
+    activeTranslationRequests.delete(key);
+    canceled++;
+  }
+  return canceled;
+}
 
 function updateActionBadge(tabId, progress) {
   try {
@@ -118,17 +155,14 @@ const CONTENT_MAIN_FILES = [
   'src/lib/llm-api.js',
   'src/lib/llm-adapters/batch.js',
   'src/lib/provider-loader.js',
-  ...(typeof LLM_PROVIDER_FILES !== 'undefined' ? LLM_PROVIDER_FILES : [
-    'src/lib/providers/google.js',
-    'src/lib/providers/deepl.js',
-    'src/lib/providers/baidu.js',
-    'src/lib/providers/microsoft.js'
-  ]),
+  ...LLM_PROVIDER_FILES,
   'src/content/core/content-constants.js',
   'src/content/core/content-core.js',
+  'src/content/core/content-navigation.js',
   'src/content/core/content-observers.js',
   'src/content/features/content-input.js',
   'src/content/features/content-subtitle.js',
+  'src/content/features/content-subtitle-bilibili.js',
   'src/content/translation/content-glossary.js',
   'src/content/translation/content-progress.js',
   'src/content/translation/content-text-utils.js',
@@ -159,6 +193,9 @@ async function init() {
   _safeLog('info', 'Background', `LOGGER available: ${typeof LOG !== 'undefined'}, LLMAPI: ${typeof LLMAPI !== 'undefined'}`);
 
   currentSettings = typeof normalizeSettings === 'function' ? normalizeSettings(await getSettings()) : await getSettings();
+  if (chrome.alarms?.create) {
+    chrome.alarms.create(SITE_RULE_REFRESH_ALARM, { periodInMinutes: 24 * 60 });
+  }
 
   _safeLog('info', 'Background', 'Settings loaded', {
     provider: currentSettings.provider,
@@ -172,6 +209,18 @@ async function init() {
   setupContextMenus();
 
   _safeLog('info', 'Background', 'Init complete');
+}
+
+if (chrome.alarms?.onAlarm) {
+  chrome.alarms.onAlarm.addListener(async alarm => {
+    if (alarm.name !== SITE_RULE_REFRESH_ALARM || typeof refreshSiteRuleSubscriptions !== 'function') return;
+    try {
+      await refreshSiteRuleSubscriptions();
+      _safeLog('info', 'Rules', 'Site rule subscriptions refreshed automatically');
+    } catch (error) {
+      _safeLog('warn', 'Rules', 'Automatic site rule refresh failed: ' + error.message);
+    }
+  });
 }
 
 function setupContextMenus() {
@@ -360,7 +409,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name !== 'translate-stream') return;
   let closed = false;
-  port.onDisconnect.addListener(() => { closed = true; });
+  let activeScope = null;
+  port.onDisconnect.addListener(() => {
+    closed = true;
+    activeScope?.controller.abort(new DOMException('Translation stream disconnected', 'AbortError'));
+    activeScope?.cleanup();
+    activeScope = null;
+  });
   port.onMessage.addListener(async (request) => {
     if (!request || request.action !== 'translate-stream') return;
     const requestId = request.requestId || '';
@@ -369,6 +424,8 @@ chrome.runtime.onConnect.addListener((port) => {
       try { port.postMessage({ requestId, ...payload }); } catch (e) { closed = true; }
     };
     try {
+      const registered = registerTranslationRequest(port.sender, request);
+      activeScope = registered;
       const settings = typeof normalizeSettings === 'function' ? normalizeSettings(await getSettings()) : await getSettings();
       const effectiveSettings = await applyRequestSiteContext(settings, request.pageUrl || port.sender?.tab?.url);
       effectiveSettings.useStream = true;
@@ -378,6 +435,7 @@ chrome.runtime.onConnect.addListener((port) => {
       const api = _safeApi(effectiveSettings);
       let lastPost = 0;
       const translated = await api.translate(request.text || '', effectiveSettings.sourceLang, effectiveSettings.targetLang, {
+        signal: registered.signal,
         onDelta: (_delta, full) => {
           const now = Date.now();
           if (now - lastPost < 80 && full.length > 24) return;
@@ -387,7 +445,10 @@ chrome.runtime.onConnect.addListener((port) => {
       });
       post({ type: 'done', text: translated || '' });
     } catch (err) {
-      post({ type: 'error', error: err.message || 'Translation failed' });
+      if (!closed) post({ type: 'error', error: err.message || 'Translation failed' });
+    } finally {
+      activeScope?.cleanup();
+      activeScope = null;
     }
   });
 });
@@ -407,11 +468,16 @@ async function handleMessage(request, sender) {
     return { success };
   }
 
+  if (request.action === 'cancel-translation-run') {
+    return { success: true, canceled: cancelTranslationRun(sender, request.runId) };
+  }
+
   if (request.action === 'open-sidepanel') {
     try {
       const tab = sender?.tab;
-      if (chrome.sidePanel && chrome.sidePanel.open && tab?.windowId) {
-        await chrome.sidePanel.open({ windowId: tab.windowId });
+      const sidePanelApi = chrome['side' + 'Panel'];
+      if (sidePanelApi?.open && tab?.windowId) {
+        await sidePanelApi.open({ windowId: tab.windowId });
       } else {
         await chrome.tabs.create({ url: chrome.runtime.getURL('sidepanel.html') });
       }
@@ -474,12 +540,15 @@ async function handleMessage(request, sender) {
       sourceLang: effectiveSettings.sourceLang,
       targetLang: effectiveSettings.targetLang,
       textLength: text.length,
-      textPreview: text.slice(0, 120),
       estimatedTokens: estimateTokens(text),
       pageUrl: sender?.tab?.url || ''
     });
+    const requestScope = registerTranslationRequest(sender, request);
     try {
-      const translated = await api.translate(text, effectiveSettings.sourceLang, effectiveSettings.targetLang);
+      const translated = await api.translate(text, effectiveSettings.sourceLang, effectiveSettings.targetLang, {
+        context: request.context,
+        signal: requestScope.signal
+      });
       const duration = Date.now() - tStart;
       _safeLog('info', 'Translate', `Single translation OK (${duration}ms) → ${translated?.length || 0} chars`);
       if (typeof setProviderStatus === 'function') {
@@ -512,6 +581,8 @@ async function handleMessage(request, sender) {
       });
       await _flushLogs();
       return { error: err.message || 'Translation failed' };
+    } finally {
+      requestScope.cleanup();
     }
   }
 
@@ -533,12 +604,12 @@ async function handleMessage(request, sender) {
       targetLang: effectiveSettings.targetLang,
       count: texts.length,
       totalTextLength,
-      textPreviews: texts.slice(0, 3).map(t => String(t || '').slice(0, 80)),
       estimatedTokens: estimateTokens(texts.join('\n')),
       pageUrl: sender?.tab?.url || ''
     });
+    const requestScope = registerTranslationRequest(sender, request);
     try {
-      const results = await api.translateBatch(texts, effectiveSettings.sourceLang, effectiveSettings.targetLang, { context: request.context });
+      const results = await api.translateBatch(texts, effectiveSettings.sourceLang, effectiveSettings.targetLang, { context: request.context, signal: requestScope.signal });
       const duration = Date.now() - tStart;
       const failed = results.filter(r => typeof r === 'string' && r.startsWith('[Translation Error:')).length;
       const succeeded = texts.length - failed;
@@ -585,6 +656,8 @@ async function handleMessage(request, sender) {
       }
       await _flushLogs();
       return { error: err.message || 'Batch translation failed' };
+    } finally {
+      requestScope.cleanup();
     }
   }
 
@@ -636,7 +709,9 @@ async function handleMessage(request, sender) {
     return { success: !!entry, entry };
   }
   if (request.action === 'delete-vocabulary') {
-    if (request.id && typeof removeVocabulary === 'function') {
+    if (request.id === '__all__' && typeof clearVocabulary === 'function') {
+      await clearVocabulary();
+    } else if (request.id && typeof removeVocabulary === 'function') {
       await removeVocabulary(request.id);
     }
     return { success: true };

@@ -75,7 +75,7 @@
       label: 'Claude',
       description: 'Anthropic',
       baseURL: 'https://api.anthropic.com/v1',
-      model: 'claude-haiku-4-5',
+      model: 'claude-3-5-haiku-20241022',
       apiKey: '',
       provider: 'anthropic'
     },
@@ -154,6 +154,20 @@
   PROVIDER_NAMES.google = 'Google';
 
   const API_KEY_OPTIONAL_PROVIDERS = new Set(['ollama', 'hunyuan', 'lmstudio', 'custom', 'google']);
+  const DEFAULT_PROVIDER_CAPABILITIES = Object.freeze({
+    nativeMethod: '',
+    supportsMultiText: true,
+    supportsJsonResponse: true,
+    openAiCompatible: true
+  });
+  const PROVIDER_CAPABILITIES = Object.freeze({
+    google: Object.freeze({ nativeMethod: 'translateWithGoogle', supportsJsonResponse: false, openAiCompatible: false }),
+    anthropic: Object.freeze({ nativeMethod: 'translateWithAnthropic', supportsMultiText: false, supportsJsonResponse: false, openAiCompatible: false }),
+    deepl: Object.freeze({ nativeMethod: 'translateWithDeepL', supportsMultiText: false, supportsJsonResponse: false, openAiCompatible: false }),
+    baidu: Object.freeze({ nativeMethod: 'translateWithBaidu', supportsMultiText: false, supportsJsonResponse: false, openAiCompatible: false }),
+    microsoft: Object.freeze({ nativeMethod: 'translateWithMicrosoft', supportsMultiText: false, supportsJsonResponse: false, openAiCompatible: false }),
+    hunyuan: Object.freeze({ supportsMultiText: false, supportsJsonResponse: false })
+  });
 
   function getProviderName(provider) {
     return PROVIDER_NAMES[provider] || provider || 'Unknown';
@@ -167,13 +181,19 @@
     return !API_KEY_OPTIONAL_PROVIDERS.has(provider);
   }
 
+  function getProviderCapabilities(provider) {
+    return { ...DEFAULT_PROVIDER_CAPABILITIES, ...(PROVIDER_CAPABILITIES[provider] || {}) };
+  }
+
   if (typeof globalThis !== 'undefined') {
     globalThis.PROVIDER_PRESETS = PROVIDER_PRESETS;
     globalThis.PROVIDER_NAMES = PROVIDER_NAMES;
     globalThis.API_KEY_OPTIONAL_PROVIDERS = API_KEY_OPTIONAL_PROVIDERS;
+    globalThis.PROVIDER_CAPABILITIES = PROVIDER_CAPABILITIES;
     globalThis.getProviderName = getProviderName;
     globalThis.getProviderFromPreset = getProviderFromPreset;
     globalThis.providerNeedsApiKeyShared = providerNeedsApiKeyShared;
+    globalThis.getProviderCapabilities = getProviderCapabilities;
   }
 
   if (typeof module !== 'undefined' && module.exports) {
@@ -181,9 +201,11 @@
       PROVIDER_PRESETS,
       PROVIDER_NAMES,
       API_KEY_OPTIONAL_PROVIDERS,
+      PROVIDER_CAPABILITIES,
       getProviderName,
       getProviderFromPreset,
-      providerNeedsApiKeyShared
+      providerNeedsApiKeyShared,
+      getProviderCapabilities
     };
   }
 })();

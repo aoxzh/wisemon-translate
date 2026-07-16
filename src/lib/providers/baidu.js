@@ -133,7 +133,7 @@
     const apiKey = typeof getEffectiveApiKey === 'function' ? getEffectiveApiKey(this.settings) : this.settings.apiKey;
     if (!apiKey) throw new Error('Baidu API Key (secret key) is required. Get one at https://fanyi-api.baidu.com');
     const model = 'baidu-standard';
-    const cacheKey = typeof makeCacheKey === 'function' ? makeCacheKey(text, sourceLang, targetLang, model) : null;
+    const cacheKey = typeof makeCacheKey === 'function' ? makeCacheKey(text, sourceLang, targetLang, model, this.settings) : null;
     if (cacheKey && !options.noCache) {
       const cached = typeof getCachedTranslation === 'function' ? await getCachedTranslation(cacheKey) : null;
       if (cached) return cached;
@@ -164,21 +164,19 @@
     let lastError = null;
     const timeout = options.timeout ?? 15000;
     for (let attempt = 0; attempt <= 2; attempt++) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      const requestScope = this._createRequestScope(timeout, options.signal);
       try {
         const response = await fetch(apiUrl + '?' + params, {
           method: 'GET',
-          signal: controller.signal
+          signal: requestScope.controller.signal
         });
-        clearTimeout(timeoutId);
         const duration = Date.now() - startTime;
         if (!response.ok) {
           const errorText = await response.text().catch(() => '');
           this._logResponse(tag, apiUrl, response.status, duration, errorText);
           if (response.status === 429 && attempt < 2) {
             this._log('warn', tag, 'Baidu rate limited, retry ' + (attempt + 1) + '/2');
-            await this._sleep(2000 * Math.pow(2, attempt));
+            await this._sleep(2000 * Math.pow(2, attempt), options.signal);
             continue;
           }
           throw new Error('Baidu API Error ' + response.status + ': ' + errorText.slice(0, 200));
@@ -203,18 +201,20 @@
         if (cacheKey && typeof setCachedTranslation === 'function') await setCachedTranslation(cacheKey, translated);
         return translated;
       } catch (err) {
-        clearTimeout(timeoutId);
         lastError = err;
+        if (options.signal?.aborted) throw err;
         if (err.name === 'AbortError') {
           lastError = new Error('Baidu request timeout (' + timeout + 'ms)');
-          if (attempt < 2) { await this._sleep(1500 * Math.pow(2, attempt)); continue; }
+          if (attempt < 2) { await this._sleep(1500 * Math.pow(2, attempt), options.signal); continue; }
           throw lastError;
         }
         if (err.message && err.message.indexOf('Baidu error') === 0) throw err;
         if (attempt < 2) {
           this._log('warn', tag, 'Baidu request failed (attempt ' + (attempt + 1) + '/3): ' + err.message);
-          await this._sleep(1500 * Math.pow(2, attempt));
+          await this._sleep(1500 * Math.pow(2, attempt), options.signal);
         }
+      } finally {
+        requestScope.cleanup();
       }
     }
     throw lastError || new Error('Baidu translation failed after retries');

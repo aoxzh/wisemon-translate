@@ -92,25 +92,51 @@
   // ---- Remote rule subscriptions ----
   let subscriptionCachePromise = null;
 
+  function invalidateSubscriptionCache() {
+    subscriptionCachePromise = null;
+  }
+
+  function handleSubscriptionStorageChange(changes, areaName) {
+    if (areaName !== 'local' || !changes?.[SUBSCRIPTIONS_STORAGE_KEY]) return;
+    invalidateSubscriptionCache();
+    const nextValue = changes[SUBSCRIPTIONS_STORAGE_KEY].newValue;
+    subscriptionCache = Array.isArray(nextValue)
+      ? nextValue.flatMap(sub => Array.isArray(sub.rules) ? sub.rules : [])
+      : [];
+    try {
+      if (typeof globalThis.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
+        globalThis.dispatchEvent(new CustomEvent('llm-site-rules-changed'));
+      }
+    } catch (e) { /* non-window extension context */ }
+  }
+
   function isValidRule(rule) {
     if (!rule || typeof rule !== 'object') return false;
-    if (!rule.id || typeof rule.id !== 'string') return false;
+    if (!rule.id || typeof rule.id !== 'string' || rule.id.length > 100) return false;
     const matches = Array.isArray(rule.matches) ? rule.matches : [rule.matches];
-    if (!matches.some(m => typeof m === 'string' && m.trim())) return false;
+    if (matches.length > 50 || !matches.some(m => typeof m === 'string' && m.trim() && m.length <= 500)) return false;
     return true;
   }
 
+  function sanitizeStringArray(value, maxItems, maxLength) {
+    if (!Array.isArray(value)) return undefined;
+    return value.filter(item => typeof item === 'string' && item.length <= maxLength).slice(0, maxItems);
+  }
+
   function sanitizeRule(rule) {
+    const safeCss = Array.isArray(rule.injectedCss)
+      ? rule.injectedCss.filter(value => typeof value === 'string' && value.length <= 10000 && !/@import|url\s*\(|expression\s*\(|-moz-binding/i.test(value)).slice(0, 20)
+      : undefined;
     return {
       id: String(rule.id),
-      matches: (Array.isArray(rule.matches) ? rule.matches : [rule.matches]).filter(m => typeof m === 'string'),
-      excludeSelectors: Array.isArray(rule.excludeSelectors) ? rule.excludeSelectors.filter(s => typeof s === 'string') : undefined,
-      includeSelectors: Array.isArray(rule.includeSelectors) ? rule.includeSelectors.filter(s => typeof s === 'string') : undefined,
-      mainSelectors: Array.isArray(rule.mainSelectors) ? rule.mainSelectors.filter(s => typeof s === 'string') : undefined,
-      injectedCss: Array.isArray(rule.injectedCss) ? rule.injectedCss.filter(s => typeof s === 'string') : undefined,
-      contextHint: typeof rule.contextHint === 'string' ? rule.contextHint : undefined,
+      matches: sanitizeStringArray(Array.isArray(rule.matches) ? rule.matches : [rule.matches], 50, 500),
+      excludeSelectors: sanitizeStringArray(rule.excludeSelectors, 100, 1000),
+      includeSelectors: sanitizeStringArray(rule.includeSelectors, 100, 1000),
+      mainSelectors: sanitizeStringArray(rule.mainSelectors, 100, 1000),
+      injectedCss: safeCss,
+      contextHint: typeof rule.contextHint === 'string' ? rule.contextHint.slice(0, 4000) : undefined,
       disableAutoTranslate: !!rule.disableAutoTranslate,
-      privacyMode: typeof rule.privacyMode === 'string' ? rule.privacyMode : undefined,
+      privacyMode: rule.privacyMode === 'strict' ? 'strict' : undefined,
       preferSubtitleOverlay: !!rule.preferSubtitleOverlay,
       source: 'subscription'
     };
@@ -142,9 +168,23 @@
   }
 
   async function fetchSubscriptionRules(url) {
-    const response = await fetch(url, { cache: 'no-store', credentials: 'omit' });
+    const parsedUrl = new URL(url);
+    const isLocalHttp = parsedUrl.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(parsedUrl.hostname);
+    if (parsedUrl.protocol !== 'https:' && !isLocalHttp) throw new Error('Subscription URL must use HTTPS (HTTP is allowed only for localhost)');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    let response;
+    try {
+      response = await fetch(parsedUrl.href, { cache: 'no-store', credentials: 'omit', signal: controller.signal });
+    } finally {
+      clearTimeout(timeoutId);
+    }
     if (!response.ok) throw new Error('HTTP ' + response.status);
-    const data = await response.json();
+    const declaredLength = Number(response.headers?.get?.('content-length') || 0);
+    if (declaredLength > 1024 * 1024) throw new Error('Subscription exceeds the 1 MB limit');
+    const raw = await response.text();
+    if (raw.length > 1024 * 1024) throw new Error('Subscription exceeds the 1 MB limit');
+    const data = JSON.parse(raw);
     if (!Array.isArray(data)) throw new Error('Subscription must be a JSON array');
     const valid = data.filter(isValidRule).map(sanitizeRule);
     if (!valid.length) throw new Error('No valid rules found');
@@ -160,6 +200,7 @@
     const subscription = { url: normalized, rules: rules, ts: Date.now(), status: 'ok', count: rules.length };
     subs.push(subscription);
     await chrome.storage.local.set({ [SUBSCRIPTIONS_STORAGE_KEY]: subs });
+    invalidateSubscriptionCache();
     await loadSubscriptionCache();
     return subscription;
   }
@@ -169,6 +210,7 @@
     let subs = await getSiteRuleSubscriptions();
     subs = subs.filter(s => s.url !== normalized);
     await chrome.storage.local.set({ [SUBSCRIPTIONS_STORAGE_KEY]: subs });
+    invalidateSubscriptionCache();
     await loadSubscriptionCache();
   }
 
@@ -191,6 +233,7 @@
       }
     }
     await chrome.storage.local.set({ [SUBSCRIPTIONS_STORAGE_KEY]: subs });
+    invalidateSubscriptionCache();
     await loadSubscriptionCache();
     return results;
   }
@@ -215,6 +258,9 @@
 
   // Initialize cache on load
   loadSubscriptionCache().catch(function() {});
+  if (typeof chrome !== 'undefined' && chrome.storage?.onChanged?.addListener) {
+    chrome.storage.onChanged.addListener(handleSubscriptionStorageChange);
+  }
 
   if (typeof globalThis !== 'undefined') {
     globalThis.initSiteRules = loadBuiltInRules;
