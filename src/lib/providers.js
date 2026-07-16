@@ -132,6 +132,7 @@
       description: 'Chinese focused, API key',
       baseURL: 'https://fanyi-api.baidu.com/api/trans/vip',
       model: 'baidu-standard',
+      baiduAppId: '',
       apiKey: '',
       provider: 'baidu'
     },

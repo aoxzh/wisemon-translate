@@ -10,7 +10,9 @@
   const LIBS = [
     'src/lib/i18n.js',
     'src/lib/i18n-locales/common.js',
-    'src/lib/i18n-locales/options.js',
+    'src/lib/i18n-locales/options-general.js',
+    'src/lib/i18n-locales/options-translation.js',
+    'src/lib/i18n-locales/options-features.js',
     'src/lib/i18n-locales/themes.js',
     'src/lib/utils.js',
     'src/lib/providers.js',
@@ -18,6 +20,7 @@
     'src/lib/batch-queue.js',
     'src/lib/site-rules.js',
     'src/lib/llm-api.js',
+    'src/lib/llm-adapters/batch.js',
     'src/lib/provider-loader.js',
     'src/lib/providers/google.js',
     'src/lib/providers/deepl.js',
@@ -76,17 +79,44 @@ function _safeApi(settings) {
 
 let currentSettings = null;
 const tabProgress = new Map(); // tabId -> { succeeded, failed, queued, totalObserved, totalProcessed, updatedAt }
+
+function updateActionBadge(tabId, progress) {
+  try {
+    const state = progress.taskState || 'idle';
+    const pending = (progress.pendingCount || 0) + (progress.queuedCount || 0);
+    const failed = progress.failedCount || 0;
+    const total = Math.max(progress.totalVisibleCount || 0, progress.processedCount || 0, 1);
+    const pct = Math.min(100, Math.round(((progress.processedCount || 0) / total) * 100));
+
+    if (state === 'idle' || state === 'completed') {
+      chrome.action.setBadgeText({ tabId, text: failed > 0 ? '!' : '' }).catch(() => {});
+      chrome.action.setBadgeBackgroundColor({ tabId, color: failed > 0 ? '#FF5C48' : '#00FF85' }).catch(() => {});
+    } else if (state === 'failed') {
+      chrome.action.setBadgeText({ tabId, text: '!' }).catch(() => {});
+      chrome.action.setBadgeBackgroundColor({ tabId, color: '#FF5C48' }).catch(() => {});
+    } else if (pending > 0 || state === 'scanning' || state === 'translating') {
+      const text = pct >= 100 ? '…' : String(Math.max(1, Math.floor(pct / 10) * 10));
+      chrome.action.setBadgeText({ tabId, text }).catch(() => {});
+      chrome.action.setBadgeBackgroundColor({ tabId, color: '#00FF85' }).catch(() => {});
+    }
+  } catch (e) { /* never crash on badge updates */ }
+}
+
 const CONTENT_MAIN_FILES = [
   'src/lib/i18n.js',
   'src/lib/i18n-locales/common.js',
-  'src/lib/i18n-locales/options.js',
+  'src/lib/i18n-locales/options-general.js',
+  'src/lib/i18n-locales/options-translation.js',
+  'src/lib/i18n-locales/options-features.js',
   'src/lib/i18n-locales/themes.js',
   'src/lib/utils.js',
+  'src/lib/tts.js',
   'src/lib/providers.js',
   'src/lib/logger.js',
   'src/lib/batch-queue.js',
   'src/lib/site-rules.js',
   'src/lib/llm-api.js',
+  'src/lib/llm-adapters/batch.js',
   'src/lib/provider-loader.js',
   ...(typeof LLM_PROVIDER_FILES !== 'undefined' ? LLM_PROVIDER_FILES : [
     'src/lib/providers/google.js',
@@ -106,9 +136,16 @@ const CONTENT_MAIN_FILES = [
   'src/content/ui/content-ui.js',
   'src/content/translation/content-adaptive-scanner.js',
   'src/content/translation/content-candidate-pruner.js',
-  'src/content/core/content-language.js',
+  'src/content/translation/content-scanner.js',
+  'src/content/translation/content-injection.js',
+  'src/content/translation/content-batch-processor.js',
+  'src/content/translation/content-shadow.js',
+  'src/content/translation/content-title.js',
+  'src/content/translation/content-language.js',
+  'src/content/translation/content-element-utils.js',
   'src/content/features/content-selection.js',
   'src/content/features/content-fab.js',
+  'src/content/features/content-hover.js',
   'src/content/core/content-main.js'
 ];
 
@@ -264,9 +301,9 @@ async function waitForContentReady(tabId, frameId, timeoutMs = 6000) {
   return false;
 }
 
-function applyRequestSiteContext(settings, pageUrl) {
+async function applyRequestSiteContext(settings, pageUrl) {
   if (typeof getSiteRule !== 'function' || !pageUrl) return settings;
-  const rule = getSiteRule(pageUrl, settings);
+  const rule = await getSiteRule(pageUrl, settings);
   const siteTerms = getSiteTermsForUrl(settings, pageUrl);
   if (!rule?.contextHint && !rule?.systemPrompt && !rule?.userPromptTemplate && !siteTerms.length) return settings;
   const next = { ...settings };
@@ -333,7 +370,7 @@ chrome.runtime.onConnect.addListener((port) => {
     };
     try {
       const settings = typeof normalizeSettings === 'function' ? normalizeSettings(await getSettings()) : await getSettings();
-      const effectiveSettings = applyRequestSiteContext(settings, request.pageUrl || port.sender?.tab?.url);
+      const effectiveSettings = await applyRequestSiteContext(settings, request.pageUrl || port.sender?.tab?.url);
       effectiveSettings.useStream = true;
       effectiveSettings.streamRenderMode = 'single';
       if (request.targetLang) effectiveSettings.targetLang = request.targetLang;
@@ -402,6 +439,7 @@ async function handleMessage(request, sender) {
         taskRunId: request.taskRunId || 0,
         updatedAt: Date.now()
       });
+      updateActionBadge(tabId, request);
     }
     return {
       success: true,
@@ -423,7 +461,7 @@ async function handleMessage(request, sender) {
   // ---- Translate single text ----
   if (request.action === 'translate') {
     const settings = typeof normalizeSettings === 'function' ? normalizeSettings(await getSettings()) : await getSettings();
-    const effectiveSettings = applyRequestSiteContext(settings, sender?.tab?.url);
+    const effectiveSettings = await applyRequestSiteContext(settings, sender?.tab?.url);
     if (request.targetLang) effectiveSettings.targetLang = request.targetLang;
     if (request.sourceLang) effectiveSettings.sourceLang = request.sourceLang;
     const api = _safeApi(effectiveSettings);
@@ -480,7 +518,7 @@ async function handleMessage(request, sender) {
   // ---- Translate batch ----
   if (request.action === 'translate-batch') {
     const settings = typeof normalizeSettings === 'function' ? normalizeSettings(await getSettings()) : await getSettings();
-    const effectiveSettings = applyRequestSiteContext(settings, sender?.tab?.url);
+    const effectiveSettings = await applyRequestSiteContext(settings, sender?.tab?.url);
     if (request.targetLang) effectiveSettings.targetLang = request.targetLang;
     if (request.sourceLang) effectiveSettings.sourceLang = request.sourceLang;
     const api = _safeApi(effectiveSettings);
@@ -500,7 +538,7 @@ async function handleMessage(request, sender) {
       pageUrl: sender?.tab?.url || ''
     });
     try {
-      const results = await api.translateBatch(texts, effectiveSettings.sourceLang, effectiveSettings.targetLang);
+      const results = await api.translateBatch(texts, effectiveSettings.sourceLang, effectiveSettings.targetLang, { context: request.context });
       const duration = Date.now() - tStart;
       const failed = results.filter(r => typeof r === 'string' && r.startsWith('[Translation Error:')).length;
       const succeeded = texts.length - failed;
@@ -547,6 +585,90 @@ async function handleMessage(request, sender) {
       }
       await _flushLogs();
       return { error: err.message || 'Batch translation failed' };
+    }
+  }
+
+  // ---- Custom AI Action ----
+  if (request.action === 'run-action') {
+    const settings = typeof normalizeSettings === 'function' ? normalizeSettings(await getSettings()) : await getSettings();
+    const effectiveSettings = await applyRequestSiteContext(settings, sender?.tab?.url);
+    if (request.targetLang) effectiveSettings.targetLang = request.targetLang;
+    if (request.sourceLang) effectiveSettings.sourceLang = request.sourceLang;
+    const api = _safeApi(effectiveSettings);
+    const action = request.actionMeta || {};
+    const text = String(request.text || '');
+    if (!text) {
+      return { error: 'No text provided for action.' };
+    }
+    if (!action.prompt) {
+      return { error: 'Action has no prompt configured.' };
+    }
+    const prompt = action.prompt
+      .replace(/\{\{text\}\}/g, text)
+      .replace(/\{\{sourceLang\}\}/g, effectiveSettings.sourceLang === 'auto' ? 'the detected language' : effectiveSettings.sourceLang)
+      .replace(/\{\{targetLang\}\}/g, effectiveSettings.targetLang);
+    const systemPrompt = action.systemPrompt || effectiveSettings.systemPrompt || DEFAULT_SETTINGS.systemPrompt;
+    const temperature = typeof action.temperature === 'number' ? action.temperature : (typeof effectiveSettings.temperature === 'number' ? effectiveSettings.temperature : 0.3);
+    try {
+      _safeLog('info', 'Action', `Running AI action: ${action.name || action.id}`, { actionId: action.id, textLength: text.length });
+      const result = await api.translate(text, effectiveSettings.sourceLang, effectiveSettings.targetLang, {
+        systemPrompt,
+        userPromptTemplate: prompt,
+        temperature,
+        noCache: true
+      });
+      return { result };
+    } catch (err) {
+      _safeLog('error', 'Action', `AI action failed: ${err.message}`, { actionId: action.id });
+      await _flushLogs();
+      return { error: err.message || 'Action failed' };
+    }
+  }
+
+  // ---- Vocabulary Bank ----
+  if (request.action === 'get-vocabulary') {
+    const vocab = typeof getVocabulary === 'function' ? await getVocabulary() : [];
+    return { vocabulary: vocab };
+  }
+  if (request.action === 'save-vocabulary') {
+    const item = request.item || {};
+    const entry = typeof addVocabulary === 'function' ? await addVocabulary(item) : null;
+    return { success: !!entry, entry };
+  }
+  if (request.action === 'delete-vocabulary') {
+    if (request.id && typeof removeVocabulary === 'function') {
+      await removeVocabulary(request.id);
+    }
+    return { success: true };
+  }
+
+  // ---- Site rule subscriptions ----
+  if (request.action === 'get-site-rule-subscriptions') {
+    const subscriptions = typeof getSiteRuleSubscriptions === 'function' ? await getSiteRuleSubscriptions() : [];
+    return { subscriptions };
+  }
+  if (request.action === 'add-site-rule-subscription') {
+    try {
+      const subscription = await addSiteRuleSubscription(request.url);
+      return { success: true, subscription };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  }
+  if (request.action === 'remove-site-rule-subscription') {
+    try {
+      await removeSiteRuleSubscription(request.url);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  }
+  if (request.action === 'refresh-site-rule-subscriptions') {
+    try {
+      const results = await refreshSiteRuleSubscriptions();
+      return { success: true, results };
+    } catch (err) {
+      return { success: false, error: err.message };
     }
   }
 

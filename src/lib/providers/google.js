@@ -21,8 +21,6 @@
     const tl = targetLang || 'zh-CN';
     const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl=' +
       encodeURIComponent(sl) + '&tl=' + encodeURIComponent(tl) + '&q=' + encodeURIComponent(masked.text);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), options.timeout ?? LLM_API_CONFIG.REQUEST_TIMEOUT_MS);
     const startTime = Date.now();
     this._log('info', tag, 'Google request queued', this._usagePayload(null, masked.text, {
       sourceLang: sl,
@@ -31,6 +29,8 @@
     }));
     let lastError = null;
     for (let attempt = 0; attempt <= 2; attempt++) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), options.timeout ?? LLM_API_CONFIG.REQUEST_TIMEOUT_MS);
       try {
         const response = await fetch(url, { signal: controller.signal });
         clearTimeout(timeoutId);
@@ -65,7 +65,6 @@
         }
       }
     }
-    clearTimeout(timeoutId);
     throw lastError || new Error('Google Translate failed after retries');
   };
 

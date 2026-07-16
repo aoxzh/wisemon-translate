@@ -59,9 +59,13 @@
         '<div class="llm-popup-original">' + escapeHtml(text.slice(0, 600)) + (text.length > 600 ? '...' : '') + '</div>' +
         '<div class="llm-popup-result llm-translate-loading">Translating...</div>' +
       '</div>' +
+      '<div class="llm-popup-ai-actions"></div>' +
       '<div class="llm-popup-actions">' +
         '<button type="button" data-action="copy-source">Copy Source</button>' +
         '<button type="button" data-action="copy-result">Copy Result</button>' +
+        '<button type="button" data-action="speak-source">🔊 Source</button>' +
+        '<button type="button" data-action="speak-result">🔊 Result</button>' +
+        '<button type="button" data-action="save-vocab">⭐ Save</button>' +
         '<button type="button" data-action="open-side">Side Panel</button>' +
       '</div>';
     positionPopup(popup, anchor.x + 10, anchor.y + 10);
@@ -122,7 +126,82 @@
         await chrome.storage.local.set({ 'llm-translate-sidepanel-draft': { text, translated: translatedText, ts: Date.now() } });
         chrome.runtime.sendMessage({ action: 'open-sidepanel' }).catch(function() {});
       }
+      if (action === 'speak-source') {
+        if (text) ctx.fn.speakTTS?.(text, getSettings()?.sourceLang);
+      }
+      if (action === 'speak-result') {
+        if (translatedText) ctx.fn.speakTTS?.(translatedText, getSettings()?.targetLang);
+      }
+      if (action === 'save-vocab') {
+        try {
+          const settings = getSettings() || {};
+          await chrome.runtime.sendMessage({
+            action: 'save-vocabulary',
+            item: {
+              term: text,
+              translation: translatedText && translatedText !== '--' ? translatedText : '',
+              sourceLang: settings.sourceLang,
+              targetLang: settings.targetLang,
+              context: text.slice(0, 240),
+              url: location.href,
+              title: document.title
+            }
+          });
+          ctx.fn.showToast?.('Saved to vocabulary', 1200);
+        } catch (e) {
+          ctx.fn.showToast?.('Save failed', 1500);
+        }
+      }
     });
+
+    // Render custom AI action buttons from settings
+    function renderAiActionButtons() {
+      const actions = getSettings()?.aiActions || [];
+      const container = popup.querySelector('.llm-popup-ai-actions');
+      if (!container || actions.length === 0) return;
+      container.innerHTML = '';
+      actions.forEach(function(action) {
+        if (!action || !action.prompt) return;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'llm-popup-ai-action-btn';
+        btn.title = action.name || '';
+        btn.textContent = (action.icon || '⚡') + ' ' + (action.name || 'Action');
+        btn.addEventListener('click', async function(ev) {
+          ev.stopPropagation();
+          pinned = true;
+          const resultEl = popup.querySelector('.llm-popup-result');
+          resultEl.textContent = '';
+          resultEl.classList.add('llm-translate-loading');
+          try {
+            const res = await chrome.runtime.sendMessage({ action: 'run-action', text, actionMeta: action });
+            if (ctx.state.currentSelectionPopup !== popup) return;
+            resultEl.classList.remove('llm-translate-loading');
+            if (res.error) {
+              resultEl.textContent = '';
+              const errorSpan = document.createElement('span');
+              errorSpan.className = 'llm-translate-error';
+              errorSpan.textContent = 'Error: ' + res.error;
+              resultEl.appendChild(errorSpan);
+            } else {
+              translatedText = res.result || '';
+              resultEl.textContent = translatedText;
+              if (typeof LOG !== 'undefined') LOG.info('Selection', 'AI action result', { action: action.id || action.name, textLength: text.length });
+            }
+          } catch (err) {
+            if (ctx.state.currentSelectionPopup !== popup) return;
+            resultEl.classList.remove('llm-translate-loading');
+            resultEl.textContent = '';
+            const errorSpan = document.createElement('span');
+            errorSpan.className = 'llm-translate-error';
+            errorSpan.textContent = 'Error: ' + err.message;
+            resultEl.appendChild(errorSpan);
+          }
+        });
+        container.appendChild(btn);
+      });
+    }
+    renderAiActionButtons();
 
     popup.addEventListener('mousedown', armAutoHide);
     armAutoHide();
@@ -130,14 +209,20 @@
     chrome.runtime.sendMessage({ action: 'translate', text }).then(function(res) {
       if (ctx.state.currentSelectionPopup === popup) {
         translatedText = res.translated || '--';
-        popup.querySelector('.llm-popup-result').innerHTML = escapeHtml(translatedText);
-        popup.querySelector('.llm-popup-result').classList.remove('llm-translate-loading');
+        const resultEl = popup.querySelector('.llm-popup-result');
+        resultEl.textContent = translatedText;
+        resultEl.classList.remove('llm-translate-loading');
         if (typeof LOG !== 'undefined') LOG.info('Selection', 'Selection translated', { textLength: text.length });
       }
     }).catch(function(err) {
       if (ctx.state.currentSelectionPopup === popup) {
-        popup.querySelector('.llm-popup-result').innerHTML = '<span class="llm-translate-error">Error: ' + escapeHtml(err.message) + '</span>';
-        popup.querySelector('.llm-popup-result').classList.remove('llm-translate-loading');
+        const resultEl = popup.querySelector('.llm-popup-result');
+        resultEl.textContent = '';
+        const errorSpan = document.createElement('span');
+        errorSpan.className = 'llm-translate-error';
+        errorSpan.textContent = 'Error: ' + err.message;
+        resultEl.appendChild(errorSpan);
+        resultEl.classList.remove('llm-translate-loading');
         if (ctx.fn.safeLog) ctx.fn.safeLog('error', 'Selection', 'Selection failed: ' + err.message);
       }
     });
@@ -159,7 +244,21 @@
     let startLeft = 0;
     let startTop = 0;
 
-    header.addEventListener('mousedown', function(ev) {
+    function onMouseMove(ev) {
+      if (!dragging || ctx.state.currentSelectionPopup !== popup) return;
+      const maxLeft = Math.max(POPUP_MARGIN, innerWidth - popup.offsetWidth - POPUP_MARGIN);
+      const maxTop = Math.max(POPUP_MARGIN, innerHeight - popup.offsetHeight - POPUP_MARGIN);
+      popup.style.left = Math.max(POPUP_MARGIN, Math.min(startLeft + ev.clientX - startX, maxLeft)) + 'px';
+      popup.style.top = Math.max(POPUP_MARGIN, Math.min(startTop + ev.clientY - startY, maxTop)) + 'px';
+    }
+
+    function onMouseUp() {
+      if (!dragging) return;
+      dragging = false;
+      popup.classList.remove('llm-popup-dragging');
+    }
+
+    function onMouseDown(ev) {
       if (ev.target.closest('button')) return;
       dragging = true;
       startX = ev.clientX;
@@ -168,26 +267,24 @@
       startTop = popup.offsetTop;
       popup.classList.add('llm-popup-dragging');
       ev.preventDefault();
-    });
+    }
 
-    document.addEventListener('mousemove', function(ev) {
-      if (!dragging || ctx.state.currentSelectionPopup !== popup) return;
-      const maxLeft = Math.max(POPUP_MARGIN, innerWidth - popup.offsetWidth - POPUP_MARGIN);
-      const maxTop = Math.max(POPUP_MARGIN, innerHeight - popup.offsetHeight - POPUP_MARGIN);
-      popup.style.left = Math.max(POPUP_MARGIN, Math.min(startLeft + ev.clientX - startX, maxLeft)) + 'px';
-      popup.style.top = Math.max(POPUP_MARGIN, Math.min(startTop + ev.clientY - startY, maxTop)) + 'px';
-    });
+    header.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
 
-    document.addEventListener('mouseup', function() {
-      if (!dragging) return;
-      dragging = false;
-      popup.classList.remove('llm-popup-dragging');
-    });
+    popup._llmCleanupDraggable = function() {
+      header.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
   }
 
   function hideSelectionPopup() {
-    if (ctx.state.currentSelectionPopup) {
-      ctx.state.currentSelectionPopup.remove();
+    const popup = ctx.state.currentSelectionPopup;
+    if (popup) {
+      if (typeof popup._llmCleanupDraggable === 'function') popup._llmCleanupDraggable();
+      popup.remove();
       ctx.state.currentSelectionPopup = null;
     }
   }

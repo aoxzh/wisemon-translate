@@ -108,8 +108,12 @@
 .llm-popup-actions{display:flex;gap:8px;padding:10px 14px 14px;flex-wrap:wrap}
 .llm-popup-actions button{border:1px solid rgba(255,255,255,.12);background:#0D1115;color:#BAC2CC;border-radius:6px;padding:4px 8px;font-size:12px;cursor:pointer}
 .llm-popup-actions button:hover{background:rgba(0,255,133,.10);color:#00FF85;border-color:rgba(0,255,133,.28)}
+.llm-popup-ai-actions{display:flex;gap:6px;padding:8px 14px 0;flex-wrap:wrap}
+.llm-popup-ai-actions:empty{display:none}
+.llm-popup-ai-action-btn{border:1px solid rgba(255,255,255,.12);background:#0D1115;color:#BAC2CC;border-radius:6px;padding:4px 8px;font-size:12px;cursor:pointer}
+.llm-popup-ai-action-btn:hover{background:rgba(0,255,133,.10);color:#00FF85;border-color:rgba(0,255,133,.28)}
 .llm-popup-dragging{opacity:.94;transition:none!important}
-@media(prefers-color-scheme:light){.llm-translate-popup{background:#fff;border-color:#D4D9DF;color:#151A1F}.llm-popup-header{background:#F7F8FA;border-color:#E2E6EA}.llm-popup-title{color:#3C444D}.llm-popup-actions button,.llm-popup-window-actions button{background:#F7F8FA;color:#3C444D;border-color:#D4D9DF}.llm-popup-window-actions button[aria-pressed="true"]{background:rgba(0,210,110,.10);color:#008A4A;border-color:rgba(0,210,110,.35)}}
+@media(prefers-color-scheme:light){.llm-translate-popup{background:#fff;border-color:#D4D9DF;color:#151A1F}.llm-popup-header{background:#F7F8FA;border-color:#E2E6EA}.llm-popup-title{color:#3C444D}.llm-popup-actions button,.llm-popup-window-actions button{background:#F7F8FA;color:#3C444D;border-color:#D4D9DF}.llm-popup-window-actions button[aria-pressed="true"]{background:rgba(0,210,110,.10);color:#008A4A;border-color:rgba(0,210,110,.35)}.llm-popup-ai-action-btn{background:#F7F8FA;color:#3C444D;border-color:#D4D9DF}.llm-popup-ai-action-btn:hover{background:rgba(0,210,110,.10);color:#008A4A;border-color:rgba(0,210,110,.35)}}
 .llm-translate-popup .llm-popup-original{font-size:12px;color:#98A2AE;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.08);max-height:96px;overflow:auto}
 .llm-popup-result{white-space:pre-wrap;overflow-wrap:anywhere}
 .llm-translate-loading{color:#999;font-style:italic}

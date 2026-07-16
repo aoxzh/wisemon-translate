@@ -11,6 +11,8 @@
   const useSelection = $('use-selection');
   const usePage = $('use-page');
   const clearText = $('clear-text');
+  const speakSource = $('speak-source');
+  const speakResult = $('speak-result');
   const clearHistory = $('clear-history');
   const historyList = $('history-list');
   const readerFile = $('reader-file');
@@ -239,6 +241,19 @@
     readerResult.hidden = true;
     chrome.storage.local.remove('llm-translate-sidepanel-draft');
   });
+
+  if (speakSource) {
+    speakSource.addEventListener('click', () => {
+      const lang = settings.sourceLang && settings.sourceLang !== 'auto' ? settings.sourceLang : settings.targetLang;
+      window.__LLM_TTS__?.speak(sourceText.value, lang);
+    });
+  }
+
+  if (speakResult) {
+    speakResult.addEventListener('click', () => {
+      window.__LLM_TTS__?.speak(resultText.textContent, targetLang.value || settings.targetLang);
+    });
+  }
 
   clearHistory.addEventListener('click', async () => {
     history = [];

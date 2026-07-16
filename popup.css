@@ -1189,6 +1189,32 @@
 /* ===== UTILITY ===== */
 .hidden { display: none !important; }
 
+/* ===== REDUCED MOTION ===== */
+@media (prefers-reduced-motion: reduce) {
+  .popup-root *,
+  .popup-root *::before,
+  .popup-root *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ===== HIGH CONTRAST ===== */
+@media (prefers-contrast: more) {
+  .popup-root {
+    --border-default: color-mix(in srgb, var(--text-secondary) 55%, transparent);
+    --border-strong: color-mix(in srgb, var(--text-primary) 65%, transparent);
+  }
+  .popup-root button:focus-visible,
+  .popup-root input:focus-visible,
+  .popup-root select:focus-visible {
+    outline-width: 3px;
+    outline-offset: 3px;
+  }
+}
+
 @media (max-width: 420px) {
   .pop-config-grid,
   .pop-site-status,

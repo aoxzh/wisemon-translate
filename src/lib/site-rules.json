@@ -1,0 +1,3166 @@
+[
+  {
+    "id": "translator-sites",
+    "matches": [
+      "translate.google.com",
+      "www.deepl.com",
+      "www.bing.com/translator"
+    ],
+    "disabled": true,
+    "reason": "Native translator page"
+  },
+  {
+    "id": "banking-privacy",
+    "matches": [
+      "chase.com",
+      "bankofamerica.com",
+      "wellsfargo.com",
+      "citi.com",
+      "capitalone.com",
+      "paypal.com",
+      "stripe.com"
+    ],
+    "disableAutoTranslate": true,
+    "privacyMode": "strict",
+    "excludeSelectors": [
+      "input",
+      "textarea",
+      "[contenteditable=\"true\"]"
+    ]
+  },
+  {
+    "id": "crypto-trading-sensitive",
+    "matches": [
+      "binance.com",
+      "*.binance.com",
+      "coinbase.com",
+      "*.coinbase.com",
+      "kraken.com",
+      "*.kraken.com",
+      "okx.com",
+      "*.okx.com",
+      "bybit.com",
+      "*.bybit.com",
+      "kucoin.com",
+      "*.kucoin.com"
+    ],
+    "disableAutoTranslate": true,
+    "privacyMode": "strict",
+    "excludeSelectors": [
+      "input",
+      "textarea",
+      "select",
+      "button",
+      "[role=\"button\"]",
+      "[contenteditable=\"true\"]",
+      "canvas",
+      "svg",
+      "iframe",
+      ".tradingview-widget-container",
+      "[class*=\"TradingView\"]",
+      "[class*=\"chart\"]",
+      "[class*=\"Chart\"]",
+      "[id*=\"chart\"]",
+      "[data-testid*=\"chart\"]",
+      "[class*=\"kline\"]",
+      "[class*=\"Kline\"]",
+      "[class*=\"candlestick\"]",
+      "[class*=\"depth\"]",
+      "[class*=\"orderbook\"]",
+      "[class*=\"OrderBook\"]",
+      "[data-testid*=\"orderbook\"]",
+      "[class*=\"ticker\"]",
+      "[class*=\"Ticker\"]",
+      "[class*=\"market\"]",
+      "[class*=\"Market\"]",
+      "[class*=\"price\"]",
+      "[class*=\"Price\"]",
+      "[class*=\"currency\"]",
+      "[class*=\"Currency\"]",
+      "[class*=\"balance\"]",
+      "[class*=\"Balance\"]",
+      "[class*=\"asset\"]",
+      "[class*=\"Asset\"]",
+      "[class*=\"wallet\"]",
+      "[class*=\"Wallet\"]",
+      "[class*=\"portfolio\"]",
+      "[class*=\"Portfolio\"]",
+      "[class*=\"order\"]",
+      "[class*=\"Order\"]",
+      "[class*=\"trade\"]",
+      "[class*=\"Trade\"]",
+      "[class*=\"buy\"]",
+      "[class*=\"Buy\"]",
+      "[class*=\"sell\"]",
+      "[class*=\"Sell\"]",
+      "[class*=\"margin\"]",
+      "[class*=\"Margin\"]",
+      "[class*=\"leverage\"]",
+      "[class*=\"Leverage\"]",
+      "[class*=\"pnl\"]",
+      "[class*=\"PnL\"]",
+      "[class*=\"profit\"]",
+      "[class*=\"loss\"]",
+      "[data-testid*=\"wallet\"]",
+      "[data-testid*=\"order\"]",
+      "[data-testid*=\"trade\"]",
+      "[data-testid*=\"buy\"]",
+      "[data-testid*=\"sell\"]",
+      "[data-testid*=\"balance\"]",
+      "[aria-label*=\"Buy\"]",
+      "[aria-label*=\"Sell\"]",
+      "[aria-label*=\"Order\"]",
+      "nav",
+      "header",
+      "footer",
+      "[role=\"navigation\"]"
+    ],
+    "contextHint": "This is a cryptocurrency exchange or trading platform. Never alter prices, tickers, asset symbols, wallet balances, order forms, leverage/margin data, charts, order books, PnL, or trading controls. Translate only explanatory prose when the user explicitly requests translation."
+  },
+  {
+    "id": "binance-content",
+    "matches": [
+      "binance.com/en/support",
+      "www.binance.com/en/support",
+      "binance.com/en/academy",
+      "academy.binance.com",
+      "binance.com/en/blog",
+      "www.binance.com/en/blog",
+      "binance.com/en/square",
+      "www.binance.com/en/square",
+      "binance.com/en/announcement",
+      "www.binance.com/en/announcement"
+    ],
+    "mainSelectors": [
+      "main article",
+      "article",
+      "[role=\"main\"]",
+      "[class*=\"article\"]",
+      "[class*=\"Article\"]",
+      "[class*=\"content\"]",
+      "[class*=\"Content\"]",
+      "[class*=\"rich-text\"]",
+      "[class*=\"RichText\"]",
+      "[class*=\"markdown\"]",
+      "[class*=\"Markdown\"]",
+      "[data-bn-type=\"text\"]"
+    ],
+    "includeSelectors": [
+      "article h1",
+      "article h2",
+      "article h3",
+      "article p",
+      "article li",
+      "[class*=\"article\"] h1",
+      "[class*=\"article\"] h2",
+      "[class*=\"article\"] p",
+      "[class*=\"content\"] h1",
+      "[class*=\"content\"] h2",
+      "[class*=\"content\"] p",
+      "[class*=\"markdown\"] p",
+      "[class*=\"markdown\"] li"
+    ],
+    "excludeSelectors": [
+      "[class*=\"Related\"]",
+      "[class*=\"related\"]",
+      "[class*=\"Share\"]",
+      "[class*=\"share\"]",
+      "[class*=\"Author\"]",
+      "[class*=\"author\"]",
+      "[class*=\"Breadcrumb\"]",
+      "[class*=\"breadcrumb\"]",
+      "[class*=\"Subscribe\"]",
+      "[class*=\"subscribe\"]",
+      "[class*=\"Side\"]",
+      "[class*=\"side\"]",
+      "time",
+      ".tag",
+      "[class*=\"tag\"]"
+    ],
+    "contextHint": "This is Binance educational, support, blog, or announcement content. Preserve token symbols, chain names, product names, risk warnings, URLs, dates, and numeric values. Translate the article/help prose only."
+  },
+  {
+    "id": "code-hosting",
+    "matches": [
+      "github.com",
+      "gitlab.com",
+      "bitbucket.org",
+      "stackoverflow.com"
+    ],
+    "excludeSelectors": [
+      "pre",
+      "code",
+      ".highlight",
+      ".blob-code",
+      ".cm-editor",
+      ".monaco-editor",
+      "[class*=\"code\"]",
+      "[data-testid=\"code-cell\"]"
+    ],
+    "mainSelectors": [
+      "main",
+      "article",
+      ".markdown-body",
+      "#content"
+    ],
+    "contextHint": "This page contains software engineering content. Preserve code identifiers, CLI commands, package names, API names, and file paths exactly."
+  },
+  {
+    "id": "docs",
+    "matches": [
+      "developer.mozilla.org",
+      "docs.github.com",
+      "learn.microsoft.com"
+    ],
+    "excludeSelectors": [
+      "pre",
+      "code",
+      ".code-toolbar",
+      ".highlight"
+    ],
+    "mainSelectors": [
+      "main",
+      "article",
+      ".main-content",
+      "#content"
+    ],
+    "contextHint": "This page is technical documentation. Keep product names, APIs, parameters, code identifiers, and UI labels accurate."
+  },
+  {
+    "id": "vitepress-docs",
+    "matches": [
+      "vuejs.org",
+      "vitepress.dev",
+      "vite.dev",
+      "nuxt.com"
+    ],
+    "excludeSelectors": [
+      "pre",
+      "code",
+      "kbd",
+      "samp",
+      ".vp-code",
+      ".vp-doc div[class*=\"language-\"]",
+      ".VPSidebar",
+      ".VPNav",
+      ".VPDocAside",
+      ".VPLocalNav",
+      ".VPFooter",
+      ".sponsors",
+      ".sponsor",
+      "[class*=\"sponsor\"]",
+      "[class*=\"carbon\"]",
+      "nav",
+      "header",
+      "footer",
+      "aside"
+    ],
+    "mainSelectors": [
+      "main .vp-doc",
+      ".VPDoc .vp-doc",
+      "main article",
+      "main"
+    ],
+    "contextHint": "This is Vue/VitePress technical documentation. Preserve Vue API names, component names, directives, file extensions, JavaScript identifiers, HTML tags, and CLI commands. Translate prose in the main document body."
+  },
+  {
+    "id": "netflix",
+    "matches": [
+      "netflix.com",
+      "*.netflix.com"
+    ],
+    "disableAutoTranslate": true,
+    "preferSubtitleOverlay": true,
+    "excludeSelectors": [
+      "video",
+      ".watch-video--player-view",
+      ".watch-video--back-container",
+      ".watch-video--metadata-container",
+      ".watch-video--selector-audio-subtitle",
+      "button",
+      "input",
+      "textarea"
+    ],
+    "contextHint": "This is Netflix. Translate only subtitle content via the bilingual subtitle overlay. Do not translate the player UI, episode lists, or navigation."
+  },
+  {
+    "id": "video-common",
+    "matches": [
+      "youtube.com",
+      "youtu.be",
+      "vimeo.com",
+      "coursera.org",
+      "udemy.com"
+    ],
+    "preferSubtitleOverlay": true,
+    "mainSelectors": [
+      "ytd-page-manager",
+      "main",
+      "#content"
+    ],
+    "excludeSelectors": [
+      "aside",
+      "button",
+      "footer",
+      "form",
+      "header",
+      "nav",
+      "pre",
+      "mark",
+      "#player",
+      "#container",
+      "#secondary",
+      "#masthead",
+      "#guide",
+      ".ytp-caption-window-container",
+      ".vjs-text-track-display",
+      "#kiss-youtube-subtitle-list-container"
+    ],
+    "injectedCss": [
+      "#content-text, #description, ytd-watch-metadata{-webkit-line-clamp:unset!important;max-height:none!important;height:auto!important}"
+    ]
+  },
+  {
+    "id": "twitter-x",
+    "matches": [
+      "x.com",
+      "twitter.com",
+      "tweetdeck.twitter.com",
+      "pro.twitter.com"
+    ],
+    "includeSelectors": [
+      "[data-testid=\"tweetText\"]",
+      "[data-testid=\"twitter-article-title\"]",
+      "[data-testid=\"UserDescription\"]",
+      ".public-DraftStyleDefault-block",
+      "span.text-body",
+      "div.css-175oi2r.r-3pj75a div.css-175oi2r > span",
+      "div.css-175oi2r.r-3pj75a li > span",
+      "div.r-1s2bzr4 > div.r-16dba41",
+      "div.r-16y2uox > div.r-1jeg54m"
+    ],
+    "excludeSelectors": [
+      "[data-testid=\"app-bar-back\"]",
+      "[data-testid=\"topNavBar\"]",
+      "[role=\"navigation\"]",
+      "nav[aria-label]",
+      "[data-testid=\"SideNav\"]",
+      "[data-testid=\"tweetButton\"]",
+      "[data-testid=\"tweetButtonInline\"]",
+      "time",
+      "[data-testid=\"User-Name\"] a",
+      "[href*=\"/status/\"] time",
+      "input",
+      "textarea",
+      "[contenteditable=\"true\"]",
+      "[data-testid=\"videoPlayer\"]",
+      "[data-testid^=\"tweetTextarea\"]",
+      "[aria-label][role=\"button\"][data-testid]",
+      "[data-testid=\"appTabBar\"]"
+    ],
+    "mainSelectors": [
+      "article[data-testid=\"tweet\"]",
+      "main[role=\"main\"]"
+    ],
+    "injectedCss": [
+      "[data-testid=\"tweetText\"] .llm-translate-block-wrapper{display:block!important;margin:4px 0 0!important;padding:0!important;border:none!important;background:none!important;box-shadow:none!important}",
+      "[data-testid=\"tweetText\"] .llm-translate-block-wrapper .llm-translate-inner{display:block!important;color:#71767b!important;font-size:.94em!important;font-weight:400!important;line-height:1.35!important}",
+      "[data-testid=\"tweetText\"] .llm-translate-inline-wrapper{display:inline!important;margin-left:6px!important}"
+    ],
+    "contextHint": "This is a social media feed. Keep usernames (@), hashtags (#), URLs, and emoji untranslated. Only translate the actual post content."
+  },
+  {
+    "id": "social-media",
+    "matches": [
+      "reddit.com",
+      "news.ycombinator.com",
+      "linkedin.com/feed"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "[role=\"navigation\"]",
+      "header",
+      "[class*=\"vote\"]",
+      "[class*=\"score\"]",
+      "time",
+      "[class*=\"timestamp\"]",
+      "input",
+      "textarea",
+      "[contenteditable=\"true\"]",
+      "[class*=\"username\"]",
+      "[class*=\"author\"]",
+      "[class*=\"subreddit\"]"
+    ],
+    "mainSelectors": [
+      "main",
+      "[role=\"main\"]",
+      "[data-testid=\"post-container\"]",
+      ".Post",
+      "[class*=\"post\"]"
+    ],
+    "injectedCss": [
+      ".llm-translate-block-wrapper{display:inline!important;margin:0 0 0 6px!important;padding:0!important}"
+    ],
+    "contextHint": "This is a social media / forum page. Preserve usernames, subreddit names, vote counts, timestamps, and platform-specific terms."
+  },
+  {
+    "id": "hacker-news",
+    "matches": [
+      "news.ycombinator.com"
+    ],
+    "includeSelectors": [
+      "p",
+      ".titleline",
+      ".commtext",
+      ".hn-item-title",
+      ".hn-comment-text",
+      ".hn-story-title"
+    ],
+    "excludeSelectors": [
+      "button",
+      "code",
+      "footer",
+      "form",
+      "header",
+      "mark",
+      "nav",
+      "pre",
+      ".reply",
+      ".sitebit"
+    ],
+    "contextHint": "This is Hacker News. Preserve usernames, domains, code, and short UI labels. Translate story titles and comment text."
+  },
+  {
+    "id": "wikipedia",
+    "matches": [
+      "wikipedia.org",
+      "wikimedia.org",
+      "wiktionary.org"
+    ],
+    "excludeSelectors": [
+      ".infobox",
+      ".navbox",
+      ".reference",
+      ".citation",
+      "sup",
+      ".thumbinner",
+      ".toc",
+      ".mw-editsection",
+      ".catlinks",
+      "table",
+      "code",
+      "pre"
+    ],
+    "mainSelectors": [
+      "#mw-content-text",
+      ".mw-parser-output",
+      "article"
+    ],
+    "contextHint": "This is a Wikipedia article. Preserve article titles, proper nouns, technical terms, citations, and interwiki links. Translate the main prose content only."
+  },
+  {
+    "id": "medium-substack",
+    "matches": [
+      "medium.com",
+      "*.medium.com",
+      "substack.com",
+      "*.substack.com",
+      "hashnode.dev",
+      "dev.to"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "aside",
+      "[role=\"navigation\"]",
+      "pre",
+      "code",
+      "[class*=\"code\"]",
+      "[data-testid=\"authorName\"]",
+      "[data-testid=\"date\"]"
+    ],
+    "mainSelectors": [
+      "article",
+      "[class*=\"post-content\"]",
+      "[class*=\"article-content\"]",
+      "main"
+    ],
+    "contextHint": "This is a blog/article platform. Preserve author names, publication names, code blocks, and technical terms. Focus on the main article body."
+  },
+  {
+    "id": "quora-qa",
+    "matches": [
+      "quora.com",
+      "stackoverflow.com",
+      "stackexchange.com",
+      "superuser.com",
+      "serverfault.com"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "[role=\"navigation\"]",
+      "pre",
+      "code",
+      ".s-code-block",
+      "[class*=\"code\"]",
+      ".user-info",
+      ".post-signature",
+      ".vote",
+      "[class*=\"vote\"]",
+      "time",
+      "[class*=\"time\"]"
+    ],
+    "mainSelectors": [
+      ".question",
+      ".answer",
+      ".post-text",
+      "[class*=\"content\"]"
+    ],
+    "contextHint": "This is a Q&A platform. Preserve usernames, reputation scores, badges, tags, and code blocks. Translate question titles and answer bodies only."
+  },
+  {
+    "id": "telegram-discord",
+    "matches": [
+      "web.telegram.org",
+      "web.telegram.k",
+      "discord.com",
+      "discordapp.com"
+    ],
+    "includeSelectors": [
+      ".text-content",
+      ".embedded-text-wrapper",
+      "[class*=\"message-content\"]",
+      "[class*=\"chat-content\"]"
+    ],
+    "excludeSelectors": [
+      "[class*=\"username\"]",
+      "[class*=\"timestamp\"]",
+      "[class*=\"time\"]",
+      "[class*=\"reaction\"]",
+      "[class*=\"emoji\"]",
+      "input",
+      "textarea"
+    ],
+    "mainSelectors": [
+      ".Transition",
+      "[class*=\"message-content\"]",
+      "[class*=\"chat-content\"]"
+    ],
+    "contextHint": "This is an instant messaging platform. Preserve usernames, timestamps, emoji reactions, and message metadata. Translate message text only."
+  },
+  {
+    "id": "nyaa-torrent",
+    "matches": [
+      "nyaa.si",
+      "sukebei.nyaa.si"
+    ],
+    "mainSelectors": [
+      ".container",
+      "#torrent-description",
+      ".comment-panel",
+      ".torrent-list"
+    ],
+    "includeSelectors": [
+      ".panel-title",
+      "#torrent-description",
+      ".comment-content",
+      ".torrent-list td:nth-child(2) a:not(.comments)",
+      ".torrent-list .comments"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "footer",
+      "form",
+      "input",
+      "select",
+      "button",
+      ".navbar",
+      ".search-container",
+      ".panel-footer",
+      ".torrent-file-list",
+      ".file-size",
+      "kbd",
+      "a[href^=\"magnet:\"]",
+      "a[href*=\"/download/\"]",
+      "[data-timestamp]",
+      "[data-timestamp-swap]",
+      ".fa",
+      ".avatar",
+      ".comment-actions"
+    ],
+    "injectedCss": [
+      "#torrent-description .llm-translate-block-wrapper,.comment-content .llm-translate-block-wrapper{white-space:normal!important;margin-top:8px!important}",
+      ".torrent-list .llm-translate-inline-wrapper{display:block!important;margin:2px 0 0!important}"
+    ],
+    "contextHint": "This is a torrent listing/detail page. Preserve release names, file names, hashes, magnet links, sizes, dates, usernames, and numeric stats. Translate the torrent description and user comments."
+  },
+  {
+    "id": "ecommerce",
+    "matches": [
+      "ebay.com",
+      "aliexpress.com",
+      "taobao.com",
+      "tmall.com",
+      "jd.com"
+    ],
+    "disableAutoTranslate": true,
+    "excludeSelectors": [
+      "input",
+      "textarea",
+      "button",
+      "[role=\"button\"]",
+      "[class*=\"price\"]",
+      "[class*=\"currency\"]",
+      "[data-cy*=\"price\"]",
+      "nav",
+      "[role=\"navigation\"]"
+    ],
+    "contextHint": "This is an e-commerce site. Preserve product names, brand names, model numbers, prices, and SKU codes. Do not translate automatically without user action."
+  },
+  {
+    "id": "amazon-product",
+    "matches": [
+      "amazon.com",
+      "amazon.co.*",
+      "amazon.jp",
+      "amazon.co.jp",
+      "www.amazon.com",
+      "www.amazon.co.jp",
+      "smile.amazon.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "#dp-container",
+      "#ppd",
+      "#centerCol",
+      "#desktop_unifiedPrice",
+      "#feature-bullets",
+      "#productDescription",
+      "#aplus",
+      "#detailBullets_feature_div",
+      "#productDetails_feature_div",
+      "#importantInformation",
+      "#reviewsMedley"
+    ],
+    "includeSelectors": [
+      "#productTitle",
+      "#feature-bullets li",
+      "#productDescription",
+      "#aplus",
+      "#detailBullets_feature_div li",
+      "#productDetails_feature_div",
+      "#importantInformation",
+      "[data-feature-name=\"productDescription\"]"
+    ],
+    "excludeSelectors": [
+      "input",
+      "textarea",
+      "select",
+      "button",
+      "[role=\"button\"]",
+      "#nav-main",
+      "#navbar",
+      "#navFooter",
+      "#rhf",
+      "#sponsoredProducts_feature_div",
+      "#desktop_buybox",
+      "#buybox",
+      "#rightCol",
+      "#attach-accessory-pane",
+      "#ask_feature_div",
+      "#customerReviews",
+      "#cm_cr-review_list",
+      ".a-price",
+      ".a-color-price",
+      ".a-price-whole",
+      ".a-price-fraction",
+      ".offer-price",
+      ".currencyINR",
+      ".currencyUSD",
+      "[class*=\"price\"]",
+      "[id*=\"price\"]",
+      "[data-csa-c-type=\"widget\"]",
+      "[aria-label*=\"Add to Cart\"]",
+      "[aria-label*=\"Buy Now\"]"
+    ],
+    "contextHint": "This is an Amazon product page. Preserve brand names, model numbers, size/color variants, SKU/ASIN, prices, ratings, stock status, and delivery dates. Translate product title, feature bullets, descriptions, specifications, warnings, and review prose only."
+  },
+  {
+    "id": "p-bandai-product",
+    "matches": [
+      "p-bandai.jp",
+      "p-bandai.com",
+      "p-bandai.hk",
+      "p-bandai.com.tw",
+      "p-bandai.co.kr",
+      "p-bandai.com/us",
+      "p-bandai.com/uk"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "#main",
+      "#contents",
+      "#product_detail",
+      ".product-detail",
+      ".item-detail",
+      ".itemDetail",
+      ".commodity-detail",
+      ".detailArea"
+    ],
+    "includeSelectors": [
+      "h1",
+      ".product-name",
+      ".item-name",
+      ".itemName",
+      ".catch-copy",
+      ".description",
+      ".product-description",
+      ".item-description",
+      ".spec",
+      ".specification",
+      ".detail",
+      ".attention",
+      ".notice",
+      ".materials",
+      ".set-content",
+      ".contents"
+    ],
+    "excludeSelectors": [
+      "input",
+      "textarea",
+      "select",
+      "button",
+      "[role=\"button\"]",
+      "nav",
+      "header",
+      "footer",
+      ".breadcrumb",
+      ".global-nav",
+      ".price",
+      "[class*=\"price\"]",
+      ".tax",
+      ".point",
+      ".stock",
+      ".cart",
+      ".favorite",
+      ".sns",
+      ".share",
+      ".recommend",
+      ".ranking",
+      ".banner",
+      ".campaign",
+      ".modal",
+      ".login",
+      ".member"
+    ],
+    "contextHint": "This is a Premium Bandai product page. Preserve product series names, character names, brand names, model names, JAN/SKU codes, release month, scale, materials, dimensions, prices, and preorder dates. Translate product title, descriptions, specifications, warnings, and included-item lists only."
+  },
+  {
+    "id": "news-media",
+    "matches": [
+      "bbc.com",
+      "cnn.com",
+      "nytimes.com",
+      "theguardian.com",
+      "reuters.com",
+      "apnews.com",
+      "washingtonpost.com",
+      "ft.com",
+      "economist.com"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "aside",
+      "[role=\"navigation\"]",
+      ".byline",
+      ".author",
+      "time",
+      "[class*=\"timestamp\"]",
+      "[class*=\"caption\"]",
+      "[class*=\"credit\"]"
+    ],
+    "mainSelectors": [
+      "article",
+      "[class*=\"article-body\"]",
+      "[class*=\"story-body\"]",
+      "main"
+    ],
+    "contextHint": "This is a news/media site. Preserve journalist names, publication names, datelines, photo captions, and proper nouns. Translate the main article body only."
+  },
+  {
+    "id": "social-instagram",
+    "matches": [
+      "instagram.com",
+      "*.instagram.com"
+    ],
+    "mainSelectors": [
+      "main",
+      "[role=\"main\"]",
+      "section",
+      "article"
+    ],
+    "includeSelectors": [
+      "h1",
+      "h2",
+      "p",
+      "span[dir=\"auto\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "[role=\"navigation\"]",
+      "[role=\"banner\"]",
+      "input",
+      "textarea",
+      "[contenteditable=\"true\"]",
+      "button",
+      "[role=\"button\"]",
+      "[role=\"link\"]",
+      "[aria-label*=\"Like\"]",
+      "[aria-label*=\"Comment\"]",
+      "[aria-label*=\"Share\"]",
+      "[aria-label*=\"Save\"]"
+    ],
+    "contextHint": "This is Instagram. Preserve usernames, hashtags, URLs, emoji, and image alt text. Translate photo captions, comments, and profile bios only."
+  },
+  {
+    "id": "social-facebook",
+    "matches": [
+      "facebook.com",
+      "*.facebook.com",
+      "fb.com",
+      "*.fb.com"
+    ],
+    "mainSelectors": [
+      "[role=\"main\"]",
+      "#content_area",
+      "[role=\"feed\"]"
+    ],
+    "includeSelectors": [
+      "[role=\"article\"] p",
+      "[role=\"article\"] span",
+      "[role=\"article\"] h3",
+      "[role=\"article\"] h4"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "[role=\"navigation\"]",
+      "[role=\"banner\"]",
+      "[role=\"complementary\"]",
+      "input",
+      "textarea",
+      "[contenteditable=\"true\"]",
+      "button",
+      "[role=\"button\"]",
+      "[role=\"link\"]",
+      "[aria-label*=\"Like\"]",
+      "[aria-label*=\"Love\"]",
+      "[aria-label*=\"Comment\"]",
+      "[aria-label*=\"Share\"]",
+      "[data-pagelet=\"Stories\"]",
+      "[data-pagelet=\"Composer\"]",
+      "[data-pagelet=\"Navigation\"]"
+    ],
+    "contextHint": "This is Facebook. Preserve person names, group names, URLs, emoji reactions, and timestamps. Translate feed posts, comments, and article previews only."
+  },
+  {
+    "id": "social-tiktok",
+    "matches": [
+      "tiktok.com",
+      "*.tiktok.com"
+    ],
+    "mainSelectors": [
+      "main",
+      "[data-e2e=\"search-card-video\"]",
+      "[data-e2e=\"recommend-list-item\"]",
+      "[data-e2e=\"video-card\"]"
+    ],
+    "includeSelectors": [
+      "[data-e2e=\"video-desc\"]",
+      "[data-e2e=\"video-desc\"] span",
+      "[data-e2e=\"video-author-nickname\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "[data-e2e=\"like-icon\"]",
+      "[data-e2e=\"comment-icon\"]",
+      "[data-e2e=\"share-icon\"]",
+      "[data-e2e=\"browse-icon\"]",
+      "[data-e2e=\"music-icon\"]",
+      "[class*=\"search\"]"
+    ],
+    "contextHint": "This is TikTok. Preserve usernames, hashtags, sound names, and emoji. Translate video captions and creator bios only."
+  },
+  {
+    "id": "social-pinterest",
+    "matches": [
+      "pinterest.com",
+      "*.pinterest.com"
+    ],
+    "mainSelectors": [
+      "main",
+      "[role=\"main\"]",
+      "[data-test-id=\"pin-closeup\"]",
+      "[data-test-id=\"pin\"]"
+    ],
+    "includeSelectors": [
+      "[data-test-id=\"pinTitle\"]",
+      "[data-test-id=\"pinDescription\"]",
+      "[data-test-id=\"comment\"]",
+      "[data-test-id=\"closeup-title\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "[data-test-id=\"user\"]",
+      "[data-test-id=\"closeup-user\"]",
+      "[data-test-id=\"follow-button\"]",
+      "[data-test-id=\"save-button\"]"
+    ],
+    "contextHint": "This is Pinterest. Preserve board names, creator names, URLs, and pin titles if they are proper nouns. Translate pin descriptions and comments only."
+  },
+  {
+    "id": "social-snapchat",
+    "matches": [
+      "snapchat.com",
+      "*.snapchat.com",
+      "web.snapchat.com"
+    ],
+    "mainSelectors": [
+      "main",
+      "[class*=\"conversation\"]",
+      "[class*=\"chat\"]",
+      "[class*=\"story\"]"
+    ],
+    "includeSelectors": [
+      "[class*=\"message\"]",
+      "[class*=\"story-caption\"]",
+      "[class*=\"chat-message\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "[class*=\"camera\"]",
+      "[class*=\"call\"]",
+      "[class*=\"map\"]",
+      "[class*=\"ad\"]"
+    ],
+    "contextHint": "This is Snapchat web. Preserve usernames, timestamps, and ephemeral context. Translate message text and story captions only."
+  },
+  {
+    "id": "social-threads",
+    "matches": [
+      "threads.net",
+      "*.threads.net"
+    ],
+    "mainSelectors": [
+      "main",
+      "[role=\"main\"]",
+      "article"
+    ],
+    "includeSelectors": [
+      "article p",
+      "article span",
+      "article h1",
+      "article h2"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "[aria-label*=\"Like\"]",
+      "[aria-label*=\"Reply\"]",
+      "[aria-label*=\"Repost\"]",
+      "[aria-label*=\"Share\"]",
+      "time",
+      "[class*=\"thread-line\"]"
+    ],
+    "contextHint": "This is Threads. Preserve usernames, hashtags, URLs, and emoji. Translate thread posts and replies only."
+  },
+  {
+    "id": "social-bluesky",
+    "matches": [
+      "bsky.app",
+      "*.bsky.app"
+    ],
+    "mainSelectors": [
+      "main",
+      "[role=\"main\"]",
+      "[data-testid=\"homeScreen\"]",
+      "[data-testid=\"postThreadScreen\"]"
+    ],
+    "includeSelectors": [
+      "[data-testid=\"postText\"]",
+      "[data-testid=\"postContent\"]",
+      "[data-testid=\"profileDescription\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "[data-testid=\"likeBtn\"]",
+      "[data-testid=\"repostBtn\"]",
+      "[data-testid=\"replyBtn\"]",
+      "[data-testid=\"shareBtn\"]",
+      "time",
+      "[data-testid=\"suggestions\"]"
+    ],
+    "contextHint": "This is Bluesky. Preserve handles, hashtags, URLs, and emoji. Translate posts, profile bios, and thread replies only."
+  },
+  {
+    "id": "ecom-walmart",
+    "matches": [
+      "walmart.com",
+      "*.walmart.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "[data-testid=\"product-content\"]",
+      "[data-automation-id=\"product-content\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "[data-testid=\"product-title\"]",
+      "[data-automation-id=\"product-title\"]",
+      "[data-testid=\"product-description\"]",
+      "[data-automation-id=\"product-description\"]",
+      "[data-testid=\"about-this-item\"]",
+      "[data-automation-id=\"about-this-item\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "[data-testid=\"price\"]",
+      "[data-automation-id=\"price\"]",
+      "[class*=\"price\"]",
+      "[data-testid=\"add-to-cart\"]",
+      "[data-automation-id=\"add-to-cart\"]",
+      "[data-testid=\"fulfillment\"]",
+      "[data-automation-id=\"fulfillment\"]"
+    ],
+    "contextHint": "This is Walmart. Preserve product names, model numbers, brand names, prices, ratings, and availability. Translate product title, description, and reviews only when the user explicitly requests translation."
+  },
+  {
+    "id": "ecom-target",
+    "matches": [
+      "target.com",
+      "*.target.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "[data-test=\"product-details\"]",
+      "[data-test=\"page-layout-content\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "[data-test=\"item-title\"]",
+      "[data-test=\"product-description\"]",
+      "[data-test=\"item-details-description\"]",
+      "[data-test=\"specifications\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "[data-test=\"price\"]",
+      "[class*=\"price\"]",
+      "[data-test=\"add-to-cart\"]",
+      "[data-test=\"shipping\"]",
+      "[data-test=\"availability\"]",
+      "[data-test=\"quantity\"]"
+    ],
+    "contextHint": "This is Target. Preserve product names, model numbers, brand names, prices, and availability. Translate product title, description, and details only when the user explicitly requests translation."
+  },
+  {
+    "id": "ecom-bestbuy",
+    "matches": [
+      "bestbuy.com",
+      "*.bestbuy.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      ".sku-title",
+      ".product-data-value",
+      ".product-description",
+      ".product-highlights"
+    ],
+    "includeSelectors": [
+      "h1",
+      ".sku-title",
+      ".product-description",
+      ".product-highlights",
+      ".specification",
+      ".key-specs",
+      ".overview"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      ".pricing-price",
+      ".price",
+      "[class*=\"price\"]",
+      ".add-to-cart",
+      ".availability",
+      ".fulfillment",
+      ".shop-payment"
+    ],
+    "contextHint": "This is Best Buy. Preserve product names, model numbers, brand names, prices, discounts, and availability. Translate product title, description, and specifications only when the user explicitly requests translation."
+  },
+  {
+    "id": "ecom-etsy",
+    "matches": [
+      "etsy.com",
+      "*.etsy.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "[data-buy-box-region]",
+      "[data-listing-id]",
+      "[class*=\"listing-page\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "[data-buy-box-region] p",
+      ".reviews__text",
+      ".wt-text-caption",
+      "[class*=\"listing-page\"] p"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "[class*=\"price\"]",
+      "[data-buy-box-region] [class*=\"price\"]",
+      ".add-to-cart",
+      ".variation",
+      ".personalization",
+      ".shipping"
+    ],
+    "contextHint": "This is Etsy. Preserve product titles, shop names, materials, dimensions, prices, and personalization options. Translate listing descriptions and reviews only when the user explicitly requests translation."
+  },
+  {
+    "id": "ecom-shopify",
+    "matches": [
+      "shopify.com",
+      "*.shopify.com",
+      "myshopify.com",
+      "*.myshopify.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "[data-section-id]",
+      "[data-product-handle]",
+      "[class*=\"product\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      ".product__title",
+      ".product__description",
+      ".product-single__description",
+      ".rte",
+      ".product__tabs",
+      ".product__reviews"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      ".price",
+      "[class*=\"price\"]",
+      ".add-to-cart",
+      ".quantity",
+      ".cart",
+      ".product-form",
+      ".payment-buttons",
+      ".shopify-payment-button"
+    ],
+    "contextHint": "This is a Shopify store. Preserve product names, vendor names, variant names, prices, and SKU. Translate product title, description, and policies only when the user explicitly requests translation."
+  },
+  {
+    "id": "ecom-shein",
+    "matches": [
+      "shein.com",
+      "*.shein.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "[class*=\"product-intro\"]",
+      "[class*=\"goods-intro\"]",
+      "[class*=\"product-detail\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "[class*=\"product-name\"]",
+      "[class*=\"product-intro__description\"]",
+      "[class*=\"describe\"]",
+      "[class*=\"detail\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "[class*=\"price\"]",
+      "[class*=\"cart\"]",
+      "[class*=\"add-to-bag\"]",
+      "[class*=\"size\"]",
+      "[class*=\"color\"]"
+    ],
+    "contextHint": "This is SHEIN. Preserve product names, SKUs, sizes, colors, material details, and prices. Translate product descriptions and reviews only when the user explicitly requests translation."
+  },
+  {
+    "id": "ecom-temu",
+    "matches": [
+      "temu.com",
+      "*.temu.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "[class*=\"goods-intro\"]",
+      "[class*=\"product-info\"]",
+      "[class*=\"product-detail\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "[class*=\"goods-name\"]",
+      "[class*=\"goods-description\"]",
+      "[class*=\"detail\"]",
+      "[class*=\"description\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "[class*=\"price\"]",
+      "[class*=\"buy\"]",
+      "[class*=\"cart\"]",
+      "[class*=\"coupon\"]",
+      "[class*=\"shipping\"]"
+    ],
+    "contextHint": "This is Temu. Preserve product names, SKUs, specs, prices, coupons, and shipping info. Translate product descriptions and reviews only when the user explicitly requests translation."
+  },
+  {
+    "id": "ecom-aliexpress",
+    "matches": [
+      "aliexpress.com",
+      "*.aliexpress.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "[data-pl=\"product-title\"]",
+      "[class*=\"product-info\"]",
+      "[class*=\"ProductDetail\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "[data-pl=\"product-title\"]",
+      "[class*=\"product-title\"]",
+      "[class*=\"description\"]",
+      "[class*=\"specification\"]",
+      "[class*=\"store-info\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "[class*=\"price\"]",
+      "[class*=\"add-to-cart\"]",
+      "[class*=\"shipping\"]",
+      "[class*=\"store\"]",
+      "[class*=\"coupon\"]",
+      "[class*=\"wishlist\"]"
+    ],
+    "contextHint": "This is AliExpress. Preserve product names, SKUs, specs, prices, shipping details, and store names. Translate product descriptions and reviews only when the user explicitly requests translation."
+  },
+  {
+    "id": "education-coursera",
+    "matches": [
+      "coursera.org",
+      "*.coursera.org"
+    ],
+    "mainSelectors": [
+      "main",
+      "[role=\"main\"]",
+      "[class*=\"course\"]",
+      "[class*=\"lesson\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "h2",
+      "h3",
+      "p",
+      "li"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "pre",
+      "code",
+      "[class*=\"code\"]",
+      "[class*=\"transcript\"]",
+      "[class*=\"quiz\"]",
+      "[class*=\"peer-review\"]"
+    ],
+    "contextHint": "This is Coursera course content. Preserve course names, instructor names, university names, code snippets, formulas, and quiz answers. Translate lecture descriptions, readings, and discussion text."
+  },
+  {
+    "id": "education-udemy",
+    "matches": [
+      "udemy.com",
+      "*.udemy.com"
+    ],
+    "mainSelectors": [
+      "main",
+      "[class*=\"course-taking\"]",
+      "[class*=\"curriculum\"]",
+      "[class*=\"course-content\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "h2",
+      "p",
+      "li",
+      "[class*=\"title\"]",
+      "[class*=\"description\"]",
+      "[class*=\"caption\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "pre",
+      "code",
+      "[class*=\"code\"]",
+      "[class*=\"price\"]",
+      "[class*=\"buy-box\"]",
+      "[class*=\"transcript\"]"
+    ],
+    "contextHint": "This is Udemy course content. Preserve course titles, instructor names, code snippets, and technical terms. Translate course descriptions, curriculum items, and captions only."
+  },
+  {
+    "id": "education-khan",
+    "matches": [
+      "khanacademy.org",
+      "*.khanacademy.org"
+    ],
+    "mainSelectors": [
+      "main",
+      "[class*=\"perseus\"]",
+      "[class*=\"content\"]",
+      "[class*=\"article\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "h2",
+      "p",
+      "li",
+      "[class*=\"paragraph\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "pre",
+      "code",
+      "[class*=\"code\"]",
+      "[class*=\"widget\"]",
+      "[class*=\"exercise\"]",
+      "[class*=\"answer\"]",
+      "[class*=\"hint\"]",
+      "[class*=\"scratchpad\"]"
+    ],
+    "contextHint": "This is Khan Academy educational content. Preserve math notation, code snippets, exercise labels, and proper nouns. Translate explanatory prose and article text only."
+  },
+  {
+    "id": "education-edx",
+    "matches": [
+      "edx.org",
+      "*.edx.org"
+    ],
+    "mainSelectors": [
+      "main",
+      "[class*=\"course-content\"]",
+      "[class*=\"unit-container\"]",
+      "[class*=\"sequence\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "h2",
+      "p",
+      "li"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "pre",
+      "code",
+      "[class*=\"code\"]",
+      "[class*=\"problem\"]",
+      "[class*=\"discussion\"]",
+      "[class*=\"transcript\"]"
+    ],
+    "contextHint": "This is edX course content. Preserve course names, institution names, code snippets, and formulas. Translate course prose, instructions, and readings only."
+  },
+  {
+    "id": "education-ted",
+    "matches": [
+      "ted.com",
+      "*.ted.com"
+    ],
+    "mainSelectors": [
+      "main",
+      "[class*=\"talks\"]",
+      "[class*=\"talk__content\"]",
+      "[class*=\"talk-page\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "[class*=\"talk__description\"]",
+      "[class*=\"talk__transcript\"]",
+      "p",
+      "li"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "[class*=\"share\"]",
+      "[class*=\"download\"]",
+      "[class*=\"related-talks\"]",
+      "[class*=\"newsletter\"]"
+    ],
+    "contextHint": "This is TED. Preserve speaker names, talk titles, URLs, and audience instructions. Translate talk descriptions and transcripts only."
+  },
+  {
+    "id": "education-duolingo",
+    "matches": [
+      "duolingo.com",
+      "*.duolingo.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "[data-test=\"skill-tree\"]",
+      "[data-test=\"lesson\"]",
+      "[data-test=\"practice\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "h2",
+      "[data-test=\"hint\"]",
+      "[data-test=\"challenge\"]",
+      "p"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "[data-test=\"answer\"]",
+      "[data-test=\"option\"]",
+      "[class*=\"sentence\"]",
+      "[class*=\"keyboard\"]"
+    ],
+    "contextHint": "This is Duolingo. Preserve language names, exercise instructions, and UI labels. Translate hints and challenge context only when the user explicitly requests translation; do not translate answer choices or input prompts."
+  },
+  {
+    "id": "productivity-google-docs",
+    "matches": [
+      "docs.google.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "#docs-editor-container",
+      "#docs-editor",
+      ".kix-appview-editor"
+    ],
+    "includeSelectors": [
+      "[class*=\"kix-paragraph\"]",
+      "[class*=\"kix-lineview\"]"
+    ],
+    "excludeSelectors": [
+      "input",
+      "textarea",
+      "select",
+      "button",
+      "[role=\"button\"]",
+      "[role=\"toolbar\"]",
+      "[class*=\"docs-titlebar\"]",
+      "[class*=\"kix-toolbar\"]",
+      "[class*=\"docs-material-gm\"]",
+      "[contenteditable=\"true\"]"
+    ],
+    "contextHint": "This is Google Docs. Preserve document formatting, comments, and collaboration UI. Do not translate automatically; only translate when explicitly requested by the user."
+  },
+  {
+    "id": "productivity-figma",
+    "matches": [
+      "figma.com",
+      "*.figma.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "[class*=\"canvas\"]",
+      "[class*=\"properties-panel\"]",
+      "[class*=\"layers_panel\"]"
+    ],
+    "includeSelectors": [
+      "[class*=\"comment\"]",
+      "[class*=\"annotation\"]",
+      "[class*=\"properties-panel\"] [class*=\"label\"]"
+    ],
+    "excludeSelectors": [
+      "input",
+      "textarea",
+      "select",
+      "button",
+      "[role=\"button\"]",
+      "[role=\"toolbar\"]",
+      "[class*=\"toolbar\"]",
+      "[class*=\"menu\"]",
+      "[class*=\"dropdown\"]",
+      "[class*=\"modal\"]",
+      "[class*=\"canvas\"]",
+      "[contenteditable=\"true\"]"
+    ],
+    "contextHint": "This is Figma. Preserve design layer names, property values, color codes, and component names. Do not translate automatically; only translate comments or annotations when requested."
+  },
+  {
+    "id": "productivity-canva",
+    "matches": [
+      "canva.com",
+      "*.canva.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "[class*=\"editor\"]",
+      "[class*=\"sidebar\"]",
+      "[class*=\"dashboard\"]"
+    ],
+    "includeSelectors": [
+      "[class*=\"text\"]",
+      "[class*=\"comment\"]",
+      "[class*=\"template-description\"]"
+    ],
+    "excludeSelectors": [
+      "input",
+      "textarea",
+      "select",
+      "button",
+      "[role=\"button\"]",
+      "[role=\"toolbar\"]",
+      "[class*=\"toolbar\"]",
+      "[class*=\"menu\"]",
+      "[class*=\"dropdown\"]",
+      "[class*=\"panel\"]",
+      "[class*=\"pricing\"]",
+      "[contenteditable=\"true\"]"
+    ],
+    "contextHint": "This is Canva. Preserve design element text, brand names, template names, and pricing info. Do not translate automatically; only translate when explicitly requested by the user."
+  },
+  {
+    "id": "gaming-steam",
+    "matches": [
+      "steampowered.com",
+      "*.steampowered.com",
+      "steamcommunity.com",
+      "*.steamcommunity.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "[class*=\"apphub_Content\"]",
+      "[class*=\"game_page\"]",
+      "[class*=\"forum_topic\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "[class*=\"apphub_AppName\"]",
+      "[class*=\"game_description\"]",
+      "[class*=\"glance_details\"]",
+      "[class*=\"review_box\"]",
+      "[class*=\"announcement\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "[class*=\"price\"]",
+      "[class*=\"buy\"]",
+      "[class*=\"purchase\"]",
+      "[class*=\"discount\"]",
+      "[class*=\"btn\"]",
+      "[class*=\"addtocart\"]",
+      "[class*=\"sysreq\"]"
+    ],
+    "contextHint": "This is Steam. Preserve game titles, developer/publisher names, system requirements, prices, discounts, and user handles. Translate game descriptions, news, and reviews only when the user explicitly requests translation."
+  },
+  {
+    "id": "gaming-epic",
+    "matches": [
+      "epicgames.com",
+      "*.epicgames.com",
+      "store.epicgames.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "[data-testid=\"product-info\"]",
+      "[class*=\"product\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "[class*=\"description\"]",
+      "[class*=\"about\"]",
+      "[class*=\"review\"]",
+      "[class*=\"specification\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "[class*=\"price\"]",
+      "[class*=\"buy\"]",
+      "[class*=\"cart\"]",
+      "[class*=\"purchase\"]",
+      "[class*=\"edition\"]",
+      "[class*=\"platform\"]"
+    ],
+    "contextHint": "This is the Epic Games Store. Preserve game titles, developer names, prices, editions, and platform labels. Translate game descriptions and reviews only when the user explicitly requests translation."
+  },
+  {
+    "id": "gaming-twitch",
+    "matches": [
+      "twitch.tv",
+      "*.twitch.tv"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "[class*=\"chat-scrollable-area\"]",
+      "[class*=\"stream-chat\"]",
+      "[class*=\"video-description\"]"
+    ],
+    "includeSelectors": [
+      "[class*=\"chat-line__message\"]",
+      "[class*=\"video-title\"]",
+      "[class*=\"stream-info-card\"] p"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "[class*=\"chat-input\"]",
+      "[class*=\"video-player\"]",
+      "[class*=\"bits\"]",
+      "[class*=\"subscribe\"]",
+      "[class*=\"follow\"]",
+      "[class*=\"raid\"]"
+    ],
+    "contextHint": "This is Twitch. Preserve usernames, emotes, commands, URLs, and stream titles. Translate chat messages and stream info only when the user explicitly requests translation."
+  },
+  {
+    "id": "gaming-ign",
+    "matches": [
+      "ign.com",
+      "*.ign.com"
+    ],
+    "mainSelectors": [
+      "main",
+      "article",
+      "[class*=\"article\"]",
+      "[class*=\"review\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "h2",
+      "p",
+      "li"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "[class*=\"score\"]",
+      "[class*=\"video\"]",
+      "[class*=\"poll\"]",
+      "[class*=\"comment\"]"
+    ],
+    "contextHint": "This is IGN. Preserve game titles, platform names, reviewer names, scores, and video titles. Translate article and review prose only."
+  },
+  {
+    "id": "finance-bloomberg",
+    "matches": [
+      "bloomberg.com",
+      "*.bloomberg.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "article",
+      "[class*=\"article\"]",
+      "[class*=\"story\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "h2",
+      "p",
+      "li"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "[class*=\"chart\"]",
+      "[class*=\"price\"]",
+      "[class*=\"market\"]",
+      "[class*=\"ticker\"]",
+      "[class*=\"quote\"]",
+      "[class*=\"data\"]",
+      "[class*=\"player\"]"
+    ],
+    "contextHint": "This is Bloomberg. Preserve company names, ticker symbols, prices, market data, and journalist names. Translate article prose only when the user explicitly requests translation."
+  },
+  {
+    "id": "finance-wsj",
+    "matches": [
+      "wsj.com",
+      "*.wsj.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "article",
+      "[class*=\"article\"]",
+      "[class*=\"story\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "h2",
+      "p",
+      "li"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "[class*=\"market\"]",
+      "[class*=\"quote\"]",
+      "[class*=\"ticker\"]",
+      "[class*=\"price\"]",
+      "[class*=\"data\"]",
+      "[class*=\"chart\"]",
+      "[class*=\"podcast\"]"
+    ],
+    "contextHint": "This is The Wall Street Journal. Preserve company names, ticker symbols, prices, and journalist names. Translate article prose only when the user explicitly requests translation."
+  },
+  {
+    "id": "finance-cnbc",
+    "matches": [
+      "cnbc.com",
+      "*.cnbc.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "article",
+      "[class*=\"article\"]",
+      "[class*=\"story\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "h2",
+      "p",
+      "li"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "[class*=\"market\"]",
+      "[class*=\"quote\"]",
+      "[class*=\"ticker\"]",
+      "[class*=\"price\"]",
+      "[class*=\"data\"]",
+      "[class*=\"chart\"]",
+      "[class*=\"video-player\"]"
+    ],
+    "contextHint": "This is CNBC. Preserve company names, ticker symbols, prices, market data, and video metadata. Translate article prose only when the user explicitly requests translation."
+  },
+  {
+    "id": "finance-investopedia",
+    "matches": [
+      "investopedia.com",
+      "*.investopedia.com"
+    ],
+    "mainSelectors": [
+      "main",
+      "article",
+      "[class*=\"article\"]",
+      "[class*=\"article-body\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "h2",
+      "p",
+      "li"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "[class*=\"quote\"]",
+      "[class*=\"ticker\"]",
+      "[class*=\"ad\"]",
+      "[class*=\"promo\"]",
+      "[class*=\"newsletter\"]"
+    ],
+    "contextHint": "This is Investopedia. Preserve financial terms, company names, ticker symbols, and formulas. Translate educational article prose only."
+  },
+  {
+    "id": "travel-booking",
+    "matches": [
+      "booking.com",
+      "*.booking.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "[class*=\"hp__hotel-title\"]",
+      "[class*=\"sr_item\"]",
+      "[class*=\"property\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "[class*=\"hp__hotel_description\"]",
+      "[class*=\"hotel__description\"]",
+      "[class*=\"property-description\"]",
+      "[class*=\"review\"]",
+      "[class*=\"facility\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "[class*=\"price\"]",
+      "[class*=\"rate\"]",
+      "[class*=\"availability\"]",
+      "[class*=\"book\"]",
+      "[class*=\"search\"]",
+      "[class*=\"map\"]"
+    ],
+    "contextHint": "This is Booking.com. Preserve hotel names, addresses, room types, prices, ratings, and availability. Translate property descriptions and reviews only when the user explicitly requests translation."
+  },
+  {
+    "id": "travel-airbnb",
+    "matches": [
+      "airbnb.com",
+      "*.airbnb.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "[role=\"main\"]",
+      "[data-section-id]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "[class*=\"description\"]",
+      "[class*=\"summary\"]",
+      "[class*=\"review\"]",
+      "[class*=\"amenity\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "[class*=\"price\"]",
+      "[class*=\"rating\"]",
+      "[class*=\"reserve\"]",
+      "[class*=\"book\"]",
+      "[class*=\"calendar\"]",
+      "[class*=\"map\"]"
+    ],
+    "contextHint": "This is Airbnb. Preserve listing titles, host names, amenities, prices, ratings, and house rules. Translate listing descriptions and reviews only when the user explicitly requests translation."
+  },
+  {
+    "id": "travel-tripadvisor",
+    "matches": [
+      "tripadvisor.com",
+      "*.tripadvisor.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "[class*=\"review-container\"]",
+      "[class*=\"attraction\"]",
+      "[class*=\"restaurant\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "[class*=\"review-text\"]",
+      "[class*=\"description\"]",
+      "[class*=\"about\"]",
+      "[class*=\"overview\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "[class*=\"price\"]",
+      "[class*=\"rating\"]",
+      "[class*=\"book\"]",
+      "[class*=\"map\"]",
+      "[class*=\"ad\"]",
+      "[class*=\"sponsor\"]"
+    ],
+    "contextHint": "This is TripAdvisor. Preserve attraction/restaurant names, locations, prices, ratings, and reviewer usernames. Translate reviews and descriptions only when the user explicitly requests translation."
+  },
+  {
+    "id": "travel-expedia",
+    "matches": [
+      "expedia.com",
+      "*.expedia.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "[class*=\"uitk-heading\"]",
+      "[class*=\"property\"]",
+      "[class*=\"hotel\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "[class*=\"uitk-text\"]",
+      "[class*=\"description\"]",
+      "[class*=\"review\"]",
+      "[class*=\"overview\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "[class*=\"price\"]",
+      "[class*=\"rate\"]",
+      "[class*=\"book\"]",
+      "[class*=\"search\"]",
+      "[class*=\"map\"]",
+      "[class*=\"flight\"]",
+      "[class*=\"car\"]"
+    ],
+    "contextHint": "This is Expedia. Preserve hotel/flight/car names, prices, rates, booking options, and loyalty info. Translate property descriptions and reviews only when the user explicitly requests translation."
+  },
+  {
+    "id": "travel-skyscanner",
+    "matches": [
+      "skyscanner.com",
+      "*.skyscanner.com",
+      "skyscanner.net",
+      "*.skyscanner.net"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "[class*=\"BookingDetails\"]",
+      "[class*=\"FlightDetails\"]",
+      "[class*=\"HotelDetails\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "[class*=\"AgentDetails\"]",
+      "[class*=\"Review\"]",
+      "[class*=\"description\"]",
+      "[class*=\"overview\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "select",
+      "[class*=\"price\"]",
+      "[class*=\"booking\"]",
+      "[class*=\"search\"]",
+      "[class*=\"map\"]",
+      "[class*=\"filter\"]",
+      "[class*=\"calendar\"]"
+    ],
+    "contextHint": "This is Skyscanner. Preserve airline names, flight numbers, airport codes, hotel names, prices, and booking details. Translate agent details and reviews only when the user explicitly requests translation."
+  },
+  {
+    "id": "developer-docs",
+    "matches": [
+      "readthedocs.io",
+      "*.readthedocs.io",
+      "readthedocs.com",
+      "*.readthedocs.com",
+      "gitbook.io",
+      "*.gitbook.io",
+      "docs.gitbook.com",
+      "docusaurus.io",
+      "*.docusaurus.io",
+      "react.dev",
+      "nextjs.org",
+      "remix.run",
+      "svelte.dev",
+      "kit.svelte.dev",
+      "tailwindcss.com",
+      "graphql.org",
+      "docs.python.org",
+      "docs.npmjs.com",
+      "docs.docker.com",
+      "kubernetes.io",
+      "docs.aws.amazon.com",
+      "docs.oracle.com",
+      "docs.digitalocean.com",
+      "docs.mongodb.com",
+      "docs.redis.io",
+      "docs.gitlab.com",
+      "developer.android.com",
+      "developer.apple.com",
+      "kotlinlang.org",
+      "rust-lang.org",
+      "docs.rs",
+      "pkg.go.dev",
+      "angular.io",
+      "reactjs.org"
+    ],
+    "mainSelectors": [
+      "main",
+      "article",
+      "[role=\"main\"]",
+      ".markdown-section",
+      ".docs-content",
+      "[class*=\"doc-content\"]",
+      "[class*=\"article-body\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "h2",
+      "h3",
+      "p",
+      "li"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "aside",
+      "[role=\"navigation\"]",
+      "pre",
+      "code",
+      "kbd",
+      "samp",
+      ".code-toolbar",
+      ".highlight",
+      ".sidebar",
+      ".toc",
+      ".search",
+      ".nav",
+      "[class*=\"language-\"]"
+    ],
+    "contextHint": "This is developer documentation. Preserve API names, function signatures, CLI commands, version numbers, config keys, code identifiers, and file paths. Translate prose explanations only."
+  },
+  {
+    "id": "science-tech-news",
+    "matches": [
+      "arstechnica.com",
+      "theverge.com",
+      "wired.com",
+      "techcrunch.com",
+      "engadget.com",
+      "cnet.com",
+      "zdnet.com",
+      "slashdot.org",
+      "polygon.com",
+      "kotaku.com",
+      "gamespot.com",
+      "pcgamer.com",
+      "rockpapershotgun.com",
+      "tomshardware.com",
+      "anandtech.com",
+      "gsmarena.com",
+      "gizmodo.com",
+      "mashable.com",
+      "businessinsider.com",
+      "fastcompany.com",
+      "inc.com",
+      "entrepreneur.com"
+    ],
+    "mainSelectors": [
+      "main",
+      "article",
+      "[class*=\"article\"]",
+      "[class*=\"story\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "h2",
+      "p",
+      "li"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "aside",
+      "[role=\"navigation\"]",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "[class*=\"comment\"]",
+      "[class*=\"video\"]",
+      "[class*=\"ad\"]",
+      "[class*=\"newsletter\"]",
+      "time"
+    ],
+    "contextHint": "This is a science/technology/games news site. Preserve product names, company names, model numbers, prices, reviewer names, and platform-specific terms. Translate the article body only."
+  },
+  {
+    "id": "sports",
+    "matches": [
+      "espn.com",
+      "*.espn.com",
+      "espndeportes.espn.com",
+      "skysports.com",
+      "espncricinfo.com",
+      "formula1.com",
+      "f1.com",
+      "nba.com",
+      "nfl.com",
+      "fifa.com",
+      "uefa.com",
+      "transfermarkt.com",
+      "goal.com",
+      "cbssports.com",
+      "foxsports.com",
+      "eurosport.com",
+      "olympics.com",
+      "mlb.com",
+      "nhl.com",
+      "atptour.com",
+      "wta.com",
+      "nbcsports.com",
+      "sports.yahoo.com"
+    ],
+    "mainSelectors": [
+      "main",
+      "article",
+      "[class*=\"article\"]",
+      "[class*=\"story\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "h2",
+      "p",
+      "li"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "[class*=\"score\"]",
+      "[class*=\"stats\"]",
+      "[class*=\"odds\"]",
+      "[class*=\"betting\"]",
+      "[class*=\"standings\"]",
+      "[class*=\"schedule\"]",
+      "time",
+      "[class*=\"timestamp\"]"
+    ],
+    "contextHint": "This is a sports site. Preserve team names, player names, leagues, scores, statistics, betting odds, and timestamps. Translate match reports, news, and analysis only."
+  },
+  {
+    "id": "music-podcasts",
+    "matches": [
+      "spotify.com",
+      "*.spotify.com",
+      "music.apple.com",
+      "soundcloud.com",
+      "bandcamp.com",
+      "*.bandcamp.com",
+      "deezer.com",
+      "tidal.com",
+      "anchor.fm",
+      "podbean.com",
+      "simplecast.com",
+      "buzzsprout.com",
+      "transistor.fm",
+      "castbox.fm",
+      "stitcher.com",
+      "iheart.com",
+      "pandora.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "[role=\"main\"]",
+      "[class*=\"episode\"]",
+      "[class*=\"tracklist\"]",
+      "[class*=\"show\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "[class*=\"description\"]",
+      "[class*=\"episode-title\"]",
+      "[class*=\"show-description\"]",
+      "[class*=\"bio\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "[class*=\"player\"]",
+      "[class*=\"controls\"]",
+      "[class*=\"playlist\"]",
+      "[class*=\"ad\"]",
+      "[class*=\"price\"]"
+    ],
+    "contextHint": "This is a music or podcast platform. Preserve artist names, track titles, album names, podcast titles, episode numbers, and timestamps. Translate descriptions and bios only when the user explicitly requests translation."
+  },
+  {
+    "id": "government-public",
+    "matches": [
+      "gov.uk",
+      "*.gov.uk",
+      "usa.gov",
+      "whitehouse.gov",
+      "congress.gov",
+      "europa.eu",
+      "*.europa.eu",
+      "un.org",
+      "worldbank.org",
+      "who.int",
+      "cdc.gov",
+      "nih.gov",
+      "nhs.uk",
+      "*.nhs.uk",
+      "cms.gov",
+      "irs.gov",
+      "justice.gov",
+      "state.gov",
+      "defense.gov",
+      "treasury.gov",
+      "epa.gov",
+      "fbi.gov",
+      "cia.gov",
+      "data.gov",
+      "govinfo.gov"
+    ],
+    "mainSelectors": [
+      "main",
+      "article",
+      "[role=\"main\"]",
+      "[class*=\"content\"]",
+      "[class*=\"page\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "h2",
+      "p",
+      "li"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "[class*=\"search\"]",
+      "[class*=\"alert\"]",
+      "[class*=\"notice\"]",
+      "time",
+      "[class*=\"form\"]"
+    ],
+    "contextHint": "This is a government or public-service site. Preserve agency names, legal citations, form names, dates, official terminology, and URLs. Translate explanatory prose only."
+  },
+  {
+    "id": "academic-journals",
+    "matches": [
+      "nature.com",
+      "science.org",
+      "arxiv.org",
+      "pubmed.ncbi.nlm.nih.gov",
+      "jstor.org",
+      "cambridge.org",
+      "springer.com",
+      "link.springer.com",
+      "elsevier.com",
+      "sciencedirect.com",
+      "wiley.com",
+      "onlinelibrary.wiley.com",
+      "tandfonline.com",
+      "ieee.org",
+      "dl.acm.org",
+      "ssrn.com",
+      "biorxiv.org",
+      "medrxiv.org",
+      "plos.org",
+      "frontiersin.org",
+      "mdpi.com",
+      "hindawi.com",
+      "peerj.com",
+      "doaj.org"
+    ],
+    "mainSelectors": [
+      "main",
+      "article",
+      "[class*=\"article\"]",
+      "[class*=\"paper\"]",
+      "[class*=\"abstract\"]",
+      "[id*=\"abstract\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "h2",
+      "p",
+      "li"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "pre",
+      "code",
+      "math",
+      "[class*=\"download\"]",
+      "[class*=\"cite\"]",
+      "[class*=\"metrics\"]",
+      "[class*=\"ad\"]",
+      "[class*=\"supplementary\"]",
+      "[class*=\"figure\"]",
+      "[class*=\"table\"]"
+    ],
+    "contextHint": "This is an academic journal or preprint site. Preserve author names, affiliations, journal names, DOI, technical terms, formulas, and citations. Translate abstracts and article prose only."
+  },
+  {
+    "id": "reference-encyclopedia",
+    "matches": [
+      "britannica.com",
+      "*.britannica.com",
+      "wikihow.com",
+      "*.wikihow.com",
+      "howstuffworks.com",
+      "livescience.com",
+      "thoughtco.com",
+      "nationalgeographic.com",
+      "*.nationalgeographic.com",
+      "natgeokids.com",
+      "smithsonianmag.com",
+      "history.com",
+      "biography.com",
+      "mentalfloss.com",
+      "ted-ed.com"
+    ],
+    "mainSelectors": [
+      "main",
+      "article",
+      "[class*=\"article\"]",
+      "[class*=\"content\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "h2",
+      "p",
+      "li"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "[class*=\"ad\"]",
+      "[class*=\"related\"]",
+      "[class*=\"quiz\"]",
+      "[class*=\"video\"]",
+      "[class*=\"newsletter\"]"
+    ],
+    "contextHint": "This is a reference or encyclopedia site. Preserve proper nouns, historical dates, place names, scientific names, and citations. Translate educational prose only."
+  },
+  {
+    "id": "food-recipes",
+    "matches": [
+      "allrecipes.com",
+      "foodnetwork.com",
+      "seriouseats.com",
+      "bonappetit.com",
+      "simplyrecipes.com",
+      "tasteofhome.com",
+      "food.com",
+      "epicurious.com",
+      "delish.com",
+      "thekitchn.com",
+      "minimalistbaker.com",
+      "cookieandkate.com",
+      "loveandlemons.com",
+      "pinchofyum.com",
+      "kitchenstories.com",
+      "jamieoliver.com",
+      "bbcgoodfood.com",
+      "eatsmarter.com",
+      "tasty.co"
+    ],
+    "mainSelectors": [
+      "main",
+      "article",
+      "[class*=\"recipe\"]",
+      "[class*=\"post\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "h2",
+      "p",
+      "li",
+      "[class*=\"recipe-instructions\"]",
+      "[class*=\"recipe-description\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "[class*=\"nutrition\"]",
+      "[class*=\"ingredient-quantity\"]",
+      "[class*=\"rating\"]",
+      "[class*=\"review\"]",
+      "[class*=\"ad\"]",
+      "[class*=\"newsletter\"]",
+      "time"
+    ],
+    "contextHint": "This is a recipe/food site. Preserve ingredient names, quantities, temperatures, cooking times, equipment names, and author names. Translate instructions and descriptions only."
+  },
+  {
+    "id": "health-medical",
+    "matches": [
+      "webmd.com",
+      "*.webmd.com",
+      "mayoclinic.org",
+      "*.mayoclinic.org",
+      "healthline.com",
+      "*.healthline.com",
+      "verywellhealth.com",
+      "medlineplus.gov",
+      "medicalnewstoday.com",
+      "health.harvard.edu",
+      "clevelandclinic.org",
+      "hopkinsmedicine.org",
+      "nhs.uk",
+      "*.nhs.uk",
+      "who.int",
+      "cdc.gov",
+      "fda.gov",
+      "emedicinehealth.com",
+      "rxlist.com",
+      "drugs.com",
+      "patient.info"
+    ],
+    "mainSelectors": [
+      "main",
+      "article",
+      "[class*=\"article\"]",
+      "[class*=\"content\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "h2",
+      "p",
+      "li"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "[class*=\"dosage\"]",
+      "[class*=\"warning\"]",
+      "[class*=\"side-effects\"]",
+      "[class*=\"ad\"]",
+      "[class*=\"newsletter\"]",
+      "[class*=\"rating\"]",
+      "[class*=\"review\"]"
+    ],
+    "contextHint": "This is health or medical content. Preserve medical terms, drug names, dosages, warnings, symptoms, and official organization names. Be accurate and do not alter safety-critical information."
+  },
+  {
+    "id": "automotive",
+    "matches": [
+      "cars.com",
+      "autotrader.com",
+      "edmunds.com",
+      "motor1.com",
+      "topgear.com",
+      "caranddriver.com",
+      "jalopnik.com",
+      "motortrend.com",
+      "roadandtrack.com",
+      "autoblog.com",
+      "carsguide.com.au",
+      "drive.com.au",
+      "kbb.com",
+      "cargurus.com",
+      "autocar.co.uk",
+      "evo.co.uk",
+      "pistonheads.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "[class*=\"vehicle\"]",
+      "[class*=\"listing\"]",
+      "[class*=\"review\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "[class*=\"description\"]",
+      "[class*=\"review\"]",
+      "[class*=\"summary\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "[class*=\"price\"]",
+      "[class*=\"payment\"]",
+      "[class*=\"specs\"]",
+      "[class*=\"vin\"]",
+      "[class*=\"mileage\"]",
+      "[class*=\"dealer\"]",
+      "[class*=\"contact\"]",
+      "[class*=\"map\"]"
+    ],
+    "contextHint": "This is an automotive site. Preserve make/model names, trim levels, VIN, prices, specs, and dealer info. Translate descriptions and reviews only when the user explicitly requests translation."
+  },
+  {
+    "id": "real-estate",
+    "matches": [
+      "zillow.com",
+      "*.zillow.com",
+      "realtor.com",
+      "redfin.com",
+      "trulia.com",
+      "rightmove.co.uk",
+      "*.rightmove.co.uk",
+      "apartments.com",
+      "trademe.co.nz",
+      "domain.com.au",
+      "realestate.com.au",
+      "idealista.com",
+      "fotocasa.es",
+      "immobilienscout24.de",
+      "leboncoin.fr",
+      "immoweb.be",
+      "remax.com",
+      "century21.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "[class*=\"property\"]",
+      "[class*=\"listing\"]",
+      "[class*=\"home\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "[class*=\"description\"]",
+      "[class*=\"remarks\"]",
+      "[class*=\"review\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "[class*=\"price\"]",
+      "[class*=\"mortgage\"]",
+      "[class*=\"contact\"]",
+      "[class*=\"agent\"]",
+      "[class*=\"map\"]",
+      "[class*=\"schedule\"]",
+      "[class*=\"tour\"]"
+    ],
+    "contextHint": "This is a real-estate site. Preserve addresses, prices, square footage, bedroom/bath counts, agent names, and MLS IDs. Translate listing descriptions only when the user explicitly requests translation."
+  },
+  {
+    "id": "weather",
+    "matches": [
+      "weather.com",
+      "*.weather.com",
+      "accuweather.com",
+      "*.accuweather.com",
+      "weather.gov",
+      "wunderground.com",
+      "meteoblue.com",
+      "yr.no",
+      "windy.com",
+      "ventusky.com",
+      "forecast.weather.gov"
+    ],
+    "mainSelectors": [
+      "main",
+      "[class*=\"weather\"]",
+      "[class*=\"forecast\"]",
+      "[class*=\"today\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "h2",
+      "p",
+      "li",
+      "[class*=\"description\"]",
+      "[class*=\"summary\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "[class*=\"map\"]",
+      "[class*=\"chart\"]",
+      "[class*=\"ad\"]",
+      "[class*=\"alert\"]",
+      "[class*=\"warning\"]"
+    ],
+    "contextHint": "This is a weather site. Preserve location names, temperature units, wind speeds, precipitation values, and weather alerts. Translate forecast summaries and articles only."
+  },
+  {
+    "id": "fashion-lifestyle",
+    "matches": [
+      "vogue.com",
+      "*.vogue.com",
+      "gq.com",
+      "*.gq.com",
+      "elle.com",
+      "*.elle.com",
+      "cosmopolitan.com",
+      "*.cosmopolitan.com",
+      "glamour.com",
+      "*.glamour.com",
+      "harpersbazaar.com",
+      "*.harpersbazaar.com",
+      "marieclaire.com",
+      "instyle.com",
+      "allure.com",
+      "byrdie.com",
+      "thecut.com",
+      "refinery29.com",
+      "bustle.com",
+      "popsugar.com",
+      "whowhatwear.com",
+      "temptalia.com",
+      "intothegloss.com"
+    ],
+    "mainSelectors": [
+      "main",
+      "article",
+      "[class*=\"article\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "h2",
+      "p",
+      "li"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "[class*=\"ad\"]",
+      "[class*=\"newsletter\"]",
+      "[class*=\"shop\"]",
+      "[class*=\"product\"]"
+    ],
+    "contextHint": "This is a fashion or lifestyle publication. Preserve brand names, designer names, product names, event names, and publication names. Translate editorial content only."
+  },
+  {
+    "id": "travel-more",
+    "matches": [
+      "kayak.com",
+      "*.kayak.com",
+      "trivago.com",
+      "*.trivago.com",
+      "momondo.com",
+      "*.momondo.com",
+      "agoda.com",
+      "*.agoda.com",
+      "hotels.com",
+      "*.hotels.com",
+      "hostelworld.com",
+      "*.hostelworld.com",
+      "orbitz.com",
+      "*.orbitz.com",
+      "priceline.com",
+      "*.priceline.com",
+      "travelocity.com",
+      "*.travelocity.com",
+      "google.com/travel",
+      "google.com/flights",
+      "google.com/hotels"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "[class*=\"result\"]",
+      "[class*=\"hotel\"]",
+      "[class*=\"flight\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "[class*=\"description\"]",
+      "[class*=\"review\"]",
+      "[class*=\"amenity\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "[class*=\"price\"]",
+      "[class*=\"rate\"]",
+      "[class*=\"book\"]",
+      "[class*=\"search\"]",
+      "[class*=\"map\"]",
+      "[class*=\"filter\"]"
+    ],
+    "contextHint": "This is a travel booking or metasearch site. Preserve hotel/airline names, prices, booking details, and loyalty info. Translate descriptions and reviews only when the user explicitly requests translation."
+  },
+  {
+    "id": "freelance-jobs",
+    "matches": [
+      "upwork.com",
+      "*.upwork.com",
+      "fiverr.com",
+      "*.fiverr.com",
+      "freelancer.com",
+      "*.freelancer.com",
+      "peopleperhour.com",
+      "guru.com",
+      "toptal.com",
+      "simplyhired.com",
+      "glassdoor.com",
+      "*.glassdoor.com",
+      "indeed.com",
+      "*.indeed.com",
+      "ziprecruiter.com",
+      "*.ziprecruiter.com",
+      "monster.com",
+      "*.monster.com",
+      "careerbuilder.com",
+      "*.careerbuilder.com",
+      "linkedin.com/jobs"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "[class*=\"job\"]",
+      "[class*=\"gig\"]",
+      "[class*=\"profile\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "[class*=\"description\"]",
+      "[class*=\"overview\"]",
+      "[class*=\"requirement\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "[class*=\"salary\"]",
+      "[class*=\"rate\"]",
+      "[class*=\"apply\"]",
+      "[class*=\"budget\"]",
+      "[class*=\"location\"]",
+      "[class*=\"benefits\"]"
+    ],
+    "contextHint": "This is a job or freelance marketplace. Preserve company names, job titles, salaries, locations, and application buttons. Translate job/gig descriptions only when the user explicitly requests translation."
+  },
+  {
+    "id": "photography-art",
+    "matches": [
+      "unsplash.com",
+      "dribbble.com",
+      "behance.net",
+      "*.behance.net",
+      "deviantart.com",
+      "*.deviantart.com",
+      "artstation.com",
+      "*.artstation.com",
+      "500px.com",
+      "*.500px.com",
+      "pixiv.net",
+      "*.pixiv.net",
+      "smugmug.com",
+      "*.smugmug.com",
+      "flickr.com",
+      "*.flickr.com"
+    ],
+    "disableAutoTranslate": true,
+    "mainSelectors": [
+      "main",
+      "[class*=\"photo\"]",
+      "[class*=\"project\"]",
+      "[class*=\"gallery\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "[class*=\"description\"]",
+      "[class*=\"caption\"]",
+      "[class*=\"bio\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "[class*=\"download\"]",
+      "[class*=\"license\"]",
+      "[class*=\"ad\"]",
+      "[class*=\"shop\"]",
+      "[class*=\"price\"]"
+    ],
+    "contextHint": "This is a photography or art portfolio platform. Preserve artist names, titles, licenses, and tags. Translate descriptions and captions only when the user explicitly requests translation."
+  },
+  {
+    "id": "community-platforms",
+    "matches": [
+      "github.community",
+      "community.openai.com",
+      "community.spotify.com",
+      "community.cloudflare.com",
+      "community.discourse.com",
+      "meta.discourse.org",
+      "discourse.mozilla.org",
+      "forums.meteor.com",
+      "forum.vuejs.org",
+      "forum.arduino.cc",
+      "community.cisco.com",
+      "community.salesforce.com",
+      "success.salesforce.com",
+      "forum.*",
+      "forums.*",
+      "community.*",
+      "discuss.*"
+    ],
+    "mainSelectors": [
+      "main",
+      "[role=\"main\"]",
+      "[class*=\"topic\"]",
+      "[class*=\"post\"]"
+    ],
+    "includeSelectors": [
+      "[class*=\"topic-title\"]",
+      "[class*=\"post-content\"]",
+      "[class*=\"cooked\"]"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "[class*=\"user\"]",
+      "[class*=\"avatar\"]",
+      "[class*=\"timestamp\"]",
+      "[class*=\"vote\"]",
+      "[class*=\"like\"]",
+      "[class*=\"badge\"]",
+      "pre",
+      "code"
+    ],
+    "contextHint": "This is a community forum. Preserve usernames, badges, timestamps, code blocks, URLs, and platform terms. Translate topic titles and post content only."
+  },
+  {
+    "id": "coding-challenges",
+    "matches": [
+      "leetcode.com",
+      "*.leetcode.com",
+      "hackerrank.com",
+      "*.hackerrank.com",
+      "codeforces.com",
+      "*.codeforces.com",
+      "atcoder.jp",
+      "*.atcoder.jp",
+      "codewars.com",
+      "*.codewars.com",
+      "exercism.org",
+      "*.exercism.org",
+      "freecodecamp.org",
+      "*.freecodecamp.org",
+      "codecademy.com",
+      "*.codecademy.com"
+    ],
+    "mainSelectors": [
+      "main",
+      "[class*=\"problem\"]",
+      "[class*=\"challenge\"]",
+      "[class*=\"question\"]"
+    ],
+    "includeSelectors": [
+      "h1",
+      "h2",
+      "p",
+      "li"
+    ],
+    "excludeSelectors": [
+      "nav",
+      "header",
+      "footer",
+      "button",
+      "[role=\"button\"]",
+      "input",
+      "textarea",
+      "pre",
+      "code",
+      "[class*=\"code\"]",
+      "[class*=\"editor\"]",
+      "[class*=\"test\"]",
+      "[class*=\"console\"]",
+      "[class*=\"solution\"]"
+    ],
+    "contextHint": "This is a coding challenge or learning platform. Preserve code, function signatures, input/output examples, and test cases. Translate problem descriptions and instructions only."
+  },
+  {
+    "id": "notion-confluence",
+    "matches": [
+      "notion.so",
+      "*.notion.site",
+      "atlassian.net",
+      "confluence.atlassian.net"
+    ],
+    "disableAutoTranslate": true,
+    "excludeSelectors": [
+      "input",
+      "textarea",
+      "[contenteditable=\"true\"]",
+      "[class*=\"property\"]",
+      "[class*=\"database\"]",
+      "[class*=\"board\"]"
+    ],
+    "contextHint": "This is a workspace/documentation platform. Preserve page titles, database properties, and structured data. Do not translate automatically without user action."
+  }
+]

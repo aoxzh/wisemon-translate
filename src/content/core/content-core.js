@@ -136,7 +136,8 @@
         }
         return { success: true };
       }
-      case 'update-theme':
+      case 'update-theme': {
+        const previousMode = state.settings?.displayMode;
         state.settings = { ...(state.settings || {}), ...(request.settings || request) };
         fn.injectCustomTranslationCss();
         if (typeof fn.updateFabFromSettings === 'function') fn.updateFabFromSettings();
@@ -149,10 +150,15 @@
           document.querySelectorAll(`[${state.attrProcessed || 'data-llm-done'}]`).forEach(el => {
             if (!el.classList.contains('llm-original-hidden')) el.classList.add('llm-original-hidden');
           });
+          if (previousMode !== 'replace' && typeof fn.reprocessSkippedCompactUi === 'function') {
+            fn.reprocessSkippedCompactUi();
+          }
         }
         return { success: true };
+      }
       case 'toggle-only-translation': {
-        state.settings.displayMode = state.settings.displayMode === 'replace' ? 'bilingual' : 'replace';
+        const previousMode = state.settings.displayMode;
+        state.settings.displayMode = previousMode === 'replace' ? 'bilingual' : 'replace';
         fn.applyPageState(state.pageTranslated ? (state.settings.displayMode === 'replace' ? 'translation' : 'dual') : 'dual');
         document.querySelectorAll('.llm-original-hidden').forEach(el => {
           if (state.settings.displayMode !== 'replace') el.classList.remove('llm-original-hidden');
@@ -161,6 +167,8 @@
           document.querySelectorAll(`[${state.attrProcessed || 'data-llm-done'}]`).forEach(el => {
             if (!el.classList.contains('llm-original-hidden')) el.classList.add('llm-original-hidden');
           });
+          // Compact UI elements skipped in bilingual mode must be re-translated in replace mode.
+          if (typeof fn.reprocessSkippedCompactUi === 'function') fn.reprocessSkippedCompactUi();
         }
         return { success: true, displayMode: state.settings.displayMode };
       }

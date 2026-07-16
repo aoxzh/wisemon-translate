@@ -42,6 +42,29 @@
     ? textUtils.createInvalidTextChecker({ SKIP_PATTERNS, NON_CONTENT_PATTERNS })
     : function(text) { return !text || String(text).trim().length < 2; };
 
+  // Aliases for functions provided by content-injection.js
+  const buildNodeGroup = (...args) => ctx.fn.buildNodeGroup(...args);
+  const isBlockNode = (...args) => ctx.fn.isBlockNode(...args);
+  const injectTranslationResult = (...args) => ctx.fn.injectTranslationResult(...args);
+  const applyPageState = (...args) => ctx.fn.applyPageState(...args);
+  const showRetry = (...args) => ctx.fn.showRetry(...args);
+  const reprocessSkippedCompactUi = (...args) => ctx.fn.reprocessSkippedCompactUi(...args);
+  const removeTranslation = (wrapper) => ctx.fn.removeTranslation(wrapper);
+  const removeTranslationFrom = (container) => ctx.fn.removeTranslationFrom(container);
+  const normalizeTranslationTheme = (theme) => ctx.fn.normalizeTranslationTheme(theme);
+  const replaceCompactUiText = (group, text) => ctx.fn.replaceCompactUiText(group, text);
+
+  // Aliases for functions provided by content-shadow.js / content-title.js / content-language.js
+  const startShadowRootObservation = () => ctx.fn.startShadowRootObservation();
+  const translatePageTitle = () => ctx.fn.translatePageTitle();
+  const restorePageTitle = () => ctx.fn.restorePageTitle();
+  const shouldSkipTranslation = (...args) => ctx.fn.shouldSkipTranslation(...args);
+
+  // Aliases for functions provided by content-element-utils.js
+  const isIgnored = (...args) => ctx.fn.isIgnored(...args);
+  const matchesSiteRuleSelector = (...args) => ctx.fn.matchesSiteRuleSelector(...args);
+  const isTranslatableElement = (...args) => ctx.fn.isTranslatableElement(...args);
+
   // ---- Safe logging guard ----
   function _safeLog(level, tag, msg, data) {
     try {
@@ -58,10 +81,9 @@
   // ---- State ----
   let settings = null;
   let pageTranslated = false;
-  let hoverEnabled = false;
-  let hoverKeyPressed = false;
   let translationRunId = 0;
   let siteRule = null;
+  let pageContext = null;       // page title + main content summary for context-aware translation
   let translateQueue = null;
   let translationStats = { queued: 0, succeeded: 0, failed: 0, recovered: 0, lastError: '' };
   let totalObserved = 0;      // total elements observed by IO (counter because WeakSet has no size)
@@ -82,17 +104,87 @@
   let dirtyProcessing = false;
   const retryingElements = new WeakSet();
 
-  // Hover state
-  let activeHoverParagraphs = new Set();
+  // Other UI state
   let currentPopup = null;
-  let hoverDebounceTimer = null;
-  let hoverPendingRequest = null; // AbortController for canceling in-flight hover requests
   let subtitleObserver = null;    // MutationObserver for video subtitle detection
   const scannedShadowRoots = new WeakSet();  // shadow roots already scanned
 
+  const contentScanner = ctx.fn.createContentScanner({
+    attrObserved: ATTR_OBSERVED,
+    attrProcessed: ATTR_PROCESSED,
+    blockTags: BLOCK_TAGS,
+    warpTags: WARP_TAGS,
+    viewElements,
+    getSettings: () => settings,
+    getSiteRule: () => siteRule,
+    getObservedElements: () => observedElements,
+    getProcessedElements: () => processedElements,
+    getScanStats: () => currentScanStats,
+    getInitialVisibleElements: () => initialVisibleElements,
+    incrementTotalObserved: () => { totalObserved++; },
+    syncSharedTrackingState,
+    scheduleProcessViewBatch,
+    isIgnored,
+    matchesSiteRuleSelector,
+    isTranslatableElement,
+    getVisibleText,
+    getDirectText,
+    hasDirectTextNode,
+    isInvalidText,
+    isBlockNode,
+    shouldSkipTranslation,
+    safeLog: _safeLog
+  });
+
+  const batchProcessor = ctx.fn.createContentBatchProcessor({
+    tagName: TAG_NAME,
+    attrProcessed: ATTR_PROCESSED,
+    attrId: ATTR_ID,
+    strictParentTags: STRICT_PARENT_TAGS,
+    getSettings: () => settings,
+    getTranslationRunId: () => translationRunId,
+    getPageContext: () => pageContext,
+    getTranslateQueue: () => translateQueue,
+    getTranslationStats: () => translationStats,
+    getTranslationTask: () => translationTask,
+    getObservedElements: () => observedElements,
+    getProcessedElements: () => processedElements,
+    getRetryingElements: () => retryingElements,
+    incrementTotalProcessed: (amount = 1) => { totalProcessed += amount; },
+    pruneTranslationCandidates,
+    buildNodeGroup,
+    injectTranslationResult,
+    cleanTranslatedText,
+    showRetry,
+    isBlockNode,
+    isCompactUiTextElement: (...args) => ctx.fn.isCompactUiTextElement(...args),
+    applyPageState,
+    updateFabProgress: (...args) => ctx.fn.updateFabProgress(...args),
+    publishTranslationProgress,
+    safeLog: _safeLog
+  });
+
   function syncSharedTrackingState() {
-    ctx.fn.observedElements = observedElements;
-    ctx.fn.processedElements = processedElements;
+    // Use getters so external modules always see the current WeakSet/WeakMap
+    // even after reset reassigns the module-level variables.
+    // Redefine them on every main-script initialization. A failed initialization
+    // can be reinjected, and retaining getters from the failed closure would make
+    // helper modules read stale tracking collections.
+    Object.defineProperty(ctx.fn, 'observedElements', {
+      get: function() { return observedElements; },
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(ctx.fn, 'processedElements', {
+      get: function() { return processedElements; },
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(ctx.fn, 'scannedShadowRoots', {
+      get: function() { return scannedShadowRoots; },
+      enumerable: true,
+      configurable: true
+    });
     ctx.state.translationStats = translationStats;
     ctx.state.totalObserved = totalObserved;
     ctx.state.totalProcessed = totalProcessed;
@@ -132,7 +224,7 @@
       settings = { ...DEFAULT_SETTINGS };
     }
 
-    siteRule = typeof getSiteRule === 'function' ? getSiteRule(location.href, settings) : null;
+    siteRule = typeof getSiteRule === 'function' ? await getSiteRule(location.href, settings) : null;
     ctx.state.siteRule = siteRule;
     if (siteRule?.matchedIds?.length) {
       LOG.info('Rules', `Matched site rules: ${siteRule.matchedIds.join(', ')}`, siteRule);
@@ -184,11 +276,9 @@
       return;
     }
 
-    hoverEnabled = settings.enableHover;
-
     // Create shared namespace for in-file feature modules
     ctx.state.settings = settings;
-    ctx.state.hoverEnabled = hoverEnabled;
+    ctx.state.hoverEnabled = settings.enableHover;
     ctx.state.translationRunId = translationRunId;
     ctx.state.pageTranslated = pageTranslated;
     ctx.state.viewElements = viewElements;
@@ -198,30 +288,21 @@
     ctx.state.subtitleCache = new Map();
     // Expose core engine functions to feature modules
     Object.assign(ctx.fn, {
-      buildNodeGroup,
-      injectTranslationResult,
       cleanTranslatedText,
       cleanTextForTranslation,
+      isInvalidText,
       scanNode,
       scheduleProcessViewBatch,
+      startObserveElement,
       translateToBottom,
       togglePageTranslation,
       restoreOriginal,
-      removeTranslationFrom,
       retryFailedTranslations,
-      applyPageState,
       syncSharedTrackingState,
       publishTranslationProgress,
       processedElements,
       observedElements,
-      shouldSkipTranslation,
       getVisibleText,
-      isIgnored,
-      isTranslatableElement,
-      onKeyDown,
-      onKeyUp,
-      onMouseOver,
-      onMouseOut,
       BLOCK_TAGS,
       WARP_TAGS,
       IGNORE_TAGS,
@@ -229,6 +310,10 @@
       ATTR_ID
     });
     syncSharedTrackingState();
+
+    if (settings.enableHover && typeof initHoverFeature === 'function') {
+      initHoverFeature(settings);
+    }
 
     ctx.state.ready = true;
     ctx.fn.attachEventListeners();
@@ -301,19 +386,27 @@
       processedElements.delete(el);
     });
     document.querySelectorAll('[data-llm-original-html]').forEach(el => {
-      el.innerHTML = el.getAttribute('data-llm-original-html') || '';
+      // Restore from cloned child nodes when available to avoid re-parsing HTML strings.
+      const restoredFragment = el._llmOriginalFragment;
+      if (restoredFragment) {
+        el.textContent = '';
+        el.appendChild(restoredFragment.cloneNode(true));
+      } else {
+        // Fallback: clear only; do not re-parse original HTML to avoid script re-execution.
+        el.textContent = '';
+      }
       el.removeAttribute('data-llm-original-html');
       el.removeAttribute('title');
+      delete el._llmOriginalFragment;
     });
     document.querySelectorAll('.llm-original-hidden').forEach(el => {
       el.classList.remove('llm-original-hidden');
     });
-    document.querySelectorAll(`[${ATTR_PROCESSED}]`).forEach(el => {
-      el.removeAttribute(ATTR_PROCESSED);
-    });
     document.querySelectorAll(`[${ATTR_OBSERVED}]`).forEach(el => {
       el.removeAttribute(ATTR_OBSERVED);
     });
+    // Stop observers to avoid stale callbacks on restored DOM.
+    if (typeof ctx.fn.stopObservers === 'function') ctx.fn.stopObservers();
     // Reset root state
     document.documentElement.removeAttribute('llm-state');
     document.documentElement.removeAttribute('llm-theme');
@@ -326,8 +419,7 @@
     viewElements.clear();
     dirtyQueue.clear();
     dirtyProcessing = false;
-    translatedTextHashes.clear();
-    translatedTextCache.clear();
+    batchProcessor.reset();
     translationStats.queued = 0; translationStats.succeeded = 0; translationStats.failed = 0;
     translationStats.recovered = 0; translationStats.lastError = '';
     totalObserved = 0;
@@ -336,11 +428,53 @@
     publishTranslationProgress();
   }
 
+  function extractPageContext() {
+    if (!settings?.enableContextAwareTranslation) return '';
+    try {
+      const title = document.title?.trim() || '';
+      const root = ctx.fn.getMainContentRoot ? ctx.fn.getMainContentRoot() : document.body;
+      if (!root) return title;
+      const skipSelector = 'nav, header, footer, aside, [role="navigation"], [role="banner"], [role="contentinfo"], script, style, noscript, iframe, pre, code';
+      const textParts = [];
+      let chars = 0;
+      const maxChars = 800;
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+        acceptNode(node) {
+          if (!node.nodeValue?.trim()) return NodeFilter.FILTER_REJECT;
+          const parent = node.parentElement;
+          if (!parent) return NodeFilter.FILTER_REJECT;
+          if (parent.closest(skipSelector)) return NodeFilter.FILTER_REJECT;
+          const style = window.getComputedStyle(parent);
+          if (style.display === 'none' || style.visibility === 'hidden') return NodeFilter.FILTER_REJECT;
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      });
+      while (walker.nextNode() && chars < maxChars) {
+        const value = walker.currentNode.nodeValue.replace(/\s+/g, ' ').trim();
+        if (!value) continue;
+        textParts.push(value);
+        chars += value.length + 1;
+      }
+      const summary = textParts.join(' ').slice(0, maxChars).trim();
+      if (!title && !summary) return '';
+      let context = '';
+      if (title) context += `Page title: ${title}\n`;
+      if (summary) context += `Article summary: ${summary}`;
+      return context.slice(0, 1000);
+    } catch (e) {
+      _safeLog('warn', 'Content', 'Failed to extract page context: ' + e.message);
+      return '';
+    }
+  }
+
   async function startTranslation() {
     if (!settings) {
       const res = await chrome.runtime.sendMessage({ action: 'get-settings' });
       settings = { ...DEFAULT_SETTINGS, ...res.settings };
     }
+
+    // Extract page context once per translation run for context-aware translation
+    pageContext = extractPageContext();
 
     // Fully reset state for clean re-translation
     observedElements = new WeakSet();
@@ -349,8 +483,7 @@
     viewElements.clear();
     dirtyQueue.clear();
     dirtyProcessing = false;
-    translatedTextHashes.clear();
-    translatedTextCache.clear();
+    batchProcessor.reset();
     translationStats.queued = 0; translationStats.succeeded = 0; translationStats.failed = 0;
     translationStats.recovered = 0; translationStats.lastError = '';
     totalObserved = 0;
@@ -415,210 +548,17 @@
     return { succeeded: translationStats.succeeded, failed: translationStats.failed, queued: translationStats.queued, reason: translationStats.succeeded > 0 ? '' : 'Timed out waiting for the first translation result.' };
   }
 
-  // ---- MutationObserver: watch for dynamically added content ----
-  // Deduplication: track already-translated text hashes to avoid duplicate API calls
-  const translatedTextHashes = new Set();
-  const translatedTextCache = new Map();
-  function getTextHash(text) {
-    let hash = 0;
-    for (let i = 0; i < text.length; i++) {
-      const chr = text.charCodeAt(i);
-      hash = ((hash << 5) - hash) + chr;
-      hash |= 0;
-    }
-    return 'h_' + Math.abs(hash).toString(36);
-  }
-
-  async function processViewBatch(elements) {
-    const toProcess = pruneTranslationCandidates(elements.filter(el =>
-      observedElements.has(el) && !processedElements.has(el)
-    ));
-    if (toProcess.length === 0) return { attempted: 0, succeeded: 0, failed: 0 };
-
-    LOG.info('Content', `Viewport batch: ${toProcess.length} elements`, {
-      runId: translationRunId,
-      queueSize: translateQueue?.size ? translateQueue.size() : 0
-    });
-    const groups = [];
-    const textHashMap = new Map(); // hash -> translated result
-
-    for (const el of toProcess) {
-      const group = buildNodeGroup(el);
-      if (!group) continue;
-      const hash = getTextHash(group.text);
-      // Skip if already translated in this session
-      if (translatedTextHashes.has(hash)) {
-        const cachedResult = translatedTextCache.get(hash) || textHashMap.get(hash);
-        if (cachedResult) {
-          injectTranslationResult(group, cachedResult);
-          translationStats.succeeded++;
-          LOG.debug('Content', 'Injected duplicate text from in-page cache', {
-            hash,
-            textLength: group.text.length
-          });
-        } else {
-          processedElements.delete(group.element);
-          group.element.removeAttribute(ATTR_PROCESSED);
-          // Keep ATTR_ID on the element — removing it would produce "null" on re-translate
-          const existingId = group.element.getAttribute(ATTR_ID);
-          if (existingId) group.preservedId = existingId;
-          _safeLog('warn', 'Content', 'Duplicate text hash had no cached translation; re-queued element', {
-            hash,
-            textPreview: group.text.slice(0, 120)
-          });
-          group.textHash = hash;
-          group.runId = translationRunId;
-          groups.push(group);
-        }
-        continue;
-      }
-      group.textHash = hash;
-      group.runId = translationRunId;
-      groups.push(group);
-    }
-    if (groups.length === 0) return { attempted: 0, succeeded: 0, failed: 0 };
-    translationStats.queued += groups.length;
-    translationTask.setState(translationTask.states.QUEUED || 'queued', { runId: translationRunId, reason: '' });
-    publishTranslationProgress();
-
-    // Update FAB progress
-    const totalVisible = translationStats.queued;
-    const pending = groups.length;
-    ctx.fn.updateFabProgress(totalVisible - pending, totalVisible);
-
-    var doneCount = 0;
-    var failedCount = 0;
-    var totalVisible2 = translationStats.queued;
-
-    function isTranslationErrorResult(raw) {
-      return !raw || (typeof raw === 'string' && raw.indexOf('[Translation Error:') === 0);
-    }
-
-    async function retrySingleTranslation(group, raw) {
-      if (!isTranslationErrorResult(raw)) return raw;
-      try {
-        const res = await chrome.runtime.sendMessage({
-          action: 'translate',
-          text: group.text,
-          sourceLang: settings.sourceLang,
-          targetLang: settings.targetLang
-        });
-        if (res && res.translated && !res.error) {
-          translationStats.recovered = (translationStats.recovered || 0) + 1;
-          group.recoveredBySingleRetry = true;
-          _safeLog('warn', 'Content', 'Recovered failed batch item with single retry', {
-            textLength: group.text.length,
-            firstReason: raw || 'Unknown'
-          });
-          return res.translated;
-        }
-        return raw || `[Translation Error: ${res?.error || 'Single retry returned no translation'}]`;
-      } catch (err) {
-        return raw || `[Translation Error: ${err.message || 'Single retry failed'}]`;
-      }
-    }
-
-    async function injectOne(group, raw) {
-      if (group.runId !== translationRunId) return;
-      translationTask.setState(translationTask.states.TRANSLATING || 'translating', { runId: translationRunId, reason: '' });
-      raw = await retrySingleTranslation(group, raw);
-      totalProcessed++;
-      if (isTranslationErrorResult(raw)) {
-        failedCount++;
-        translationStats.failed++;
-        translationStats.lastError = String(raw || 'Unknown error').replace(/^\[Translation Error:\s*|\]$/g, '').slice(0, 240);
-        _safeLog('error', 'Content', 'Element translation failed', { reason: raw || 'Unknown', textLength: group.text.length, textPreview: group.text.slice(0, 180) });
-        showRetry(group, raw || 'Unknown error');
-      } else {
-        var cleaned = cleanTranslatedText(raw);
-        if (cleaned && cleaned.length > 0) {
-          injectTranslationResult(group, cleaned);
-          translatedTextHashes.add(group.textHash);
-          translatedTextCache.set(group.textHash, cleaned);
-          if (retryingElements.has(group.element) && !group.recoveredBySingleRetry) {
-            translationStats.recovered = (translationStats.recovered || 0) + 1;
-          }
-          retryingElements.delete(group.element);
-          doneCount++;
-          translationStats.succeeded++;
-        } else {
-          failedCount++;
-          translationStats.failed++;
-          translationStats.lastError = 'Empty result after cleaning';
-          _safeLog('error', 'Content', 'Element translation cleaned to empty', { textLength: group.text.length, textPreview: group.text.slice(0, 180) });
-          showRetry(group, 'Empty result after cleaning');
-        }
-      }
-      const batchCompleted = doneCount + failedCount;
-      ctx.fn.updateFabProgress(totalVisible2 - (groups.length - batchCompleted), totalVisible2);
-      if (translationStats.queued > 0 && translationStats.succeeded + translationStats.failed >= translationStats.queued) {
-        translationTask.setState(translationTask.states.COMPLETED || 'completed', { runId: translationRunId, reason: '' });
-      }
-      publishTranslationProgress();
-    }
-
-    if (shouldStreamGroup(groups[0], groups.length)) {
-      const group = groups[0];
-      const live = createTranslationWrapper(group);
-      group.onStreamUpdate = function(text) {
-        if (!live?.inner || group.runId !== translationRunId) return;
-        live.inner.textContent = cleanTranslatedText(text);
-      };
-      try {
-        const raw = await sendTranslateStream(group);
-        if (live?.wrapper) live.wrapper.remove();
-        await injectOne(group, raw);
-      } catch (err) {
-        if (live?.wrapper) live.wrapper.remove();
-        failedCount++;
-        translationStats.failed++;
-        totalProcessed++;
-        translationStats.lastError = err.message || 'Stream item failed';
-        translationTask.setState(translationTask.states.FAILED || 'failed', { runId: translationRunId, reason: err.message });
-        _safeLog('error', 'Content', 'Stream item failed: ' + err.message, { textLength: group.text.length });
-        showRetry(group, err.message);
-        publishTranslationProgress();
-      }
-    } else if (translateQueue) {
-      groups.forEach(function(group) {
-        if (group.runId !== translationRunId) return;
-        translateQueue.add(group.text, { runId: translationRunId }).then(function(raw) {
-          return injectOne(group, raw);
-        }).catch(function(err) {
-          if (group.runId === translationRunId) {
-            failedCount++;
-            translationStats.failed++;
-            totalProcessed++;
-            translationStats.lastError = err.message || 'Viewport item failed';
-            translationTask.setState(translationTask.states.FAILED || 'failed', { runId: translationRunId, reason: err.message });
-            _safeLog('error', 'Content', 'Viewport item failed: ' + err.message, { textLength: group.text.length });
-            showRetry(group, err.message);
-            publishTranslationProgress();
-          }
-        });
-      });
-    } else {
-      try {
-        var texts = groups.map(function(g) { return g.text; });
-        var results = await sendTranslateBatch(texts, { runId: translationRunId });
-        await Promise.all(groups.map(function(group, i) { return injectOne(group, results[i]); }));
-      } catch (err) {
-        translationStats.failed += groups.length;
-        totalProcessed += groups.length;
-        doneCount = 0;
-        failedCount = groups.length;
-        translationStats.lastError = err.message || 'Viewport batch failed';
-        translationTask.setState(translationTask.states.FAILED || 'failed', { runId: translationRunId, reason: err.message });
-        _safeLog('error', 'Content', 'Viewport batch failed: ' + err.message, { count: groups.length, runId: translationRunId });
-        publishTranslationProgress();
-      }
-    }
+  // Viewport batching, deduplication and stream transport live in content-batch-processor.js
+  function processViewBatch(elements) {
+    return batchProcessor.processViewBatch(elements);
   }
 
   function scheduleProcessViewBatch(elements) {
-    processViewBatch(elements).catch(err => {
-      _safeLog('error', 'Content', 'Scheduled viewport batch crashed: ' + err.message, err.stack);
-    });
+    return batchProcessor.scheduleProcessViewBatch(elements);
+  }
+
+  function sendTranslateBatch(texts, args) {
+    return batchProcessor.sendTranslateBatch(texts, args);
   }
 
   async function translateToBottom() {
@@ -721,1007 +661,48 @@
     }) || null;
   }
 
+  // Candidate scanning and pruning live in content-scanner.js
   function hasRuleIncludeSelectors() {
-    return Array.isArray(siteRule?.includeSelectors) && siteRule.includeSelectors.length > 0 && (siteRule.matchedIds || []).some(id => id && id !== 'default');
+    return contentScanner.hasRuleIncludeSelectors();
   }
 
   function collectRuleIncludedCandidates(root) {
-    const out = [];
-    const seen = new WeakSet();
-    const selectors = siteRule?.includeSelectors || [];
-    function add(el) {
-      if (!(el instanceof Element) || seen.has(el) || processedElements.has(el)) return;
-      if (!isBottomScanCandidate(el)) return;
-      seen.add(el);
-      out.push(el);
-    }
-    for (const selector of selectors) {
-      try {
-        if (root instanceof Element && root.matches(selector)) add(root);
-        root.querySelectorAll?.(selector).forEach(add);
-      } catch (err) {
-        _safeLog('warn', 'Rules', 'Invalid translate-to-bottom include selector skipped: ' + selector, { error: err.message });
-      }
-    }
-    root.querySelectorAll?.(`[${ATTR_OBSERVED}="true"]`).forEach(add);
-    return pruneTranslationCandidates(out);
+    return contentScanner.collectRuleIncludedCandidates(root);
   }
 
   function collectUnprocessedCandidates(root) {
-    const out = [];
-    const seen = new WeakSet();
-    function add(el) {
-      if (!(el instanceof Element) || seen.has(el) || processedElements.has(el)) return;
-      if (!isBottomScanCandidate(el)) return;
-      seen.add(el);
-      out.push(el);
-    }
-
-    root.querySelectorAll?.(`[${ATTR_OBSERVED}="true"]`).forEach(add);
-    root.querySelectorAll?.('p, li, td, th, dd, dt, figcaption, caption, blockquote, h1, h2, h3, h4, h5, h6').forEach(add);
-
-    try {
-      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-        acceptNode(node) {
-          const value = (node.nodeValue || '').replace(/\s+/g, ' ').trim();
-          if (!value || isInvalidText(value)) return NodeFilter.FILTER_REJECT;
-          const parent = node.parentElement;
-          if (!parent || isIgnored(parent) || matchesSiteRuleSelector(parent, siteRule?.excludeSelectors)) return NodeFilter.FILTER_REJECT;
-          return NodeFilter.FILTER_ACCEPT;
-        }
-      });
-      while (walker.nextNode()) add(findTranslationHostForTextNode(walker.currentNode));
-    } catch (err) {
-      LOG.debug('Content', `Bottom text scan skipped: ${err.message}`);
-    }
-
-    return pruneTranslationCandidates(out);
-  }
-
-  function isBottomScanCandidate(el) {
-    if (!(el instanceof Element)) return false;
-    if (isIgnored(el)) return false;
-    if (matchesSiteRuleSelector(el, siteRule?.excludeSelectors)) return false;
-    const text = getVisibleText(el);
-    if (isInvalidText(text)) return false;
-    if (shouldSkipTranslation(text, settings.targetLang)) return false;
-    return true;
+    return contentScanner.collectUnprocessedCandidates(root);
   }
 
   function pruneTranslationCandidates(candidates) {
-    if (!ctx.fn.candidatePruner?.pruneCandidates) return Array.from(candidates || []);
-    return ctx.fn.candidatePruner.pruneCandidates(candidates, getCandidatePrunerDeps());
+    return contentScanner.pruneTranslationCandidates(candidates);
   }
 
-  function getCandidatePrunerDeps() {
-    return {
-      settings,
-      siteRule,
-      processedElements,
-      isIgnored,
-      matchesSiteRuleSelector,
-      getVisibleText,
-      isInvalidText,
-      shouldSkipTranslation
-    };
-  }
-
-  async function sendTranslateBatch(texts, args = {}) {
-    if (args.runId && args.runId !== translationRunId) {
-      return texts.map(() => '[Translation Error: Translation run was canceled]');
-    }
-    const res = await chrome.runtime.sendMessage({ action: 'translate-batch', texts });
-    if (res.error) throw new Error(res.error);
-    return res.results || [];
-  }
-
-  function shouldStreamGroup(group, groupCount) {
-    if (!settings?.useStream || settings.streamRenderMode === 'disabled') return false;
-    if (groupCount !== 1) return false;
-    if (!group?.text || group.text.length > 1800) return false;
-    if (settings.displayMode === 'replace') return false;
-    return true;
-  }
-
-  function createTranslationWrapper(group) {
-    const element = group.element;
-    if (!element.isConnected || !element.parentNode) return null;
-    const isBlock = isBlockNode(element) || isCompactUiTextElement(element, group.text);
-    const wrapperClass = isBlock ? `${TAG_NAME}-block-wrapper` : `${TAG_NAME}-inline-wrapper`;
-    const hasStrictParent = element.parentNode && element.parentNode.nodeType === 1 && STRICT_PARENT_TAGS.has(element.parentNode.tagName);
-
-    const wrapper = document.createElement(isBlock && !hasStrictParent ? 'div' : 'span');
-    wrapper.className = wrapperClass + (hasStrictParent ? ' llm-strict-wrapper' : '');
-    wrapper.setAttribute(ATTR_ID, element.getAttribute(ATTR_ID));
-
-    const inner = document.createElement('span');
-    inner.className = `${TAG_NAME}-inner`;
-    wrapper.appendChild(inner);
-
-    if (hasStrictParent) {
-      element.appendChild(wrapper);
-    } else if ((settings.translationPosition || 'after') === 'before') {
-      element.parentNode.insertBefore(wrapper, element);
-    } else if (element.nextSibling) {
-      element.parentNode.insertBefore(wrapper, element.nextSibling);
-    } else {
-      element.parentNode.appendChild(wrapper);
-    }
-    applyPageState('dual');
-    return { wrapper, inner };
-  }
-
-  function sendTranslateStream(group) {
-    return new Promise((resolve, reject) => {
-      const requestId = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
-      const port = chrome.runtime.connect({ name: 'translate-stream' });
-      let settled = false;
-      let latest = '';
-
-      const settle = (fn, value) => {
-        if (settled) return;
-        settled = true;
-        try { port.disconnect(); } catch (e) {}
-        fn(value);
-      };
-
-      port.onMessage.addListener((message) => {
-        if (!message || message.requestId !== requestId) return;
-        if (message.type === 'delta') {
-          latest = message.text || latest;
-          if (typeof group.onStreamUpdate === 'function') group.onStreamUpdate(latest);
-        } else if (message.type === 'done') {
-          settle(resolve, message.text || latest);
-        } else if (message.type === 'error') {
-          settle(reject, new Error(message.error || 'Translation failed'));
-        }
-      });
-      port.onDisconnect.addListener(() => {
-        if (!settled) settle(resolve, latest);
-      });
-      port.postMessage({
-        action: 'translate-stream',
-        requestId,
-        text: group.text,
-        pageUrl: location.href,
-        sourceLang: settings.sourceLang,
-        targetLang: settings.targetLang
-      });
-    });
-  }
-
-  // ---- DOM Scanning ----
   function scanRuleIncludedElements(root) {
-    const selectors = siteRule?.includeSelectors || [];
-    if (!root || !Array.isArray(selectors) || selectors.length === 0) return;
-    for (const selector of selectors) {
-      try {
-        root.querySelectorAll(selector).forEach(function(el) {
-          if (!matchesSiteRuleSelector(el, siteRule?.excludeSelectors)) {
-            startObserveElement(el);
-          }
-        });
-      } catch (e) {
-        _safeLog('warn', 'Rules', 'Invalid include selector skipped: ' + selector, { error: e.message });
-      }
-    }
+    return contentScanner.scanRuleIncludedElements(root);
   }
 
   function scanAdaptiveTextElements(root) {
-    ctx.fn.adaptiveScanner?.scanAdaptiveTextElements(root, getAdaptiveScannerDeps());
+    return contentScanner.scanAdaptiveTextElements(root);
   }
 
-  function scanNode(root, includeTextNodePass = true) {
-    if (!(root instanceof Element) && !(root instanceof DocumentFragment)) return;
-    if (root.nodeType === Node.ELEMENT_NODE && isIgnored(root)) return;
-
-    // Skip non-main areas when translateMainOnly is enabled
-    if (settings?.translateMainOnly && root !== document.body) {
-      const tag = root.tagName.toLowerCase();
-      const role = root.getAttribute('role');
-      const skipRoles = ['banner', 'navigation', 'complementary', 'contentinfo', 'search'];
-      if (skipRoles.includes(role)) return;
-      const skipTags = ['header', 'footer', 'nav', 'aside'];
-      if (skipTags.includes(tag)) return;
-    }
-
-    // Check if this node itself is a translatable block
-    if (root.nodeType === Node.ELEMENT_NODE) {
-      const hasBlockChild = [...root.children].some(c => BLOCK_TAGS.has(c.tagName));
-      const hasDirectText = hasDirectTextNode(root);
-      const hasSemanticContent = ctx.fn.adaptiveScanner?.hasSemanticContentSignal(root);
-
-      if (hasDirectText || hasSemanticContent || !hasBlockChild) {
-        if (isTranslatableElement(root)) {
-          startObserveElement(root);
-        }
-      }
-    }
-
-    // Recurse into block children
-    for (const child of root.children || []) {
-      if (BLOCK_TAGS.has(child.tagName)) {
-        scanNode(child, false);
-      } else if (WARP_TAGS.has(child.tagName) && hasDirectTextNode(child)) {
-        // Inline wrapper with text: scan for the nearest block parent
-      }
-    }
-
-    // Also scan non-block elements that might contain text
-    for (const child of root.children || []) {
-      if (!BLOCK_TAGS.has(child.tagName) && !WARP_TAGS.has(child.tagName) && !isIgnored(child)) {
-        scanNode(child, false);
-      }
-    }
-
-    if (includeTextNodePass) scanTextNodes(root);
+  function scanNode(root, includeTextNodePass) {
+    return contentScanner.scanNode(root, includeTextNodePass);
   }
 
   function scanTextNodes(root) {
-    try {
-      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-        acceptNode(node) {
-          const value = (node.nodeValue || '').replace(/\s+/g, ' ').trim();
-          if (!value || value.length < Math.max(1, settings?.minTextLength || 2)) {
-            return NodeFilter.FILTER_REJECT;
-          }
-          const parent = node.parentElement;
-          if (!parent || isIgnored(parent)) return NodeFilter.FILTER_REJECT;
-          if (matchesSiteRuleSelector(parent, siteRule?.excludeSelectors)) {
-            if (currentScanStats) currentScanStats.skippedByRule++;
-            return NodeFilter.FILTER_REJECT;
-          }
-          if (isInvalidText(value)) return NodeFilter.FILTER_REJECT;
-          return NodeFilter.FILTER_ACCEPT;
-        }
-      });
-
-      const hosts = new Set();
-      while (walker.nextNode()) {
-        const host = findTranslationHostForTextNode(walker.currentNode);
-        if (host) hosts.add(host);
-      }
-      hosts.forEach(startObserveElement);
-      if (hosts.size && currentScanStats) currentScanStats.textNodeHosts = (currentScanStats.textNodeHosts || 0) + hosts.size;
-    } catch (err) {
-      LOG.debug('Content', `Text node scan skipped: ${err.message}`);
-    }
+    return contentScanner.scanTextNodes(root);
   }
-
-  function findTranslationHostForTextNode(textNode) {
-    let el = textNode?.parentElement;
-    if (!el || isIgnored(el)) return null;
-
-    let candidate = el;
-    let depth = 0;
-    while (el && el !== document.body && depth < 5) {
-      if (isIgnored(el) || matchesSiteRuleSelector(el, siteRule?.excludeSelectors)) return null;
-      if (el.hasAttribute?.(ATTR_PROCESSED) || observedElements.has(el)) return null;
-
-      const tag = el.tagName;
-      const directText = getDirectText(el);
-      const childBlockCount = Array.from(el.children || []).filter(child => isBlockNode(child)).length;
-      const visibleText = getVisibleText(el);
-      const semanticHost = ctx.fn.adaptiveScanner?.hasSemanticContentSignal(el) && visibleText.length <= Math.max(1200, settings.maxCharsPerRequest || 4000);
-
-      if (['A','BUTTON','LABEL','SUMMARY','FIGCAPTION','CAPTION','TH','TD','LI','P','H1','H2','H3','H4','H5','H6'].includes(tag)) {
-        candidate = el;
-        break;
-      }
-      if (semanticHost) {
-        candidate = el;
-        break;
-      }
-      if (BLOCK_TAGS.has(tag) && directText && childBlockCount === 0 && visibleText.length <= Math.max(600, settings.maxCharsPerRequest || 4000)) {
-        candidate = el;
-        break;
-      }
-      if (WARP_TAGS.has(tag) && directText && (!el.parentElement || isBlockNode(el.parentElement))) {
-        candidate = el;
-        break;
-      }
-
-      candidate = el;
-      el = el.parentElement;
-      depth++;
-    }
-
-    if (!candidate || candidate === document.body || isIgnored(candidate)) return null;
-    if (!isTranslatableElement(candidate)) return null;
-    return candidate;
-  }
-
-  function getAdaptiveScannerDeps() {
-    return {
-      settings,
-      siteRule,
-      observedElements,
-      processedElements,
-      startObserveElement,
-      isIgnored,
-      matchesSiteRuleSelector,
-      getVisibleText,
-      getDirectText,
-      isInvalidText,
-      isBlockNode,
-      safeLog: _safeLog
-    };
-  }
-
 
   function startObserveElement(el) {
-    if (!(el instanceof Element)) return;
-    if (observedElements.has(el)) return;
-    if (isIgnored(el)) {
-      if (currentScanStats) currentScanStats.skippedIgnored++;
-      return;
-    }
-    if (matchesSiteRuleSelector(el, siteRule?.excludeSelectors)) {
-      if (currentScanStats) currentScanStats.skippedByRule++;
-      return;
-    }
-
-    const text = getVisibleText(el);
-    if (isInvalidText(text)) {
-      if (currentScanStats) currentScanStats.skippedInvalid++;
-      return;
-    }
-
-    // Language skip: don't translate if target language matches detected language
-    if (shouldSkipTranslation(text, settings.targetLang)) {
-      if (currentScanStats) currentScanStats.skippedSameLanguage++;
-      return;
-    }
-    if (pruneTranslationCandidates([el]).length === 0) {
-      if (currentScanStats) currentScanStats.skippedInvalid++;
-      return;
-    }
-
-    observedElements.add(el);
-    totalObserved++;
-    el.setAttribute(ATTR_OBSERVED, 'true');
-    syncSharedTrackingState();
-    if (currentScanStats) currentScanStats.observed++;
-    if (ctx.state.intersectionObserver) ctx.state.intersectionObserver.observe(el);
-
-    // Process immediately if in viewport
-    const rect = el.getBoundingClientRect();
-    if (rect.top < window.innerHeight + 500 && rect.bottom > -500) {
-      viewElements.add(el);
-      if (initialVisibleElements) {
-        initialVisibleElements.add(el);
-      } else {
-        scheduleProcessViewBatch([el]);
-      }
-    }
+    return contentScanner.startObserveElement(el);
   }
 
-  function matchesSiteRuleSelector(el, selectors) {
-    if (!el || !Array.isArray(selectors) || selectors.length === 0) return false;
-    for (const selector of selectors) {
-      try {
-        if (selector && el.matches(selector)) return true;
-        if (selector && el.closest(selector)) return true;
-      } catch (e) {}
-    }
-    return false;
-  }
+  // Element utilities live in content-element-utils.js
 
-  function isTranslatableElement(el) {
-    if (!(el instanceof Element)) return false;
-    if (isIgnored(el)) return false;
-    if (observedElements.has(el)) return false;
-    const text = getVisibleText(el);
-    if (isInvalidText(text)) return false;
-    return true;
-  }
+  // Node-group build / injection helpers live in content-injection.js
 
-
-
-
-  function isIgnored(el) {
-    if (!(el instanceof Element)) return false;
-    const tag = el.tagName.toUpperCase();
-    if (IGNORE_TAGS.has(tag)) return true;
-    if (el.matches && el.matches(IGNORE_SELECTOR)) return true;
-    if (el.closest && el.closest(IGNORE_SELECTOR)) return true;
-    // User-defined extra exclude selector
-    if (settings && settings.extraExcludeSelector) {
-      try {
-        if (el.matches && el.matches(settings.extraExcludeSelector)) return true;
-        if (el.closest && el.closest(settings.extraExcludeSelector)) return true;
-      } catch(e) { /* invalid selector, ignore */ }
-    }
-    return false;
-  }
-
-  // ---- Node Group Build: serialize with placeholder preservation ----
-  function buildNodeGroup(hostEl) {
-    if (processedElements.has(hostEl)) return null;
-
-    const nodes = [];
-    let plainText = '';
-    const placeholderMap = new Map();
-    let counter = 0;
-
-    function pushPlaceholder(html) {
-      counter++;
-      // Use LLM-friendly XML placeholder that won't leak into translation
-      const key = `<llm-tag n="${counter}"/>`;
-      placeholderMap.set(key, html);
-      return key;
-    }
-
-    function traverse(node) {
-      if (node.nodeType === Node.TEXT_NODE) {
-        const t = node.textContent.replace(/\s+/g, ' ').trim();
-        if (t) plainText += (plainText ? ' ' : '') + t;
-        return;
-      }
-      if (node.nodeType !== Node.ELEMENT_NODE) return;
-
-      const tag = node.tagName.toUpperCase();
-
-      // Skip script/style elements entirely
-      if (tag === 'SCRIPT' || tag === 'STYLE') return;
-
-      // Replace images/svgs/media with placeholder
-      if (REPLACE_TAGS.has(tag)) {
-        plainText += (plainText ? ' ' : '') + pushPlaceholder(node.outerHTML);
-        return;
-      }
-
-      // Preserve inline formatting
-      if (WARP_TAGS.has(tag)) {
-        for (const child of node.childNodes) traverse(child);
-        return;
-      }
-
-      // Skip elements with data/JSON content
-      if (node.matches && (node.matches('script, style, noscript, [type="application/json"], [type="application/ld+json"]'))) return;
-      if (node.getAttribute && (node.getAttribute('type') === 'application/json' || node.getAttribute('type') === 'application/ld+json')) return;
-
-      // Recurse
-      for (const child of node.childNodes) traverse(child);
-    }
-
-    const wholeElementHost = ['A','BUTTON','LABEL','SUMMARY','FIGCAPTION','CAPTION'].includes(hostEl.tagName);
-
-    // Collect direct child nodes for the group
-    for (const child of hostEl.childNodes) {
-      if (child.nodeType === Node.TEXT_NODE || (child.nodeType === Node.ELEMENT_NODE && (wholeElementHost || !isBlockNode(child)))) {
-        nodes.push(child);
-        traverse(child);
-      }
-    }
-
-    if (!plainText || isInvalidText(plainText)) return null;
-
-    // Apply glossary before translation (term replacement)
-    plainText = ctx.fn.applyGlossary(plainText);
-    // Clean up any remaining placeholder-like artifacts in the source text
-    plainText = cleanTextForTranslation(plainText);
-
-    if (!plainText || plainText.length < 2) return null;
-
-    processedElements.set(hostEl, { id: generateId() });
-    hostEl.setAttribute(ATTR_PROCESSED, 'true');
-    hostEl.setAttribute(ATTR_ID, processedElements.get(hostEl).id);
-    hostEl.removeAttribute(ATTR_OBSERVED);
-
-    return { element: hostEl, text: plainText, nodes, placeholderMap };
-  }
-
-  function isBlockNode(el) {
-    if (!(el instanceof Element)) return false;
-    if (BLOCK_TAGS.has(el.tagName)) return true;
-    try {
-      const display = getComputedStyle(el).display;
-      return !display.startsWith('inline');
-    } catch (e) { return false; }
-  }
-
-  // ---- Translation Injection ----
-  function applyPageState(state) {
-    const root = document.documentElement;
-    root.setAttribute('llm-state', state);
-    root.setAttribute('llm-page-tone', detectPageTone());
-    // Theme
-    const theme = normalizeTranslationTheme(settings.translationTheme);
-    root.setAttribute('llm-theme', theme);
-    // Position
-    const position = settings.translationPosition || 'after';
-    root.setAttribute('llm-pos', position);
-    // Font size as CSS variable
-    const fontSize = (settings.fontSize || 94) / 100;
-    root.style.setProperty('--llm-font-size', fontSize + 'em');
-  }
-
-  function detectPageTone() {
-    try {
-      const samples = [document.body, document.documentElement].filter(Boolean);
-      for (const el of samples) {
-        const color = getComputedStyle(el).backgroundColor;
-        const rgb = parseCssRgb(color);
-        if (!rgb) continue;
-        const luminance = (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255;
-        return luminance < 0.42 ? 'dark' : 'light';
-      }
-    } catch (e) {}
-    return 'light';
-  }
-
-  function parseCssRgb(value) {
-    if (!value || value === 'transparent' || value === 'rgba(0, 0, 0, 0)') return null;
-    const match = String(value).match(/rgba?\(([^)]+)\)/i);
-    if (!match) return null;
-    const parts = match[1].split(',').map(part => parseFloat(part.trim()));
-    if (parts.length < 3 || parts.some((part, index) => index < 3 && Number.isNaN(part))) return null;
-    if (parts.length >= 4 && parts[3] === 0) return null;
-    return parts.slice(0, 3);
-  }
-
-
-  function injectTranslationResult(group, translatedText) {
-    const { element, nodes } = group;
-    if (!element.isConnected || !element.parentNode) return;
-    if (settings.displayMode !== 'replace' && shouldSkipCompactUiInBilingual(element, group.text)) {
-      processedElements.set(element, { skippedCompactUi: true });
-      element.setAttribute(ATTR_PROCESSED, 'true');
-      return;
-    }
-    if (shouldReplaceCompactUiText(element, group.text)) {
-      replaceCompactUiText(group, translatedText);
-      return;
-    }
-
-    // Determine if this is a block or inline insertion
-    const isBlock = isBlockNode(element) || isCompactUiTextElement(element, group.text);
-    const wrapperClass = isBlock ? `${TAG_NAME}-block-wrapper` : `${TAG_NAME}-inline-wrapper`;
-    // For elements inside strict parents (tr/ul/ol/table), use inline-only
-    const hasStrictParent = element.parentNode && element.parentNode.nodeType === 1 && STRICT_PARENT_TAGS.has(element.parentNode.tagName);
-
-    const wrapper = document.createElement(isBlock && !hasStrictParent ? 'div' : 'span');
-    wrapper.className = wrapperClass + (hasStrictParent ? ' llm-strict-wrapper' : '');
-    wrapper.setAttribute(ATTR_ID, element.getAttribute(ATTR_ID));
-
-    const inner = document.createElement('span');
-    inner.className = `${TAG_NAME}-inner`;
-    inner.innerHTML = ctx.fn.escapeHtml(translatedText);
-    wrapper.appendChild(inner);
-
-    if (settings.displayMode === 'replace') {
-      element.classList.add('llm-original-hidden');
-      applyPageState('translation');
-    } else {
-      applyPageState('dual');
-    }
-
-    // For strict-parent elements (td/li/option inside tr/ul/ol/select),
-    // append wrapper INSIDE the element to avoid invalid DOM
-    if (hasStrictParent) {
-      element.appendChild(wrapper);
-      return;
-    }
-
-    // Normal insertion: after the host element
-    if (element.nextSibling) {
-      if ((settings.translationPosition || 'after') === 'before') {
-        element.parentNode.insertBefore(wrapper, element);
-      } else {
-        element.parentNode.insertBefore(wrapper, element.nextSibling);
-      }
-    } else {
-      if ((settings.translationPosition || 'after') === 'before') {
-        element.parentNode.insertBefore(wrapper, element);
-      } else {
-        element.parentNode.appendChild(wrapper);
-      }
-    }
-  }
-
-  function isCompactUiTextElement(el, text) {
-    if (!(el instanceof Element)) return false;
-    const tag = el.tagName;
-    if (['A','BUTTON','LABEL','SUMMARY','LI','FIGCAPTION','CAPTION','TH','TD'].includes(tag)) return true;
-    const len = String(text || '').replace(/\s+/g, '').length;
-    if (len <= 16 && el.closest?.('nav, header, footer, aside, menu, [role="navigation"], [role="menu"], [class*="menu"], [class*="nav"], [class*="footer"], [class*="header"]')) {
-      return true;
-    }
-    return false;
-  }
-
-  function shouldReplaceCompactUiText(el, text) {
-    if (!(el instanceof Element)) return false;
-    if (settings.displayMode !== 'replace') return false;
-    const compactLen = String(text || '').replace(/\s+/g, '').length;
-    if (compactLen === 0 || compactLen > 24) return false;
-    if (!el.closest?.('nav, header, footer, aside, menu, [role="navigation"], [role="menu"], [class*="menu"], [class*="nav"], [class*="footer"], [class*="header"]')) {
-      return false;
-    }
-    if (el.querySelector?.('img, svg, canvas, video, audio')) return false;
-    return ['A','BUTTON','SPAN','LI','LABEL','SUMMARY','P','DIV'].includes(el.tagName);
-  }
-
-  function shouldSkipCompactUiInBilingual(el, text) {
-    if (!(el instanceof Element)) return false;
-    const compactLen = String(text || '').replace(/\s+/g, '').length;
-    if (compactLen === 0 || compactLen > 32) return false;
-    if (['TD','TH','CAPTION','FIGCAPTION'].includes(el.tagName)) return false;
-    if (el.closest?.('nav, header, footer, aside, menu, [role="navigation"], [role="menu"], [role="tablist"], [class*="menu"], [class*="nav"], [class*="footer"], [class*="header"], [class*="toolbar"], [class*="button"], [class*="breadcrumb"]')) {
-      return true;
-    }
-    return ['A','BUTTON','LABEL','SUMMARY'].includes(el.tagName);
-  }
-
-  function normalizeTranslationTheme(theme) {
-    const allowed = ['none', 'grey', 'weakening', 'underline', 'nativeUnderline', 'nativeDashed', 'nativeDotted', 'thinDashed', 'wavy', 'dashed', 'divider', 'dividingLine', 'blockquote', 'background', 'highlight', 'marker', 'marker2', 'italic', 'bold', 'subtle', 'card', 'paper', 'dashedBorder', 'solidBorder', 'mask', 'opacity'];
-    if (allowed.includes(theme)) return theme;
-    const legacyMap = {
-      dividingLine: 'divider',
-      blurReveal: 'mask'
-    };
-    return legacyMap[theme] || 'none';
-  }
-
-  function replaceCompactUiText(group, translatedText) {
-    const el = group.element;
-    if (!el.hasAttribute('data-llm-original-html')) {
-      el.setAttribute('data-llm-original-html', el.innerHTML);
-    }
-    el.textContent = translatedText;
-    el.setAttribute('title', group.text);
-    el.setAttribute(ATTR_PROCESSED, 'true');
-    applyPageState(pageTranslated ? (settings.displayMode === 'replace' ? 'translation' : 'dual') : 'dual');
-  }
-
-  function showRetry(group, errorMsg) {
-    if (!group.element.isConnected || !group.element.parentNode) return;
-    const isBlock = isBlockNode(group.element);
-    const wrapperClass = isBlock ? `${TAG_NAME}-block-wrapper` : `${TAG_NAME}-inline-wrapper`;
-    const hasStrictParent = group.element.parentNode && group.element.parentNode.nodeType === 1 && STRICT_PARENT_TAGS.has(group.element.parentNode.tagName);
-
-    const wrapper = document.createElement('span');
-    wrapper.className = wrapperClass + (hasStrictParent ? ' llm-strict-wrapper' : '');
-    wrapper.setAttribute(ATTR_ID, group.element.getAttribute(ATTR_ID));
-    const retry = document.createElement('span');
-    retry.className = `${TAG_NAME}-retry`;
-    retry.textContent = 'Retry';
-    retry.title = errorMsg;
-    retry.onclick = () => {
-      wrapper.remove();
-      processedElements.delete(group.element);
-      group.element.removeAttribute(ATTR_PROCESSED);
-      group.element.removeAttribute(ATTR_OBSERVED);
-      observedElements.delete?.(group.element);
-      startObserveElement(group.element);
-      scheduleProcessViewBatch([group.element]);
-    };
-    wrapper.appendChild(retry);
-    if (hasStrictParent) {
-      group.element.appendChild(wrapper);
-    } else if ((settings.translationPosition || 'after') === 'before') {
-      group.element.parentNode.insertBefore(wrapper, group.element);
-    } else if (group.element.nextSibling) {
-      group.element.parentNode.insertBefore(wrapper, group.element.nextSibling);
-    } else {
-      group.element.parentNode.appendChild(wrapper);
-    }
-  }
-
-  function removeTranslation(wrapper) {
-    // Restore original element visibility
-    const wrapperId = wrapper.getAttribute(ATTR_ID);
-    const candidates = [wrapper.previousElementSibling, wrapper.nextElementSibling];
-    let originalEl = candidates.find(el => el && el.hasAttribute(ATTR_PROCESSED) && (!wrapperId || el.getAttribute(ATTR_ID) === wrapperId));
-    // For strict-parent wrappers (td/th/li), the original is the parent element
-    if (!originalEl && wrapper.parentElement?.hasAttribute(ATTR_PROCESSED) && (!wrapperId || wrapper.parentElement.getAttribute(ATTR_ID) === wrapperId)) {
-      originalEl = wrapper.parentElement;
-    }
-    if (originalEl) {
-      originalEl.classList.remove('llm-original-hidden');
-      originalEl.removeAttribute(ATTR_PROCESSED);
-      processedElements.delete(originalEl);
-    }
-    wrapper.remove();
-  }
-
-  function removeTranslationFrom(container) {
-    container.querySelectorAll(`[class*="${TAG_NAME}-block-wrapper"], [class*="${TAG_NAME}-inline-wrapper"]`).forEach(removeTranslation);
-  }
-
-  // ---- Shadow DOM Support ----
-  function getShadowRoot(el) {
-    // Firefox native
-    if (el.openOrClosedShadowRoot) return el.openOrClosedShadowRoot;
-    // Chrome extension API
-    if (typeof chrome !== 'undefined' && chrome.dom && chrome.dom.openOrClosedShadowRoot) {
-      try { return chrome.dom.openOrClosedShadowRoot(el); } catch(e) {}
-    }
-    // Standard
-    return el.shadowRoot;
-  }
-
-  function findAllShadowRoots(root, results) {
-    if (!results) results = new Set();
-    try {
-      const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
-      while (walker.nextNode()) {
-        const node = walker.currentNode;
-        const sr = getShadowRoot(node);
-        if (sr) {
-          results.add(sr);
-          findAllShadowRoots(sr, results);
-        }
-      }
-    } catch(e) { /* permission denied on closed shadow roots */ }
-    return results;
-  }
-
-  function scanShadowRoot(shadowRoot) {
-    if (!shadowRoot || scannedShadowRoots.has(shadowRoot)) return;
-    scannedShadowRoots.add(shadowRoot);
-    try {
-      scanNode(shadowRoot);
-      // Also observe shadow root for mutations
-      if (ctx.state.mutationObserver) {
-        ctx.state.mutationObserver.observe(shadowRoot, { childList: true, subtree: true });
-      }
-    } catch (e) { /* shadow root may be detached */ }
-  }
-
-  function onShadowRootCreated(e) {
-    const host = e.target;
-    if (!host || !host.shadowRoot) return;
-    scanShadowRoot(host.shadowRoot);
-  }
-
-  function onShadowRootBatch(e) {
-    const shadows = e.detail?.shadows || [];
-    shadows.forEach(function(s) {
-      const host = s.host;
-      if (host && host.shadowRoot) scanShadowRoot(host.shadowRoot);
-    });
-  }
-
-  function observeShadowRoot(shadowRoot) {
-    if (!shadowRoot) return;
-    // Inject styles into shadow root
-    try {
-      const existingStyle = shadowRoot.querySelector('#llm-translate-inline-styles');
-      if (!existingStyle) {
-        const styleEl = document.createElement('style');
-        styleEl.id = 'llm-translate-inline-styles';
-        styleEl.textContent = document.getElementById('llm-translate-inline-styles')?.textContent || '';
-        shadowRoot.appendChild(styleEl);
-      }
-    } catch(e) { /* ignore if can't modify */ }
-
-    // Setup mutation observer inside shadow
-    try {
-      if (ctx.state.mutationObserver) {
-        ctx.state.mutationObserver.observe(shadowRoot, {
-          childList: true, subtree: true,
-          characterData: true, characterDataOldValue: true
-        });
-      }
-    } catch(e) {}
-
-    // Scan shadow content
-    scanNode(shadowRoot);
-  }
-
-  let _shadowScanInterval = null;
-
-  function startShadowRootObservation() {
-    try {
-      findAllShadowRoots(document.body).forEach(sr => observeShadowRoot(sr));
-    } catch(e) { if (typeof LOG !== 'undefined') LOG.debug('Content', 'Shadow DOM scan failed: ' + e.message); }
-
-    // Clear any existing interval (re-translate re-enters this function)
-    if (_shadowScanInterval) { clearInterval(_shadowScanInterval); _shadowScanInterval = null; }
-
-    // Periodically re-scan for shadow roots (lightweight, every 3s for first 30s)
-    let scanCount = 0;
-    _shadowScanInterval = setInterval(() => {
-      try {
-        const found = findAllShadowRoots(document.body);
-        found.forEach(sr => observeShadowRoot(sr));
-        scanCount++;
-        if (scanCount > 10) { clearInterval(_shadowScanInterval); _shadowScanInterval = null; }
-      } catch(e) { clearInterval(_shadowScanInterval); _shadowScanInterval = null; }
-    }, 3000);
-  }
-
-  // ---- Title Translation ----
-  let originalTitle = '';
-
-  async function translatePageTitle() {
-    try {
-      const title = document.title.trim();
-      if (!title || title.length < 2) return;
-      originalTitle = title;
-
-      const res = await chrome.runtime.sendMessage({
-        action: 'translate',
-        text: title
-      });
-      if (res.translated && !res.error) {
-        document.title = res.translated;
-        LOG.info('Content', 'Title translated: ' + title.slice(0, 40) + ' -> ' + res.translated.slice(0, 40));
-      }
-    } catch(e) {
-      _safeLog('warn', 'Content', 'Title translation failed: ' + e.message);
-    }
-  }
-
-  function restorePageTitle() {
-    if (originalTitle) {
-      document.title = originalTitle;
-      originalTitle = '';
-    }
-  }
-
-  // ---- Language Detection (heuristic skip) ----
-  function getPageLanguageHint() {
-    return ctx.fn.language?.getPageLanguageHint?.() || '';
-  }
-
-  function heuristicDetectLang(text) {
-    return ctx.fn.language?.heuristicDetectLang?.(text) || '';
-  }
-
-  function getLanguageProfile(text) {
-    return ctx.fn.language?.getLanguageProfile?.(text) || { total: 1, kana: 0, hangul: 0, han: 0, latin: 0, cjk: 0, latinRatio: 0, cjkRatio: 0 };
-  }
-
-  function normalizeTargetLang(targetLang) {
-    return ctx.fn.language?.normalizeTargetLang?.(targetLang) || '';
-  }
-
-  function hasMeaningfulMixedLanguage(text, targetLang) {
-    return !!ctx.fn.language?.hasMeaningfulMixedLanguage?.(text, targetLang);
-  }
-
-  function shouldSkipTranslation(text, targetLang) {
-    return !!ctx.fn.language?.shouldSkipTranslation?.(text, targetLang);
-  }
-
-  // ---- Hover Feature ----
-  function onKeyDown(e) {
-    if (!settings?.enableHover || settings.hoverMode === 'direct') return;
-    // Skip if this key event would trigger a keyboard shortcut (avoid cursor flicker)
-    if (settings?.keyboardShortcuts) {
-      const sc = settings.keyboardShortcuts;
-      if ((sc.translatePage && window.__LLM_CTX__.fn.checkCombo(e, sc.translatePage)) ||
-          (sc.toggleHover && window.__LLM_CTX__.fn.checkCombo(e, sc.toggleHover)) ||
-          (sc.toggleStyle && window.__LLM_CTX__.fn.checkCombo(e, sc.toggleStyle))) {
-        return;
-      }
-    }
-    var key = settings.hoverKey || 'shift';
-    var match = (key === 'shift' && e.shiftKey) || (key === 'ctrl' && (e.ctrlKey || e.metaKey)) || (key === 'alt' && e.altKey);
-    if (match && !hoverKeyPressed) {
-      hoverKeyPressed = true;
-      document.body.style.cursor = 'pointer';
-    }
-  }
-
-  function onKeyUp(e) {
-    if (hoverKeyPressed) {
-      const key = (settings && settings.hoverKey) || 'shift';
-      const stillPressed = (key === 'shift' && e.shiftKey) ||
-                           (key === 'ctrl' && (e.ctrlKey || e.metaKey)) ||
-                           (key === 'alt' && e.altKey);
-      if (!stillPressed) {
-        hoverKeyPressed = false;
-        document.body.style.cursor = '';
-      }
-    }
-  }
-
-  function getHoverTarget(el) {
-    while (el && el !== document.body) {
-      if (BLOCK_TAGS.has(el.tagName) && !isIgnored(el) && !processedElements.has(el)) {
-        var text = getVisibleText(el);
-        if (text && text.length >= 10 && !isInvalidText(text)) return el;
-      }
-      el = el.parentElement;
-    }
-    return null;
-  }
-
-  function onMouseOver(e) {
-    if (!settings?.enableHover) return;
-    if (settings.hoverMode !== 'direct' && !hoverKeyPressed) return;
-    if (hoverDebounceTimer) clearTimeout(hoverDebounceTimer);
-    var target = getHoverTarget(e.target);
-    if (!target || activeHoverParagraphs.has(target)) return;
-    hoverDebounceTimer = setTimeout(function() { translateHoverElement(target, e); }, 300);
-  }
-
-  function onMouseOut(e) {
-    if (hoverDebounceTimer) { clearTimeout(hoverDebounceTimer); hoverDebounceTimer = null; }
-  }
-
-  function translateHoverElement(el, e) {
-    if (!el || processedElements.has(el)) return;
-    var text = getVisibleText(el);
-    if (!text || text.length < 10) return;
-
-    if (hoverPendingRequest) {
-      try { hoverPendingRequest.abort(); } catch(ex) {}
-      hoverPendingRequest = null;
-    }
-
-    activeHoverParagraphs.add(el);
-    var rect = el.getBoundingClientRect();
-    var btn = document.createElement('button');
-    btn.className = 'llm-translate-hover-btn';
-    btn.textContent = 'Translating...';
-    btn.style.left = Math.min((rect.right || e.clientX) + 8, innerWidth - 140) + 'px';
-    btn.style.top = (rect.top || e.clientY) + 'px';
-    document.body.appendChild(btn);
-
-    var controller = new AbortController();
-    hoverPendingRequest = controller;
-
-    var cacheKey = typeof makeCacheKey === 'function' ? makeCacheKey(text, settings.sourceLang, settings.targetLang, settings.model) : text;
-    if (typeof getCachedTranslation === 'function') {
-      getCachedTranslation(cacheKey).then(async function(cached) {
-        if (cached && hoverPendingRequest === controller) {
-          hoverPendingRequest = null;
-          showHoverResult(el, btn, cached);
-          return;
-        }
-        if (hoverPendingRequest !== controller) return;
-        try {
-          var res = await chrome.runtime.sendMessage({ action: 'translate', text: text });
-          if (controller.signal.aborted) return;
-          hoverPendingRequest = null;
-          if (res.error) throw new Error(res.error);
-          showHoverResult(el, btn, res.translated);
-        } catch (err) {
-          if (controller.signal.aborted) return;
-          hoverPendingRequest = null;
-          processedElements.delete(el);
-          el.removeAttribute(ATTR_PROCESSED);
-          if (btn.parentNode) btn.remove();
-          activeHoverParagraphs.delete(el);
-          _safeLog('error', 'Content', 'Hover translate failed: ' + err.message);
-        }
-      });
-    } else {
-      translateHoverDirect(el, btn, text, controller);
-    }
-  }
-
-  async function translateHoverDirect(el, btn, text, controller) {
-    try {
-      var res = await chrome.runtime.sendMessage({ action: 'translate', text: text });
-      if (controller.signal.aborted) return;
-      hoverPendingRequest = null;
-      if (res.error) throw new Error(res.error);
-      showHoverResult(el, btn, res.translated);
-    } catch (err) {
-      if (controller.signal.aborted) return;
-      hoverPendingRequest = null;
-      processedElements.delete(el);
-      el.removeAttribute(ATTR_PROCESSED);
-      if (btn.parentNode) btn.remove();
-      activeHoverParagraphs.delete(el);
-      _safeLog('error', 'Content', 'Hover direct translate failed: ' + err.message);
-    }
-  }
-
-  function showHoverResult(el, btn, result) {
-    activeHoverParagraphs.delete(el);
-    btn.textContent = result.slice(0, 120) + (result.length > 120 ? '...' : '');
-    btn.title = result;
-    setTimeout(function() {
-      if (btn.parentNode) { btn.remove(); activeHoverParagraphs.delete(el); }
-    }, 5000);
-  }
+  // Shadow DOM, title translation and language helpers live in their own modules
 
   // ---- Input Box Translation ----
   // ---- Selection Popup ----
@@ -1740,9 +721,7 @@
     }
     viewElements.clear();
     // Cancel any in-flight hover translation
-    if (hoverPendingRequest) {
-      try { hoverPendingRequest.abort(); } catch (e) { /* ignore */ }
-    }
+    if (typeof destroyHoverFeature === 'function') destroyHoverFeature();
     // Flush pending logs
     if (typeof LOG !== 'undefined') {
       try { LOG.flush(); } catch (e) { /* ignore */ }

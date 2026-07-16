@@ -65,7 +65,9 @@
     const tagName = ctx.state.tagName || 'llm-translate';
     const el = document.createElement('span');
     el.className = tagName + '-loading';
-    el.innerHTML = '<span></span><span></span><span></span>';
+    for (let i = 0; i < 3; i++) {
+      el.appendChild(document.createElement('span'));
+    }
     return el;
   }
 
@@ -76,6 +78,11 @@
     return div.innerHTML;
   }
 
+  function setSafeText(el, text) {
+    if (!el) return;
+    el.textContent = text == null ? '' : String(text);
+  }
+
   Object.assign(ctx.fn, {
     injectStyles,
     injectRuleCss,
@@ -84,6 +91,7 @@
     showOverlay,
     hideOverlay,
     createLoadingSpinner,
-    escapeHtml
+    escapeHtml,
+    setSafeText
   });
 })();

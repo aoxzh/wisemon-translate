@@ -41,7 +41,6 @@ const MESSAGE_FILES = [
   'src/content/core/content-main.js',
   'src/content/core/content-core.js',
   'src/content/core/content-observers.js',
-  'src/content/core/content-language.js',
   'src/content/features/content-input.js',
   'src/content/features/content-subtitle.js',
   'src/content/features/content-shortcuts.js',
@@ -51,6 +50,9 @@ const MESSAGE_FILES = [
   'src/content/translation/content-text-utils.js',
   'src/content/translation/content-glossary.js',
   'src/content/translation/content-adaptive-scanner.js',
+  'src/content/translation/content-candidate-pruner.js',
+  'src/content/translation/content-scanner.js',
+  'src/content/translation/content-batch-processor.js',
   'src/content/ui/content-ui.js'
 ];
 
@@ -251,7 +253,7 @@ async function checkSmokeTests() {
     }
 
     const rules = require(rootPath('src/lib/site-rules.js'));
-    const githubRule = rules.getSiteRule('https://github.com/org/repo/blob/main/file.js', {});
+    const githubRule = await rules.getSiteRule('https://github.com/org/repo/blob/main/file.js', {});
     if (!githubRule.excludeSelectors || !githubRule.excludeSelectors.includes('pre')) {
       throw new Error('GitHub site rule missing code excludes');
     }
@@ -260,6 +262,7 @@ async function checkSmokeTests() {
     const { LLMAPI, LLM_API_CONFIG } = require(rootPath('src/lib/llm-api.js'));
     global.LLMAPI = LLMAPI;
     global.LLM_API_CONFIG = LLM_API_CONFIG;
+    require(rootPath('src/lib/llm-adapters/batch.js'));
     for (const file of require(rootPath('src/lib/provider-loader.js')).LLM_PROVIDER_FILES) {
       require(rootPath(file));
     }
@@ -275,6 +278,14 @@ async function checkSmokeTests() {
     }
 
     global.window = { __LLM_CTX__: { state: {}, fn: {}, features: {} } };
+    require(rootPath('src/content/translation/content-scanner.js'));
+    require(rootPath('src/content/translation/content-batch-processor.js'));
+    if (typeof global.window.__LLM_CTX__.fn.createContentScanner !== 'function') {
+      throw new Error('content scanner factory was not registered');
+    }
+    if (typeof global.window.__LLM_CTX__.fn.createContentBatchProcessor !== 'function') {
+      throw new Error('content batch processor factory was not registered');
+    }
     require(rootPath('src/content/features/content-input.js'));
     const parseInputTrigger = global.window.__LLM_CTX__.fn.getExplicitInputTrigger;
     if (parseInputTrigger('/tr Hello world') !== 'Hello world') {

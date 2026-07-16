@@ -47,12 +47,12 @@
   </div>
 
   <!-- ===== TRANSLATION PROGRESS ===== -->
-  <div class="pop-progress-card hidden" id="progress-card">
+  <div class="pop-progress-card hidden" id="progress-card" aria-live="polite" aria-atomic="true">
     <div class="pop-progress-meta">
       <span id="progress-label" data-i18n="status_translating">Translating</span>
       <span class="pop-progress-count" id="progress-count">0 / 0</span>
     </div>
-    <div class="pop-progress-track">
+    <div class="pop-progress-track" aria-hidden="true">
       <div class="pop-progress-bar" id="progress-bar" style="width: 0%"></div>
     </div>
     <div class="pop-progress-footer">
@@ -290,7 +290,9 @@
 </div>
 <script src="src/lib/i18n.js"></script>
 <script src="src/lib/i18n-locales/common.js"></script>
-<script src="src/lib/i18n-locales/options.js"></script>
+<script src="src/lib/i18n-locales/options-general.js"></script>
+<script src="src/lib/i18n-locales/options-translation.js"></script>
+<script src="src/lib/i18n-locales/options-features.js"></script>
 <script src="src/lib/i18n-locales/themes.js"></script>
 <script src="src/lib/utils.js"></script>
 <script src="src/lib/providers.js"></script>

@@ -202,7 +202,7 @@
       currentTabInfo = null;
       currentHost = '';
     }
-    updateSiteCard();
+    await updateSiteCard();
   }
 
   function getTabHost(tab) {
@@ -215,13 +215,13 @@
     }
   }
 
-  function updateSiteCard() {
+  async function updateSiteCard() {
     if (!siteCard) return;
     const hasHost = !!currentHost;
     siteCard.classList.toggle('is-disabled', !hasHost);
     if (siteHostEl) siteHostEl.textContent = hasHost ? currentHost : 'No active website';
     const siteTerms = getMatchingSiteTerms();
-    const siteRule = hasHost && typeof getSiteRule === 'function' ? getSiteRule(currentTabInfo?.url || '', settings) : null;
+    const siteRule = hasHost && typeof getSiteRule === 'function' ? await getSiteRule(currentTabInfo?.url || '', settings) : null;
     const excluded = hasHost && isCurrentHostExcluded();
     setChip(siteTermsChip, 'popup_terms_label', siteTerms.length ? siteTerms.length + ' ' + I18N.t('popup_bound') : I18N.t('popup_none'), siteTerms.length ? 'ok' : '');
     setChip(siteRulesChip, 'popup_rules_label', siteRule?.matchedIds?.length ? siteRule.matchedIds.length + ' ' + I18N.t('popup_matched') : I18N.t('popup_none'), siteRule?.matchedIds?.length ? 'ok' : '');
@@ -232,7 +232,7 @@
       excludeSite.textContent = excluded ? I18N.t('popup_already_excluded') : I18N.t('popup_exclude_action');
     }
     if (openSiteSettings) openSiteSettings.disabled = !hasHost;
-    refreshSiteDiagnostics();
+    await refreshSiteDiagnostics();
   }
 
   function setChip(el, label, value, tone) {

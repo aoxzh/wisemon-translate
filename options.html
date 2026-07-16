@@ -43,8 +43,16 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         <span data-i18n="nav_glossary">Glossary</span>
       </a>
+      <a href="#ai-actions" data-section="ai-actions">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l2.4 7.2L22 9.6l-5.6 4.8 1.6 7.6L12 17.6 6 22l1.6-7.6L2 9.6l7.6-.4L12 2z"/></svg>
+        <span data-i18n="nav_ai_actions">AI Actions</span>
+      </a>
+      <a href="#vocabulary" data-section="vocabulary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        <span data-i18n="nav_vocabulary">Vocabulary</span>
+      </a>
       <a href="#reader" data-section="reader">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h10"/><path d="M18 16l3 3-3 3"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h10"/><path d="M18 16l3 3-3 3"/></svg>
         <span>Reader</span>
       </a>
       <div class="opt-nav-group">Control</div>
@@ -362,6 +370,13 @@
           <option value="novel" data-i18n="quality_novel">Novel prose</option>
         </select>
       </div>
+      <label class="opt-toggle">
+        <input type="checkbox" id="enableContextAwareTranslation">
+        <span>
+          <span class="opt-toggle-title" data-i18n="context_aware_label">Context-aware translation</span>
+          <span class="opt-toggle-desc" data-i18n="context_aware_desc">Send page title and article summary to improve terminology and style</span>
+        </span>
+      </label>
       <div class="opt-field">
         <label for="maxChars" data-i18n="max_chars_label">Max Characters Per Request</label>
         <input type="number" id="maxChars" min="100" max="30000" step="500" value="12000">
@@ -597,6 +612,68 @@ JWT: JSON Web Token, used for securely transmitting information (Authentication)
       </details>
     </section>
 
+    <!-- ===== AI ACTIONS ===== -->
+    <section id="ai-actions" class="opt-panel">
+      <div class="opt-panel-header">
+        <h2 data-i18n="ai_actions_title">AI Actions</h2>
+        <p data-i18n="ai_actions_desc">Custom prompts that appear in the selection popup for quick reuse.</p>
+      </div>
+      <div class="opt-field">
+        <label data-i18n="ai_actions_list_label">Actions</label>
+        <div id="ai-actions-list" class="opt-ai-actions-list"></div>
+      </div>
+      <div class="opt-actions-row">
+        <button type="button" id="ai-action-add" class="opt-btn-outline" data-i18n="ai_action_add">+ Add Action</button>
+      </div>
+      <div id="ai-action-editor" class="opt-ai-action-editor" hidden>
+        <h3 data-i18n="ai_action_edit_title">Edit Action</h3>
+        <input type="hidden" id="ai-action-edit-id">
+        <div class="opt-field">
+          <label for="ai-action-edit-name" data-i18n="ai_action_name">Name</label>
+          <input type="text" id="ai-action-edit-name" placeholder="Explain">
+        </div>
+        <div class="opt-field">
+          <label for="ai-action-edit-icon" data-i18n="ai_action_icon">Icon (emoji)</label>
+          <input type="text" id="ai-action-edit-icon" placeholder="💡">
+        </div>
+        <div class="opt-field">
+          <label for="ai-action-edit-prompt" data-i18n="ai_action_prompt">Prompt</label>
+          <textarea id="ai-action-edit-prompt" rows="5" placeholder="Explain the following text in simple terms.
+
+{{text}}"></textarea>
+          <p class="opt-hint" data-i18n="ai_action_prompt_hint">Use {{text}}, {{sourceLang}}, {{targetLang}} as placeholders.</p>
+        </div>
+        <div class="opt-field">
+          <label for="ai-action-edit-output" data-i18n="ai_action_output">Output Mode</label>
+          <select id="ai-action-edit-output">
+            <option value="panel" data-i18n="ai_action_output_panel">Show in popup panel</option>
+            <option value="replace" data-i18n="ai_action_output_replace">Replace translation result</option>
+          </select>
+        </div>
+        <div class="opt-actions-row">
+          <button type="button" id="ai-action-save" class="opt-btn-primary" data-i18n="ai_action_save">Save</button>
+          <button type="button" id="ai-action-cancel" class="opt-btn-outline" data-i18n="ai_action_cancel">Cancel</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== VOCABULARY BANK ===== -->
+    <section id="vocabulary" class="opt-panel">
+      <div class="opt-panel-header">
+        <h2 data-i18n="vocabulary_title">Vocabulary Bank</h2>
+        <p data-i18n="vocabulary_desc">Words and phrases you saved from the selection popup.</p>
+      </div>
+      <div class="opt-field opt-vocab-toolbar">
+        <input type="search" id="vocab-search" class="opt-vocab-search" placeholder="Search saved words..." data-i18n-placeholder="vocabulary_search_placeholder">
+        <div class="opt-vocab-stats" id="vocab-stats">0 entries</div>
+      </div>
+      <div id="vocab-list" class="opt-vocab-list"></div>
+      <div class="opt-actions-row">
+        <button type="button" id="vocab-export" class="opt-btn-outline" data-i18n="vocabulary_export_csv">Export CSV</button>
+        <button type="button" id="vocab-clear" class="opt-btn-outline" data-i18n="vocabulary_clear_all">Clear All</button>
+      </div>
+    </section>
+
     <!-- ===== READER WORKSPACE ===== -->
     <section id="reader" class="opt-panel opt-reader-panel">
       <div class="opt-panel-header">
@@ -623,6 +700,19 @@ JWT: JSON Web Token, used for securely transmitting information (Authentication)
         <label for="siteRules" data-i18n="site_rules_label">Advanced Site Rules (JSON)</label>
         <textarea id="siteRules" rows="8" spellcheck="false" placeholder='[{"id":"example","matches":["example.com"],"excludeSelectors":["pre","code"],"mainSelectors":["article"]}]'></textarea>
         <p class="opt-hint" data-i18n="site_rules_hint">Optional. Supports matches, excludeSelectors, mainSelectors, injectedCss, disableAutoTranslate, privacyMode.</p>
+      </div>
+      <div class="opt-field">
+        <label data-i18n="site_subscriptions_label">Rule Subscriptions</label>
+        <p class="opt-hint" data-i18n="site_subscriptions_hint">Subscribe to remote JSON rule lists. Rules are merged with built-in and local rules.</p>
+        <div class="opt-subscription-input">
+          <input type="url" id="site-subscription-url" placeholder="https://example.com/rules.json" data-i18n-placeholder="site_subscriptions_url_placeholder">
+          <button type="button" id="site-subscription-add" class="opt-btn-primary" data-i18n="site_subscriptions_add">Add</button>
+        </div>
+        <div class="opt-subscription-status-wrap"><span id="site-subscription-status" class="opt-status-badge"></span></div>
+        <div id="site-subscriptions-list" class="opt-subscriptions-list"></div>
+        <div class="opt-actions-row">
+          <button type="button" id="site-subscription-refresh-all" class="opt-btn-outline-sm" data-i18n="site_subscriptions_refresh_all">Refresh All</button>
+        </div>
       </div>
     </section>
 
@@ -742,7 +832,9 @@ JWT: JSON Web Token, used for securely transmitting information (Authentication)
 
 <script src="src/lib/i18n.js"></script>
 <script src="src/lib/i18n-locales/common.js"></script>
-<script src="src/lib/i18n-locales/options.js"></script>
+<script src="src/lib/i18n-locales/options-general.js"></script>
+<script src="src/lib/i18n-locales/options-translation.js"></script>
+<script src="src/lib/i18n-locales/options-features.js"></script>
 <script src="src/lib/i18n-locales/themes.js"></script>
 <script src="src/lib/utils.js"></script>
 <script src="src/lib/providers.js"></script>
@@ -750,6 +842,7 @@ JWT: JSON Web Token, used for securely transmitting information (Authentication)
 <script src="src/lib/batch-queue.js"></script>
 <script src="src/lib/site-rules.js"></script>
 <script src="src/lib/llm-api.js"></script>
+<script src="src/lib/llm-adapters/batch.js"></script>
 <script src="src/lib/provider-loader.js"></script>
 <script src="src/lib/custom-select.js"></script>
 <script src="src/lib/providers/google.js"></script>

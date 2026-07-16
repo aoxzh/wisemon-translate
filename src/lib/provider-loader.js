@@ -3,6 +3,7 @@
  *
  * This project intentionally runs without a build step, so manifests and
  * HTML pages load providers as plain scripts after src/lib/llm-api.js.
+ * Non-provider adapters are loaded explicitly by each entry point.
  */
 (function() {
   const LLM_PROVIDER_FILES = [

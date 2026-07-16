@@ -54,11 +54,19 @@ const DEFAULT_SETTINGS = {
   thinkingMode: 'disabled',
   translationTheme: 'none',
   translationStylePreset: 'balanced', // 'balanced' | 'natural' | 'faithful' | 'subtitle' | 'technical' | 'novel'
+  enableContextAwareTranslation: true, // send page title + main content summary as context to the LLM
   customTranslationCss: '',
   glossary: '',                    // custom term replacements: "regex,replacement" per line
   terms: [],                       // structured term replacements: [{ pattern, replacement, regex }]
   siteTerms: [],                   // site-bound replacements: [{ domains, pattern, replacement, regex }]
   aiTerms: [],                     // AI context terms: [{ term, definition, context }]
+  aiActions: [                      // Custom AI actions available from the selection popup
+    { id: 'explain', name: 'Explain', icon: '💡', prompt: 'Explain the following text in simple terms. Keep it concise and suitable for a language learner.\n\n{{text}}', outputMode: 'panel', temperature: 0.3 },
+    { id: 'polish', name: 'Polish', icon: '✨', prompt: 'Rewrite the following text to be more natural and polished. Preserve the original meaning.\n\n{{text}}', outputMode: 'replace', temperature: 0.3 },
+    { id: 'simplify', name: 'Simplify', icon: '🪶', prompt: 'Rewrite the following text in simpler {{targetLang}} so that a beginner can understand it. Keep the original meaning.\n\n{{text}}', outputMode: 'panel', temperature: 0.3 },
+    { id: 'summarize', name: 'Summarize', icon: '📋', prompt: 'Summarize the following text in a few sentences in {{targetLang}}.\n\n{{text}}', outputMode: 'panel', temperature: 0.3 },
+    { id: 'terms', name: 'Key Terms', icon: '📚', prompt: 'Extract key terms from the following text and provide their translations/explanations in {{targetLang}}. Return a brief list.\n\n{{text}}', outputMode: 'panel', temperature: 0.3 }
+  ],
   uiTheme: 'auto',                  // 'auto' | 'light' | 'dark' | 'ocean' | 'violet' | 'amber' | 'slate'
   privacyMasking: true,             // mask sensitive data before sending text to translation APIs
   maskEmail: true,
@@ -68,6 +76,7 @@ const DEFAULT_SETTINGS = {
   maskUrls: false,
   maskVerificationCodes: true,
   maskPrivateKeys: true,
+  baiduAppId: '',                  // dedicated Baidu translate appid (falls back to model for compatibility)
   keyboardShortcuts: {             // customizable keyboard shortcuts
     translatePage: 'alt+t',
     toggleHover: 'alt+h',
@@ -175,6 +184,71 @@ function generateId() {
   return 'llm-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
+// ---- Vocabulary Bank ----
+const VOCAB_KEY = 'llm-vocab-v1';
+const VOCAB_MAX_ENTRIES = 2000;
+
+async function getVocabulary() {
+  try {
+    const result = await chrome.storage.local.get(VOCAB_KEY);
+    return Array.isArray(result[VOCAB_KEY]) ? result[VOCAB_KEY] : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+async function addVocabulary(item) {
+  const vocab = await getVocabulary();
+  const entry = {
+    id: (item && item.id) || generateId(),
+    term: String((item && item.term) || '').trim(),
+    translation: String((item && item.translation) || '').trim(),
+    sourceLang: String((item && item.sourceLang) || '').trim(),
+    targetLang: String((item && item.targetLang) || '').trim(),
+    context: String((item && item.context) || '').trim(),
+    url: String((item && item.url) || '').slice(0, 500),
+    title: String((item && item.title) || '').slice(0, 200),
+    ts: (item && item.ts) || Date.now()
+  };
+  if (!entry.term) return null;
+  vocab.unshift(entry);
+  if (vocab.length > VOCAB_MAX_ENTRIES) vocab.length = VOCAB_MAX_ENTRIES;
+  await chrome.storage.local.set({ [VOCAB_KEY]: vocab });
+  return entry;
+}
+
+async function removeVocabulary(id) {
+  const vocab = (await getVocabulary()).filter(v => v.id !== id);
+  await chrome.storage.local.set({ [VOCAB_KEY]: vocab });
+}
+
+async function clearVocabulary() {
+  await chrome.storage.local.remove(VOCAB_KEY);
+}
+
+function escapeCsv(value) {
+  const str = String(value || '');
+  if (/[",\n\r]/.test(str)) {
+    return '"' + str.replace(/"/g, '""') + '"';
+  }
+  return str;
+}
+
+function exportVocabularyCsv(vocab) {
+  const rows = (vocab || []).map(function(entry) {
+    return [
+      entry.term,
+      entry.translation,
+      entry.sourceLang,
+      entry.targetLang,
+      entry.context,
+      entry.title,
+      new Date(entry.ts || Date.now()).toISOString()
+    ].map(escapeCsv).join(',');
+  });
+  return ['term,translation,sourceLang,targetLang,context,title,date'].concat(rows).join('\n');
+}
+
 // ---- Translation Cache ----
 const CACHE_KEY = 'llm-translate-cache';
 const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -196,13 +270,29 @@ async function setCachedTranslation(key, text) {
     const cache = result[CACHE_KEY] || {};
     cache[key] = { text, ts: Date.now() };
     // Limit cache size to ~500 entries to avoid storage quota issues
-    const keys = Object.keys(cache);
+    let keys = Object.keys(cache);
     if (keys.length > 500) {
       keys.sort((a, b) => cache[a].ts - cache[b].ts);
       for (let i = 0; i < keys.length - 500; i++) delete cache[keys[i]];
     }
     await chrome.storage.local.set({ [CACHE_KEY]: cache });
-  } catch (e) { /* ignore */ }
+  } catch (e) {
+    // Quota exceeded: progressively evict oldest half and retry once.
+    if (e && (e.message || '').toLowerCase().includes('quota')) {
+      try {
+        const result = await chrome.storage.local.get(CACHE_KEY);
+        const cache = result[CACHE_KEY] || {};
+        const keys = Object.keys(cache).sort((a, b) => cache[a].ts - cache[b].ts);
+        for (let i = 0; i < Math.ceil(keys.length / 2); i++) delete cache[keys[i]];
+        cache[key] = { text, ts: Date.now() };
+        await chrome.storage.local.set({ [CACHE_KEY]: cache });
+        return;
+      } catch (retryErr) {
+        if (typeof LOG !== 'undefined') LOG.error('Utils', 'Translation cache quota retry failed', retryErr.message);
+      }
+    }
+    if (typeof LOG !== 'undefined') LOG.warn('Utils', 'Translation cache write failed', e?.message || String(e));
+  }
 }
 
 async function clearTranslationCache() {
@@ -216,11 +306,21 @@ async function getTranslationCacheStats() {
     const result = await chrome.storage.local.get(CACHE_KEY);
     const cache = result[CACHE_KEY] || {};
     const entries = Object.values(cache);
+    // Avoid full JSON.stringify; estimate bytes from keys/texts/metadata overhead.
+    let approxBytes = 0;
+    for (const key in cache) {
+      if (Object.prototype.hasOwnProperty.call(cache, key)) {
+        const entry = cache[key];
+        approxBytes += key.length * 2;
+        approxBytes += (entry?.text?.length || 0) * 2;
+        approxBytes += 32; // timestamp + object overhead estimate
+      }
+    }
     return {
       count: entries.length,
       oldestTs: entries.reduce((min, item) => item?.ts && item.ts < min ? item.ts : min, Date.now()),
       newestTs: entries.reduce((max, item) => item?.ts && item.ts > max ? item.ts : max, 0),
-      approxBytes: JSON.stringify(cache).length
+      approxBytes
     };
   } catch (e) {
     return { count: 0, oldestTs: 0, newestTs: 0, approxBytes: 0, error: e.message };
@@ -412,6 +512,11 @@ if (typeof module !== 'undefined' && module.exports) {
     setCachedTranslation,
     clearTranslationCache,
     getTranslationCacheStats,
+    getVocabulary,
+    addVocabulary,
+    removeVocabulary,
+    clearVocabulary,
+    exportVocabularyCsv,
     getEffectiveApiKey,
     providerNeedsApiKey,
     PROVIDER_LANGUAGE_MAPS,

@@ -148,7 +148,7 @@
     const tl = typeof normalizeProviderLanguage === 'function'
       ? normalizeProviderLanguage('baidu', targetLang || 'zh-CN', 'target')
       : (targetLang || 'zh');
-    const appid = this.settings.model || 'baidu-standard';
+    const appid = this.settings.baiduAppId || this.settings.model || 'baidu-standard';
     const salt = String(Date.now()) + String(Math.floor(Math.random() * 100000));
     const sign = md5(appid + masked.text + salt + apiKey);
     const apiUrl = (this.settings.baseURL || 'https://fanyi-api.baidu.com/api/trans/vip').replace(/\/+$/, '') + '/translate';

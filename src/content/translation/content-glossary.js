@@ -20,7 +20,7 @@
       if (parts.length >= 2 && parts[0] && parts[1]) {
         try {
           const regex = new RegExp(parts[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-          result = result.replace(regex, parts[1]);
+          result = result.replace(regex, function() { return parts[1]; });
         } catch (e) {}
       }
     }

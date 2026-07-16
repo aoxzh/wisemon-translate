@@ -19,6 +19,7 @@ const INCLUDE = [
   'content_guard.js',
   'content_style.css',
   'manifest.json',
+  'manifest-firefox.json',
   'options.css',
   'options.html',
   'options.js',

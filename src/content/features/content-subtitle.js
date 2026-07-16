@@ -14,11 +14,19 @@
       setupYouTubeSubtitleRouteWatcher();
       return;
     }
+    if (isNetflixHost()) {
+      setupNetflixSubtitleRouteWatcher();
+      return;
+    }
     setupTextTrackFallback();
   }
 
   function isYouTubeHost() {
     return /(^|\.)youtube\.com$/.test(location.hostname);
+  }
+
+  function isNetflixHost() {
+    return /(^|\.)netflix\.com$/.test(location.hostname);
   }
 
   function isYouTubeWatchPage() {
@@ -807,6 +815,308 @@
 
   function normalizeLang(lang) {
     return String(lang || '').toLowerCase().split('-')[0];
+  }
+
+  // ---- Netflix subtitle support ----
+  const NF_EVENT = 'llm-netflix-subtitle-data';
+
+  function setupNetflixSubtitleRouteWatcher() {
+    const state = getNetflixState();
+    if (!state.routeWatcherStarted) {
+      state.routeWatcherStarted = true;
+      window.addEventListener(NF_EVENT, onNetflixSubtitleData);
+      window.addEventListener('popstate', onNetflixRouteChanged);
+      setInterval(onNetflixRouteChanged, 1500);
+    }
+    onNetflixRouteChanged();
+  }
+
+  function onNetflixRouteChanged() {
+    if (!isNetflixWatchPage()) {
+      hideNetflixSubtitleOverlay();
+      return;
+    }
+    const state = getNetflixState();
+    if (!state.started) {
+      setupNetflixSubtitleTranslation();
+    } else {
+      const video = findNetflixVideo();
+      if (video) attachNetflixVideo(video);
+    }
+  }
+
+  function isNetflixWatchPage() {
+    return isNetflixHost() && /^\/watch\/\d+/.test(location.pathname);
+  }
+
+  function setupNetflixSubtitleTranslation() {
+    const state = getNetflixState();
+    state.started = true;
+    injectNetflixSubtitleHook();
+    findAndAttachNetflixVideo();
+  }
+
+  function injectNetflixSubtitleHook() {
+    if (document.getElementById('llm-netflix-subtitle-injector')) return;
+    const script = document.createElement('script');
+    script.id = 'llm-netflix-subtitle-injector';
+    script.src = chrome.runtime.getURL('src/injectors/netflix-subtitle-injector.js');
+    script.onload = function() { script.remove(); };
+    (document.head || document.documentElement).appendChild(script);
+  }
+
+  function getNetflixState() {
+    if (!ctx.state.netflixSubtitle) {
+      ctx.state.netflixSubtitle = {
+        started: false,
+        routeWatcherStarted: false,
+        tracks: [],
+        selectedTrack: null,
+        items: [],
+        video: null,
+        currentIndex: -1,
+        overlay: null,
+        enabled: true,
+        lastText: '',
+        lastTranslated: '',
+        status: 'Waiting'
+      };
+    }
+    return ctx.state.netflixSubtitle;
+  }
+
+  function onNetflixSubtitleData(event) {
+    const detail = event.detail || {};
+    if (detail.type !== 'tracks') return;
+    const result = detail.data || {};
+    const tracks = normalizeNetflixTracks(result.timedtexttracks || []);
+    if (!tracks.length) return;
+    const state = getNetflixState();
+    state.tracks = tracks;
+    if (!state.selectedTrack) state.selectedTrack = chooseNetflixTrack(tracks);
+    if (state.selectedTrack) loadNetflixTrack(state.selectedTrack);
+  }
+
+  function normalizeNetflixTracks(tracks) {
+    const formatsOrder = ['webvtt-lssdh-ios8', 'imsc1.1', 'dfxp-ls-sdh', 'simplesdh'];
+    return tracks.filter(function(t) { return !t.isNoneTrack; }).map(function(t) {
+      const formats = {};
+      const downloadables = t.ttDownloadables || {};
+      formatsOrder.forEach(function(fmt) {
+        const dl = downloadables[fmt];
+        if (!dl) return;
+        const urls = dl.downloadUrls ? Object.values(dl.downloadUrls) : (dl.urls ? dl.urls.map(function(u) { return u.url; }) : []);
+        if (urls.length) formats[fmt] = urls;
+      });
+      return {
+        id: t.trackId || t.id,
+        language: t.language || '',
+        languageDescription: t.languageDescription || '',
+        rawType: t.rawTrackType || '',
+        isForced: !!t.isForcedNarrative,
+        formats: formats
+      };
+    }).filter(function(t) { return Object.keys(t.formats).length > 0; });
+  }
+
+  function chooseNetflixTrack(tracks) {
+    const settings = ctx.state.settings || {};
+    const target = normalizeLang(settings.targetLang);
+    const source = settings.sourceLang === 'auto' ? '' : normalizeLang(settings.sourceLang);
+    let candidates = tracks.filter(function(t) { return !t.isForced; });
+    if (!candidates.length) candidates = tracks;
+    if (source) {
+      const match = candidates.find(function(t) { return normalizeLang(t.language) === source; });
+      if (match) return match;
+    }
+    if (target) {
+      const match = candidates.find(function(t) { return normalizeLang(t.language) !== target; });
+      if (match) return match;
+    }
+    return candidates[0];
+  }
+
+  async function loadNetflixTrack(track) {
+    const state = getNetflixState();
+    state.items = [];
+    const order = ['webvtt-lssdh-ios8', 'imsc1.1', 'dfxp-ls-sdh', 'simplesdh'];
+    let urls = null;
+    for (let i = 0; i < order.length; i++) {
+      if (track.formats[order[i]]) { urls = track.formats[order[i]]; break; }
+    }
+    if (!urls || !urls.length) return;
+    for (let i = 0; i < urls.length; i++) {
+      try {
+        const res = await fetch(urls[i], { mode: 'cors', credentials: 'omit' });
+        if (!res.ok) continue;
+        const text = await res.text();
+        state.items = parseWebVTT(text);
+        break;
+      } catch (e) {}
+    }
+  }
+
+  function parseWebVTT(text) {
+    const cues = [];
+    const lines = String(text).split(/\r?\n/);
+    let i = 0;
+    if (lines[i] && lines[i].indexOf('WEBVTT') !== -1) i++;
+    while (i < lines.length) {
+      if (!lines[i].trim()) { i++; continue; }
+      if (i + 1 < lines.length && lines[i + 1].indexOf(' --> ') !== -1) {
+        i++;
+      }
+      const timeLine = lines[i];
+      if (!timeLine || timeLine.indexOf(' --> ') === -1) { i++; continue; }
+      const parts = timeLine.split(' --> ');
+      const start = parseVTTTimestamp(parts[0]);
+      const end = parseVTTTimestamp(parts[1]);
+      i++;
+      const textLines = [];
+      while (i < lines.length && lines[i].trim()) {
+        textLines.push(lines[i]);
+        i++;
+      }
+      if (start !== null && end !== null) {
+        cues.push({ start: start, end: end, text: cleanSubtitleText(textLines.join('\n')) });
+      }
+    }
+    return cues;
+  }
+
+  function parseVTTTimestamp(ts) {
+    const m = String(ts).trim().match(/^(?:(\d+):)?(\d{2}):(\d{2})\.(\d{3})$/);
+    if (!m) return null;
+    const h = parseInt(m[1] || '0', 10);
+    const min = parseInt(m[2], 10);
+    const sec = parseInt(m[3], 10);
+    const ms = parseInt(m[4], 10);
+    return h * 3600 + min * 60 + sec + ms / 1000;
+  }
+
+  function findAndAttachNetflixVideo() {
+    const video = findNetflixVideo();
+    if (video) {
+      attachNetflixVideo(video);
+      return;
+    }
+    const observer = new MutationObserver(function() {
+      const v = findNetflixVideo();
+      if (v) {
+        observer.disconnect();
+        attachNetflixVideo(v);
+      }
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    setTimeout(function() { observer.disconnect(); }, 12000);
+  }
+
+  function findNetflixVideo() {
+    return document.querySelector('video');
+  }
+
+  function attachNetflixVideo(video) {
+    const state = getNetflixState();
+    if (state.video === video) return;
+    state.video = video;
+    video.addEventListener('timeupdate', updateNetflixSubtitleForTime);
+    video.addEventListener('seeked', function() {
+      state.currentIndex = -1;
+      updateNetflixSubtitleForTime();
+    });
+    video.addEventListener('emptied', hideNetflixSubtitleOverlay);
+  }
+
+  function updateNetflixSubtitleForTime() {
+    const state = getNetflixState();
+    const video = state.video;
+    if (!video || !state.enabled || !state.items.length) {
+      hideNetflixSubtitleOverlay();
+      return;
+    }
+    const t = video.currentTime;
+    let idx = -1;
+    for (let i = 0; i < state.items.length; i++) {
+      if (state.items[i].start <= t && state.items[i].end > t) {
+        idx = i;
+        break;
+      }
+    }
+    if (idx < 0) {
+      hideNetflixSubtitleOverlay();
+      return;
+    }
+    const cue = state.items[idx];
+    if (state.currentIndex === idx) {
+      if (state.overlay && state.overlay.style.display === 'none') state.overlay.style.display = '';
+      return;
+    }
+    state.currentIndex = idx;
+    const text = cue.text;
+    ensureNetflixSubtitleOverlay();
+    renderNetflixSubtitle(text, state.lastTranslated);
+    if (text !== state.lastText) {
+      state.lastText = text;
+      translateNetflixSubtitle(text);
+    }
+  }
+
+  function ensureNetflixSubtitleOverlay() {
+    const state = getNetflixState();
+    if (state.overlay && state.overlay.parentNode) return;
+    const video = state.video || findNetflixVideo();
+    const parent = video && video.parentElement ? video.parentElement : document.body;
+    parent.classList.add('llm-video-subtitle-host');
+    const overlay = document.createElement('div');
+    overlay.className = 'llm-video-subtitle-overlay';
+    overlay.innerHTML = '<div class="llm-sub-original"></div><div class="llm-sub-translated"></div>';
+    parent.appendChild(overlay);
+    state.overlay = overlay;
+  }
+
+  function renderNetflixSubtitle(original, translated) {
+    const state = getNetflixState();
+    if (!state.overlay) return;
+    const settings = ctx.state.settings || {};
+    const style = normalizeSubtitleStyle(settings.subtitleStyle);
+    state.overlay.classList.remove('llm-subtitle-style-cinema', 'llm-subtitle-style-outline', 'llm-subtitle-style-paper');
+    state.overlay.classList.add('llm-subtitle-style-' + style);
+    state.overlay.dataset.subtitleMode = settings.subtitleMode === 'translation' ? 'translation' : 'bilingual';
+    state.overlay.style.bottom = Math.max(4, Math.min(30, Number(settings.subtitlePosition || 12))) + '%';
+    state.overlay.style.fontSize = Math.max(11, Math.min(24, Number(settings.subtitleFontSize || 14))) + 'px';
+    const origEl = state.overlay.querySelector('.llm-sub-original');
+    const transEl = state.overlay.querySelector('.llm-sub-translated');
+    if (origEl) {
+      origEl.style.display = settings.subtitleMode === 'translation' ? 'none' : '';
+      origEl.textContent = original || '';
+    }
+    if (transEl) transEl.textContent = translated || '';
+  }
+
+  async function translateNetflixSubtitle(text) {
+    const state = getNetflixState();
+    if (!state || state.lastText !== text) return;
+    try {
+      const settings = ctx.state.settings || {};
+      const cacheKey = typeof makeCacheKey === 'function' ? makeCacheKey(text, settings.sourceLang, settings.targetLang, settings.model || 'subtitle') : text;
+      if (ctx.state.subtitleCache.has(cacheKey)) {
+        state.lastTranslated = ctx.state.subtitleCache.get(cacheKey);
+        renderNetflixSubtitle(text, state.lastTranslated);
+        return;
+      }
+      const res = await chrome.runtime.sendMessage({ action: 'translate', text: text });
+      if (state.lastText !== text) return;
+      state.lastTranslated = res.translated || '';
+      if (state.lastTranslated) ctx.state.subtitleCache.set(cacheKey, state.lastTranslated);
+      renderNetflixSubtitle(text, state.lastTranslated);
+    } catch (err) {
+      ctx.fn.safeLog?.('warn', 'Content', 'Netflix subtitle translate failed: ' + err.message);
+    }
+  }
+
+  function hideNetflixSubtitleOverlay() {
+    const state = getNetflixState();
+    if (state.overlay) state.overlay.style.display = 'none';
   }
 
   function setupTextTrackFallback() {

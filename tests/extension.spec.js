@@ -25,7 +25,8 @@ const LARGE_DYNAMIC_FIXTURE_FILE = path.resolve(__dirname, 'fixtures', 'large-dy
 
 async function launchExtensionContext() {
   const context = await chromium.launchPersistentContext('', {
-    headless: false,
+    // Keep headed default for local extension debugging; set HEADLESS=true for CI.
+    headless: process.env.HEADLESS === 'true',
     args: [
       `--disable-extensions-except=${EXTENSION_PATH}`,
       `--load-extension=${EXTENSION_PATH}`
@@ -1399,8 +1400,8 @@ test.describe('extension smoke', () => {
       const ruleInfo = await optionsPage.evaluate(async () => {
         const src = chrome.runtime.getURL('src/lib/site-rules.js');
         await import(src);
-        const amazon = getSiteRule('https://www.amazon.co.jp/dp/B000TEST', {});
-        const bandai = getSiteRule('https://p-bandai.jp/item/item-1000000000/', {});
+        const amazon = await getSiteRule('https://www.amazon.co.jp/dp/B000TEST', {});
+        const bandai = await getSiteRule('https://p-bandai.jp/item/item-1000000000/', {});
         return {
           amazonIds: amazon.matchedIds,
           amazonMain: amazon.mainSelectors,
@@ -1475,8 +1476,8 @@ test.describe('extension smoke', () => {
       const ruleInfo = await optionsPage.evaluate(async () => {
         const src = chrome.runtime.getURL('src/lib/site-rules.js');
         await import(src);
-        const trade = getSiteRule('https://www.binance.com/en/trade/BTC_USDT', {});
-        const article = getSiteRule('https://www.binance.com/en/support/faq/example', {});
+        const trade = await getSiteRule('https://www.binance.com/en/trade/BTC_USDT', {});
+        const article = await getSiteRule('https://www.binance.com/en/support/faq/example', {});
         return {
           tradeIds: trade.matchedIds,
           tradePrivacy: trade.privacyMode,
@@ -1558,7 +1559,7 @@ test.describe('extension smoke', () => {
       const ruleInfo = await optionsPage.evaluate(async () => {
         const src = chrome.runtime.getURL('src/lib/site-rules.js');
         await import(src);
-        const rule = getSiteRule('https://nyaa.si/view/1076664', {});
+        const rule = await getSiteRule('https://nyaa.si/view/1076664', {});
         return {
           ids: rule.matchedIds,
           includes: rule.includeSelectors,

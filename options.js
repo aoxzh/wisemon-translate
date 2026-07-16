@@ -42,6 +42,11 @@ async function init() {
   populateFields(currentSettings);
   setupNavigation();
   setupEventListeners();
+  setupAiActionsEventListeners();
+  setupVocabularyEventListeners();
+  loadVocabulary();
+  setupSiteSubscriptionEventListeners();
+  loadSiteSubscriptions();
   setupOnboarding();
   I18N.localizeContainer(document.querySelector('.opt-page'));
   if (globalThis.CustomSelect) CustomSelect.initAll(document);
@@ -158,6 +163,7 @@ function populateFields(s) {
   setVal('maxChars', s.maxCharsPerRequest || 12000);
   setChecked('largeTextMode', s.largeTextMode !== false);
   setChecked('useStream', s.useStream !== false && (s.streamRenderMode || 'single') !== 'disabled');
+  setChecked('enableContextAwareTranslation', s.enableContextAwareTranslation !== false);
   setVal('uiTheme', s.uiTheme || 'auto');
   applyUiTheme(s.uiTheme || 'auto');
 
@@ -204,6 +210,9 @@ function populateFields(s) {
   renderTermRows(s.terms || []);
   renderSiteTermRows(s.siteTerms || []);
   setVal('aiTermsText', formatAiTermsText(s.aiTerms || []));
+
+  // AI Actions
+  renderAiActions(s.aiActions || DEFAULT_SETTINGS.aiActions || []);
 
   // Display shortcuts (read-only from manifest)
   updateShortcutDisplay(s);
@@ -420,6 +429,388 @@ function parseAiTermsText(text) {
   return aiTerms;
 }
 
+// ---- AI Actions Helpers ----
+
+function renderAiActions(actions) {
+  const list = $('ai-actions-list');
+  if (!list) return;
+  list.innerHTML = '';
+  if (!actions || actions.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'opt-hint';
+    empty.textContent = I18N.t('ai_actions_empty') || 'No custom actions yet.';
+    list.appendChild(empty);
+    return;
+  }
+  actions.forEach(function(action, index) {
+    const row = document.createElement('div');
+    row.className = 'opt-ai-action-row';
+    row.dataset.index = index;
+
+    const icon = document.createElement('span');
+    icon.className = 'opt-ai-action-icon';
+    icon.textContent = action.icon || '⚡';
+
+    const name = document.createElement('span');
+    name.className = 'opt-ai-action-name';
+    name.textContent = action.name || 'Action';
+
+    const output = document.createElement('span');
+    output.className = 'opt-ai-action-output';
+    output.textContent = action.outputMode === 'replace' ? 'replace' : 'panel';
+
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'opt-ai-action-row-actions';
+
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'opt-btn-text';
+    editBtn.textContent = I18N.t('ai_action_edit') || 'Edit';
+    editBtn.addEventListener('click', function() { openAiActionEditor(index); });
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'opt-btn-text danger';
+    delBtn.textContent = I18N.t('ai_action_delete') || 'Delete';
+    delBtn.addEventListener('click', function() { deleteAiAction(index); });
+
+    actionsDiv.appendChild(editBtn);
+    actionsDiv.appendChild(delBtn);
+
+    row.appendChild(icon);
+    row.appendChild(name);
+    row.appendChild(output);
+    row.appendChild(actionsDiv);
+    list.appendChild(row);
+  });
+}
+
+function getAiActionsFromUI() {
+  return currentSettings.aiActions || DEFAULT_SETTINGS.aiActions || [];
+}
+
+function openAiActionEditor(index) {
+  const actions = getAiActionsFromUI();
+  const action = (typeof index === 'number' && actions[index]) ? actions[index] : { id: '', name: '', icon: '⚡', prompt: '', outputMode: 'panel', temperature: 0.3 };
+  $('ai-action-edit-id').value = typeof index === 'number' ? String(index) : '';
+  $('ai-action-edit-name').value = action.name || '';
+  $('ai-action-edit-icon').value = action.icon || '⚡';
+  $('ai-action-edit-prompt').value = action.prompt || '';
+  $('ai-action-edit-output').value = action.outputMode || 'panel';
+  $('ai-action-editor').hidden = false;
+  $('ai-action-edit-name').focus();
+}
+
+function closeAiActionEditor() {
+  $('ai-action-editor').hidden = true;
+  $('ai-action-edit-id').value = '';
+  $('ai-action-edit-name').value = '';
+  $('ai-action-edit-icon').value = '⚡';
+  $('ai-action-edit-prompt').value = '';
+  $('ai-action-edit-output').value = 'panel';
+}
+
+function saveAiActionFromEditor() {
+  const idVal = $('ai-action-edit-id').value;
+  const index = idVal === '' ? -1 : parseInt(idVal, 10);
+  const name = $('ai-action-edit-name').value.trim();
+  const icon = $('ai-action-edit-icon').value.trim() || '⚡';
+  const prompt = $('ai-action-edit-prompt').value.trim();
+  const outputMode = $('ai-action-edit-output').value || 'panel';
+  if (!name || !prompt) {
+    showStatus('save-status', I18N.t('ai_action_required') || 'Name and prompt are required.', 'error');
+    return;
+  }
+  const actions = getAiActionsFromUI().slice();
+  const action = {
+    id: (typeof index === 'number' && index >= 0 && actions[index]?.id) ? actions[index].id : 'action_' + Date.now(),
+    name,
+    icon,
+    prompt,
+    outputMode,
+    temperature: 0.3
+  };
+  if (typeof index === 'number' && index >= 0) {
+    actions[index] = action;
+  } else {
+    actions.push(action);
+  }
+  currentSettings.aiActions = actions;
+  renderAiActions(actions);
+  closeAiActionEditor();
+  // Auto-save settings so actions are persisted immediately
+  chrome.runtime.sendMessage({ action: 'set-settings', settings: currentSettings }).catch(function(){});
+  showStatus('save-status', I18N.t('ai_action_saved') || 'AI Action saved.', 'success');
+}
+
+function deleteAiAction(index) {
+  const actions = getAiActionsFromUI().slice();
+  if (index < 0 || index >= actions.length) return;
+  if (!confirm((I18N.t('ai_action_delete_confirm') || 'Delete this action?') + ' "' + (actions[index].name || '') + '"')) return;
+  actions.splice(index, 1);
+  currentSettings.aiActions = actions;
+  renderAiActions(actions);
+  chrome.runtime.sendMessage({ action: 'set-settings', settings: currentSettings }).catch(function(){});
+}
+
+function setupAiActionsEventListeners() {
+  const addBtn = $('ai-action-add');
+  const saveBtn = $('ai-action-save');
+  const cancelBtn = $('ai-action-cancel');
+  if (addBtn) addBtn.addEventListener('click', function() { openAiActionEditor(); });
+  if (saveBtn) saveBtn.addEventListener('click', saveAiActionFromEditor);
+  if (cancelBtn) cancelBtn.addEventListener('click', closeAiActionEditor);
+}
+
+// ---- Vocabulary Bank ----
+let vocabularyCache = [];
+let vocabularyFilter = '';
+
+async function loadVocabulary() {
+  try {
+    const res = await chrome.runtime.sendMessage({ action: 'get-vocabulary' });
+    vocabularyCache = Array.isArray(res.vocabulary) ? res.vocabulary : [];
+  } catch (e) {
+    vocabularyCache = [];
+  }
+  renderVocabulary();
+}
+
+function renderVocabulary() {
+  const list = $('vocab-list');
+  const stats = $('vocab-stats');
+  if (!list) return;
+  const term = (vocabularyFilter || '').toLowerCase();
+  const filtered = vocabularyCache.filter(function(v) {
+    return (v.term || '').toLowerCase().includes(term) ||
+           (v.translation || '').toLowerCase().includes(term) ||
+           (v.context || '').toLowerCase().includes(term);
+  });
+  if (stats) stats.textContent = filtered.length + ' / ' + vocabularyCache.length + ' entries';
+  list.innerHTML = '';
+  if (!filtered.length) {
+    list.innerHTML = '<div class="opt-hint">No saved vocabulary yet.</div>';
+    return;
+  }
+  filtered.forEach(function(v) {
+    const row = document.createElement('div');
+    row.className = 'opt-vocab-row';
+
+    const main = document.createElement('div');
+    main.className = 'opt-vocab-main';
+    const termEl = document.createElement('div');
+    termEl.className = 'opt-vocab-term';
+    termEl.textContent = v.term || '';
+    const transEl = document.createElement('div');
+    transEl.className = 'opt-vocab-translation';
+    transEl.textContent = v.translation || '—';
+    main.appendChild(termEl);
+    main.appendChild(transEl);
+
+    const meta = document.createElement('div');
+    meta.className = 'opt-vocab-meta';
+    const parts = [];
+    if (v.sourceLang || v.targetLang) parts.push((v.sourceLang || 'auto') + ' → ' + (v.targetLang || ''));
+    if (v.title) parts.push(v.title);
+    meta.textContent = parts.join(' · ');
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'opt-btn-text danger';
+    delBtn.textContent = 'Delete';
+    delBtn.addEventListener('click', function() { deleteVocabulary(v.id); });
+
+    row.appendChild(main);
+    row.appendChild(meta);
+    row.appendChild(delBtn);
+    list.appendChild(row);
+  });
+}
+
+async function deleteVocabulary(id) {
+  try {
+    await chrome.runtime.sendMessage({ action: 'delete-vocabulary', id: id });
+    await loadVocabulary();
+  } catch (e) {}
+}
+
+async function clearVocabularyBank() {
+  if (!confirm(I18N.t('vocabulary_clear_confirm') || 'Clear all saved vocabulary?')) return;
+  if (typeof clearVocabulary === 'function') {
+    await clearVocabulary();
+  } else {
+    await chrome.runtime.sendMessage({ action: 'delete-vocabulary', id: '__all__' });
+  }
+  await loadVocabulary();
+}
+
+function downloadTextFile(filename, text, mime) {
+  const blob = new Blob([text || ''], { type: mime || 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+}
+
+async function exportVocabularyBank() {
+  await loadVocabulary();
+  let csv;
+  if (typeof exportVocabularyCsv === 'function') {
+    csv = window.exportVocabularyCsv(vocabularyCache);
+  } else {
+    csv = buildVocabularyCsv(vocabularyCache);
+  }
+  downloadTextFile('wisemon-vocabulary.csv', csv, 'text/csv;charset=utf-8');
+}
+
+function buildVocabularyCsv(vocab) {
+  function esc(value) {
+    const str = String(value || '');
+    if (/[",\n\r]/.test(str)) return '"' + str.replace(/"/g, '""') + '"';
+    return str;
+  }
+  const rows = (vocab || []).map(function(v) {
+    return [v.term, v.translation, v.sourceLang, v.targetLang, v.context, v.title, new Date(v.ts || Date.now()).toISOString()].map(esc).join(',');
+  });
+  return ['term,translation,sourceLang,targetLang,context,title,date'].concat(rows).join('\n');
+}
+
+function setupVocabularyEventListeners() {
+  const search = $('vocab-search');
+  const exportBtn = $('vocab-export');
+  const clearBtn = $('vocab-clear');
+  if (search) {
+    search.addEventListener('input', function() {
+      vocabularyFilter = search.value;
+      renderVocabulary();
+    });
+  }
+  if (exportBtn) exportBtn.addEventListener('click', exportVocabularyBank);
+  if (clearBtn) clearBtn.addEventListener('click', clearVocabularyBank);
+}
+
+// ---- Site Rule Subscriptions ----
+async function loadSiteSubscriptions() {
+  try {
+    const res = await chrome.runtime.sendMessage({ action: 'get-site-rule-subscriptions' });
+    renderSiteSubscriptions(res.subscriptions || []);
+  } catch (e) {
+    renderSiteSubscriptions([]);
+  }
+}
+
+function renderSiteSubscriptions(subscriptions) {
+  const list = $('site-subscriptions-list');
+  if (!list) return;
+  list.innerHTML = '';
+  if (!subscriptions.length) {
+    list.innerHTML = '<div class="opt-hint" data-i18n="site_subscriptions_empty">No subscriptions yet.</div>';
+    I18N.localizeContainer?.(list);
+    return;
+  }
+  subscriptions.forEach(function(sub) {
+    const row = document.createElement('div');
+    row.className = 'opt-subscription-row';
+    const statusClass = sub.status === 'error' ? 'error' : 'ok';
+    const metaText = (sub.count || 0) + ' rules · ' + formatSubscriptionStatus(sub);
+
+    const info = document.createElement('div');
+    info.className = 'opt-subscription-info';
+    const urlEl = document.createElement('div');
+    urlEl.className = 'opt-subscription-url';
+    urlEl.textContent = sub.url || '';
+    const metaEl = document.createElement('div');
+    metaEl.className = 'opt-subscription-meta ' + statusClass;
+    metaEl.textContent = metaText;
+    if (sub.error) metaEl.title = sub.error;
+    info.appendChild(urlEl);
+    info.appendChild(metaEl);
+
+    const actions = document.createElement('div');
+    actions.className = 'opt-subscription-actions';
+    const refreshBtn = document.createElement('button');
+    refreshBtn.type = 'button';
+    refreshBtn.className = 'opt-btn-text';
+    refreshBtn.textContent = 'Refresh';
+    refreshBtn.addEventListener('click', function() { refreshSiteSubscription(sub.url); });
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'opt-btn-text danger';
+    delBtn.textContent = 'Delete';
+    delBtn.addEventListener('click', function() { removeSiteSubscription(sub.url); });
+    actions.appendChild(refreshBtn);
+    actions.appendChild(delBtn);
+
+    row.appendChild(info);
+    row.appendChild(actions);
+    list.appendChild(row);
+  });
+}
+
+function formatSubscriptionStatus(sub) {
+  if (sub.status === 'error') return 'Error' + (sub.error ? ': ' + sub.error : '');
+  if (!sub.ts) return 'Pending';
+  try {
+    return 'Updated ' + new Date(sub.ts).toLocaleString();
+  } catch (e) {
+    return 'Updated';
+  }
+}
+
+async function addSiteSubscription() {
+  const input = $('site-subscription-url');
+  const url = input && input.value.trim();
+  if (!url) return;
+  const btn = $('site-subscription-add');
+  if (btn) btn.disabled = true;
+  try {
+    const res = await chrome.runtime.sendMessage({ action: 'add-site-rule-subscription', url: url });
+    if (res.success) {
+      input.value = '';
+      await loadSiteSubscriptions();
+      showStatus('site-subscription-status', I18N.t('site_subscriptions_added') || 'Subscription added.', 'success');
+    } else {
+      showStatus('site-subscription-status', res.error || 'Failed to add subscription.', 'error');
+    }
+  } catch (err) {
+    showStatus('site-subscription-status', err.message || 'Failed to add subscription.', 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function removeSiteSubscription(url) {
+  if (!confirm((I18N.t('site_subscriptions_delete_confirm') || 'Remove subscription?') + '\n' + url)) return;
+  try {
+    await chrome.runtime.sendMessage({ action: 'remove-site-rule-subscription', url: url });
+    await loadSiteSubscriptions();
+  } catch (e) {}
+}
+
+async function refreshSiteSubscription(url) {
+  try {
+    await chrome.runtime.sendMessage({ action: 'refresh-site-rule-subscriptions' });
+    await loadSiteSubscriptions();
+  } catch (e) {}
+}
+
+function setupSiteSubscriptionEventListeners() {
+  const addBtn = $('site-subscription-add');
+  const refreshAllBtn = $('site-subscription-refresh-all');
+  const input = $('site-subscription-url');
+  if (addBtn) addBtn.addEventListener('click', addSiteSubscription);
+  if (refreshAllBtn) refreshAllBtn.addEventListener('click', refreshSiteSubscription);
+  if (input) {
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') addSiteSubscription();
+    });
+  }
+}
+
 function updateShortcutDisplay(s) {
   let sc = s.keyboardShortcuts || {};
   if ($('display-sc-translate')) $('display-sc-translate').textContent = formatKbd(sc.translatePage || 'alt+t');
@@ -482,39 +873,64 @@ function updateSubtitlePreview() {
   if (original) original.style.display = getVal('subtitleMode') === 'translation' ? 'none' : '';
 }
 
-async function diagnoseLocalProvider(settings) {
+async function diagnoseProviderConnection(settings) {
   const provider = settings.provider || '';
-  const localProviders = new Set(['ollama', 'hunyuan', 'lmstudio', 'custom']);
-  if (!localProviders.has(provider) || !isLocalBaseUrl(settings.baseURL)) return null;
+  // Providers that do not expose an OpenAI-compatible /v1/models endpoint
+  const nonOpenAiProviders = new Set(['google', 'deepl', 'baidu', 'microsoft']);
+  if (nonOpenAiProviders.has(provider)) return null;
+  const isLocal = isLocalBaseUrl(settings.baseURL);
   const modelsUrl = buildModelsUrl(settings.baseURL || '');
   const controller = new AbortController();
-  const timer = setTimeout(function() { controller.abort(); }, 5000);
+  const timer = setTimeout(function() { controller.abort(); }, 8000);
   try {
     const headers = {};
     if (settings.apiKey) headers.Authorization = 'Bearer ' + settings.apiKey;
     const res = await fetch(modelsUrl, { method: 'GET', headers: headers, signal: controller.signal });
     if (res.status === 404) {
-      return { ok: false, message: 'Local check: /v1/models returned 404. Confirm the base URL includes /v1 and the server exposes an OpenAI-compatible models endpoint. The extension only connects to localhost; it does not install or run models.' };
+      return {
+        ok: false,
+        message: (isLocal ? 'Local check' : 'Connection check') + ': /v1/models returned 404. Confirm the base URL is correct and the server exposes an OpenAI-compatible models endpoint.'
+      };
     }
     if (!res.ok) {
-      return { ok: false, message: 'Local check: /v1/models returned HTTP ' + res.status + '. Confirm the service is running, CORS is enabled for browser requests, and the model server accepts this endpoint.' };
+      return {
+        ok: false,
+        message: (isLocal ? 'Local check' : 'Connection check') + ': /v1/models returned HTTP ' + res.status + '. Confirm the service is running, the API key is valid, CORS is enabled for browser requests, and the endpoint accepts this request.'
+      };
     }
     const data = await res.json().catch(function() { return null; });
     const models = Array.isArray(data?.data) ? data.data.map(function(item) { return item.id || item.name || ''; }).filter(Boolean) : [];
     if (!models.length) {
-      return { ok: true, message: 'Local check: server responded, but no model names were listed. If translation fails, verify the model field exactly matches the model server.' };
+      return {
+        ok: true,
+        message: (isLocal ? 'Local check' : 'Connection check') + ': server responded, but no model names were listed. If translation fails, verify the model field exactly matches the server.'
+      };
     }
     if (settings.model && !models.includes(settings.model)) {
-      return { ok: false, message: 'Local check: server is reachable, but model "' + settings.model + '" was not listed. Available: ' + models.slice(0, 6).join(', ') + (models.length > 6 ? '...' : '') + '.' };
+      return {
+        ok: false,
+        message: (isLocal ? 'Local check' : 'Connection check') + ': server is reachable, but model "' + settings.model + '" was not listed. Available: ' + models.slice(0, 6).join(', ') + (models.length > 6 ? '...' : '') + '.'
+      };
     }
-    return { ok: true, message: 'Local check: server is reachable and model is listed. Requests go directly from the browser to ' + new URL(settings.baseURL).origin + '; this extension is not a proxy.' };
+    return {
+      ok: true,
+      message: (isLocal ? 'Local check' : 'Connection check') + ': server is reachable and model is listed. Requests go directly from the browser to ' + new URL(settings.baseURL).origin + '; this extension is not a proxy.'
+    };
   } catch (err) {
     const timedOut = err && err.name === 'AbortError';
+    if (isLocal) {
+      return {
+        ok: false,
+        message: timedOut
+          ? 'Local check: /v1/models timed out. Start the local model server first, then retry. This extension does not download, install, or launch local programs.'
+          : 'Local check: could not reach /v1/models. The service may be stopped, the port may be wrong, or browser CORS may be blocking requests. This extension only connects to the endpoint you configure.'
+      };
+    }
     return {
       ok: false,
       message: timedOut
-        ? 'Local check: /v1/models timed out. Start the local model server first, then retry. This extension does not download, install, or launch local programs.'
-        : 'Local check: could not reach /v1/models. The service may be stopped, the port may be wrong, or browser CORS may be blocking requests. This extension only connects to the endpoint you configure.'
+        ? 'Connection check: /v1/models timed out. Check the base URL, network, and whether the provider API is reachable from your browser.'
+        : 'Connection check: could not reach /v1/models. Check the base URL, API key, network, or browser CORS restrictions.'
     };
   } finally {
     clearTimeout(timer);
@@ -562,6 +978,7 @@ function readSettingsFromUI() {
     customTranslationCss: getVal('customTranslationCss').trim() || '',
     largeTextMode: isChecked('largeTextMode'),
     maxCharsPerRequest: (function(v) { const n = parseInt(v); return isNaN(n) ? 12000 : n; })(getVal('maxChars')),
+    enableContextAwareTranslation: isChecked('enableContextAwareTranslation'),
     useStream: isChecked('useStream'),
     streamRenderMode: isChecked('useStream') ? 'single' : 'disabled',
     uiTheme: getVal('uiTheme') || 'auto',
@@ -594,6 +1011,7 @@ function readSettingsFromUI() {
     terms: readTermRows(),
     siteTerms: readSiteTermRows(),
     aiTerms: parseAiTermsText(getVal('aiTermsText')),
+    aiActions: currentSettings.aiActions || DEFAULT_SETTINGS.aiActions || [],
     privacyMasking: isChecked('privacyMasking'),
     maskEmail: isChecked('maskEmail'),
     maskPhone: isChecked('maskPhone'),
@@ -798,11 +1216,12 @@ function setupEventListeners() {
       await chrome.runtime.sendMessage({ action: 'set-settings', settings: settings });
       currentSettings = settings;
       showStatus('save-status', I18N.t('save_success'), 'success');
-      // Push theme/style changes to web page tabs (not this options page)
+      // Push theme/style changes to the current web page tab only to avoid
+      // connection-error noise on tabs that have not loaded the content script.
       try {
-        let allTabs = await chrome.tabs.query({ currentWindow: true, url: ['http://*/*', 'https://*/*'] });
-        for (let tab of allTabs) {
-          if (tab.id) chrome.tabs.sendMessage(tab.id, { action: 'update-theme', settings: settings }).catch(function(){});
+        const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true, url: ['http://*/*', 'https://*/*'] });
+        if (activeTab?.id) {
+          chrome.tabs.sendMessage(activeTab.id, { action: 'update-theme', settings: settings }).catch(function(){});
         }
       } catch(e) {}
     } catch(err) {
@@ -838,7 +1257,7 @@ function setupEventListeners() {
     }
 
     try {
-      const diagnostic = await diagnoseLocalProvider(settings);
+      const diagnostic = await diagnoseProviderConnection(settings);
       if (diagnosticEl && diagnostic) {
         diagnosticEl.hidden = false;
         diagnosticEl.classList.add(diagnostic.ok ? 'success' : 'warn');
